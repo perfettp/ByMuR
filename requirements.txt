@@ -13,5 +13,3 @@ python-dateutil==2.2
 six==1.7.3
 tornado==4.0
 wsgiref==0.1.2
-wxPython==2.8.12.1
-wxPython-common==2.8.12.1

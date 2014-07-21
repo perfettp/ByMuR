@@ -1,8 +1,8 @@
 Bayesian MUlti-Risk Assessment
 
-Ambiente di sviluppo per Ubuntu 12.04
+How-TO create a development and execution environment on Ubuntu 12.04
 
-** Requisiti 
+** Requirements
 	- python-pip
 	- python-virtualenv
 	- virtualenvwrapper
@@ -12,20 +12,27 @@ Ambiente di sviluppo per Ubuntu 12.04
 	- libmysqlclient-dev
 	
 
-** Configurare virtualenvwrapper 
-	http://virtualenvwrapper.readthedocs.org/en/latest/
-	- Nel caso di directory non standard bisogna eliminare o commentare il file 
-	/etc/bash_completion.d/virtualenvwrapper ed aggiungere le seguenti righe
-	in ~/.bashrc o ~/.profile: 
+** Configure virtualenvwrapper 
+	Read http://virtualenvwrapper.readthedocs.org/en/latest/
+	If you want to use a non-standard directory to store the virtualenvs
+	you have to comment out (or delete) the following file
+	/etc/bash_completion.d/virtualenvwrapper
+	and the add these instructions in ~/.bashrc or ~/.profile: 
 
   export WORKON_HOME=$HOME/dev/virtualenvs
   export VIRTUALENVWRAPPER_LOG_DIR="$WORKON_HOME"
   export VIRTUALENVWRAPPER_HOOK_DIR="$WORKON_HOME"
   source /etc/bash_completion.d/virtualenvwrapper
 
-** Creare l'ambiente di sviluppo
-	$ mkvirtualenv bymur_dev
+** Create now the virtualenv (with virtualenvwrapper) 
+	$ mkvirtualenv bymur-dev
 
-** Linkare il modulo wxPython esterno al virtualenv (workaround poco elegante) 
+** (ugly workaround) While the new virtualenv is activated link the external wxPython module inside it
 	(bymur_dev)$ ln -s /usr/lib/python2.7/dist-packages/wx* $VIRTUAL_ENV/lib/python2.7/site-packages/
 
+** Check out the git repository
+	(bymur_dev)$ git clone git@gitlab.bo.ingv.it:perfetti/bymur.git
+
+** Install requested python modules
+	(bymur_dev)$ pip install --upgrade distribute
+	(bymur_dev)$ pip install -r requirements.txt
