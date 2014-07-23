@@ -1,4 +1,4 @@
-#!/usr/bin/env python1
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 '''
@@ -89,6 +89,8 @@ class BymurFrame(wx.Frame):
     # nt = len(dtime)
 
     def __init__(self, parent, id, title):
+        """
+        """
         wx.Frame.__init__(self, parent, id, title, wx.DefaultPosition)
     #     self.SetIcon(wx.Icon("icons/", wx.BITMAP_TYPE_ANY))
 
@@ -1424,7 +1426,7 @@ class BymurFrame(wx.Frame):
         print self.vh
 
     def on_quit(self, event):
-
+         # db.dbClose(self.cur)
         self.Destroy()
 
     # ROBERTO 28/06/2013

@@ -182,6 +182,10 @@ def dbConnection(*kargs):
         print "Error %d: %s" % (e.args[0], e.args[1])
         sys.exit(1)
 
+def dbClose(*kargs):
+    cursor = kargs[0]
+    return cursor.close()
+
 
 def dbXmlParsing(*kargs):
     """
