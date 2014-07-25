@@ -100,15 +100,6 @@ def xmlParsing(*kargs):
         pos = []
         poe = []
 
-        # for node in tree.iter():
-        # if ("hazardCurves" in node.tag):
-        # intMs = node.attrib.get("IMT")
-        # if ("IMLs" in node.tag):
-        # iml = [float(x) for x in node.text.split()]
-        # if ("pos" in node.tag):
-        # pos.append([float(x) for x in node.text.split()])
-        # if ("poEs" in node.tag):
-        # poe.append([float(x) for x in node.text.split()])
         for node in tree.iter():
             if ("model" in node.tag):
                 mod = node.attrib.get("Model")

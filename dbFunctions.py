@@ -32,14 +32,12 @@
 import os
 import sys
 import warnings
-import wx
 import numpy as np
 import xml.etree.ElementTree as xml
 import MySQLdb as mdb
 import globalFunctions as gf
 
 
-# JACOPO 10/06/13
 def dbReadHC(*kargs):
     haz_sel = kargs[0]        # selected hazard phenomenon
     tw = kargs[1]             # selected time window
@@ -50,11 +48,8 @@ def dbReadHC(*kargs):
 
     print 'haz_sel-->', haz_sel
     print 'tw-->', tw
-    # print hc.shape
 
     tbname = "hazard" + str(haz_sel + 1)
-#    cmd = "SELECT stat FROM " + tbname + " WHERE STRCMP(dtime,'" \
-#       + dtime[tw] + "')>0 AND stat != 'Average' AND id_points = 1"
     cmd = "SELECT stat FROM " + tbname + " WHERE dtime = '" + \
         dtime[haz_sel][tw].zfill(3) + "' AND stat != 'Average' AND id_points = 1"
     cur.execute(cmd)
@@ -67,11 +62,8 @@ def dbReadHC(*kargs):
         line = tmp1[iperchaz]
         tmp2 = line[0].split('Perc')
         perc_haz[iperchaz] = tmp2[1]
-#    hc_perc.insert(haz_sel,perc_haz)
     hc_perc[haz_sel] = perc_haz
-#    print 'hc_perc',hc_perc
     percsel = range(1, 100)  # [10,50,90]
-# hc[haz_sel][tw][perc][pt_sel][:]
     cmd = "SELECT id_points,curve FROM " + tbname + " WHERE dtime ='" \
         + dtime[haz_sel][tw].zfill(3) + "' AND stat = 'Average'"
     cur.execute(cmd)
@@ -79,13 +71,10 @@ def dbReadHC(*kargs):
     for row in rows:
         ipoint = row[0]
         curvetmp = row[1]
-#       print len(curvetmp)
-#       print len(hc[haz_sel][tw][0][ipoint-1])
         hc[haz_sel][tw][0][ipoint - 1] = curvetmp
 
     for ipercsel in range(len(perc_haz)):
         perctmp = perc_haz[ipercsel]
-        # print "Selected percentile:" + str(perctmp)
         cmd = "SELECT id_points,curve FROM " + tbname + " WHERE dtime = '" + \
             dtime[haz_sel][tw].zfill(3) + "' AND stat = 'Perc" + str(perctmp) + "'"
         cur.execute(cmd)
@@ -98,10 +87,6 @@ def dbReadHC(*kargs):
     print 'DB table read!!'
     return hc
 
-# JACOPO 10/06/13
-
-
-# ROBERTO 28/06/2013
 def dbSelectDtime(*kargs):
     """
     """
@@ -118,10 +103,6 @@ def dbSelectDtime(*kargs):
         rows = cur.fetchall()
         return rows
 
-# END ROBERTO 28/06/2013
-
-
-# ROBERTO 23/09/2013
 def dbAssignFlagPerc(*kargs):
     """
     """
@@ -131,15 +112,6 @@ def dbAssignFlagPerc(*kargs):
     nhaz = kargs[2]
 
     with con:
-        #    sql_query = """
-        #                SELECT id from {0} WHERE stat LIKE 'Perc%'
-        #                """
-        #    cur.execute(sql_query.format(nhaz))
-        #    if cur.fetchone():
-        #      return 1
-        #    else:
-        #      return 0
-
         sql_query = """
                 SELECT curve from {0} WHERE stat LIKE 'Perc%' AND id_points=1
                 """
@@ -154,8 +126,6 @@ def dbAssignFlagPerc(*kargs):
             return 1
         else:
             return 0
-
-# END ROBERTO 23/09/2013
 
 
 def dbConnection(*kargs):
@@ -332,9 +302,7 @@ def dbHazTabPop(*kargs):
     hazpath = kargs[6]
     npts = kargs[7]
 
-# JACOPO 18.06.2013
     dtimefold = kargs[8]
-# JACOPO 18.06.2013
 
     mod = []
     imt = []
@@ -350,8 +318,6 @@ def dbHazTabPop(*kargs):
             meanTmp = []
 
             for k in range(len(dtime[nmods - 1])):
-                # JACOPO 18.06.2013
-                #        curdir = os.path.join(hazpath, hazards[h], models[h][m], dtime[k])
                 print h, m, k, nmods
                 print hazpath, hazards[h], models[h][m], dtimefold[nmods - 1][k]
                 curdir = os.path.join(
@@ -362,7 +328,6 @@ def dbHazTabPop(*kargs):
                         nmods -
                         1][k])
                 print "reading from ", curdir
-# FINE JACOPO 18.06.2013
                 if not os.listdir(curdir):
                     # break
                     modTmp = "Null"
@@ -374,9 +339,7 @@ def dbHazTabPop(*kargs):
                 else:
                     print "found: dtime=", k, ' from: ', curdir
                     # reading average
-#          filexml = os.path.join(curdir, "hazardcurve-average.xml")
                     filexml = os.path.join(curdir, "hazardcurve-mean.xml")
-#          print 'file -->',filexml
                     tmp = dbXmlParsing(filexml)
                     modTmp = tmp[0]
                     imtTmp = tmp[2]
@@ -398,9 +361,6 @@ def dbHazTabPop(*kargs):
                                 ' '.join(
                                     '0.0 ' for i in range(niml))] * npts
                             hcTmp2.append(tmplist)
-#              msg = ("ERROR:\nUploaded file path is wrong: " + filexml)
-#              gf.showErrorMessage(None, msg, "ERROR")
-#              return
 
                     else:
                         hcTmp.append(hcTmp2)

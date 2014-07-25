@@ -5,7 +5,7 @@
   Bymur Software computes Risk and Multi-Risk associated to Natural Hazards.
   In particular this tool aims to provide a final working application for
   the city of Naples, considering three natural phenomena, i.e earthquakes,
-  volcanic eruptions and tsunamis.
+  volcanic eruptions and tsunamis.1
   The tool is the final product of BYMUR, an Italian project funded by the
   Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro in
   Ricerca funding program.
@@ -30,31 +30,22 @@
 '''
 
 import os
-# import sys
 
 # third-party modules
 import wx
 import numpy as np
 import matplotlib as mlib
 mlib.use('WX')
-# from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as figcv
-# from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as navtb
 
-# from matplotlib.patches import Circle, Wedge, Rectangle
-# from matplotlib.collections import PatchCollection
-# from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import matplotlib.pyplot as plt
 
-# sys.path.append('src')
 import globalFunctions as gf
 import dbFunctions as db
 import getGMapsImg as gmaps
 import plotLibs
-# JACOPO 10/6/13
 import scientLibs
 import math
-# import re
-# END JACOPO 10/6/13
+
 
 
 class BymurFrame(wx.Frame):
@@ -68,29 +59,25 @@ class BymurFrame(wx.Frame):
     pt_sel = 0           # selected point
     haz_sel = 0          # selected hazard phenomenon
     single_haz = True    # selected
-    # JACOPO 10/06/13
-    RP = 4975             # selected Return Period
-    intTh = 3.0            # selected intensity threshold
-    # END JACOPO 10/06/13
+    RP = 4975            # selected Return Period
+    intTh = 3.0          # selected intensity threshold
     tw = 0               # selected time window
 
     # defining some input
     hazards = ["Volcanic", "Seismic", "Tsunami"]           # hazard phenomena
     perc = range(1, 100)                                   # percentiles
-    # dtime = ["1", "5", "10", "50"]                             # time windows
+
     # limits of image map
     limits = [375.300, 508.500, 4449.200, 4569.800]
     imgpath = os.path.join(srcdir, "data", "naples.png")   # image map path
-    gridpath = os.path.join(
-        srcdir, "data", "naples-grid.txt")  # image map path
+    gridpath = os.path.join(srcdir, "data",
+                            "naples-grid.txt")  # image map path
 
     nhaz = len(hazards)
     nperc = len(perc)
-    # nt = len(dtime)
 
     def __init__(self, parent, id, title):
         wx.Frame.__init__(self, parent, id, title, wx.DefaultPosition)
-    #     self.SetIcon(wx.Icon("icons/", wx.BITMAP_TYPE_ANY))
 
         # menubar
         self.menuBar = wx.MenuBar()
@@ -99,22 +86,15 @@ class BymurFrame(wx.Frame):
         self.plotMenu = wx.Menu()
 
         load_db_item = wx.MenuItem(self.fileMenu, 102, '&Load DataBase')
-        # quit_item.SetBitmap(wx.Bitmap('icons/exit.png'))
         self.fileMenu.AppendItem(load_db_item)
         self.Bind(wx.EVT_MENU, self.openLoadDB, id=102)
         self.fileMenu.AppendSeparator()
 
         load_bymurDBitem = wx.MenuItem(self.fileMenu, 103,
                                        '&Load remote ByMuR DB')
-        # quit_item.SetBitmap(wx.Bitmap('icons/exit.png'))
         self.fileMenu.AppendItem(load_bymurDBitem)
         self.Bind(wx.EVT_MENU, self.loadBymurDB, id=103)
         self.fileMenu.AppendSeparator()
-
-        # load_in_item = wx.MenuItem(self.fileMenu, 103, '&Load Input Files')
-        # self.fileMenu.AppendItem(load_in_item)
-        # self.Bind(wx.EVT_MENU, self.loadInputfiles, id=103)
-        # self.fileMenu.AppendSeparator()
 
         quitItem = wx.MenuItem(self.fileMenu, 105, '&Quit')
         self.fileMenu.AppendItem(quitItem)
@@ -150,24 +130,16 @@ class BymurFrame(wx.Frame):
         self.map_export_gis.Enable(False)
         self.map_menu_ch.Enable(False)
 
-    # JACOPO 4/6/13
         self.analysisMenu = wx.Menu()
-    # ROBERTO 13/06/2013
-        # ensemble_item = wx.MenuItem(self.analysisMenu, 211,
-        # 'Create &Ensemble hazard')
+
         self.ensemble_item = wx.MenuItem(self.analysisMenu, 211,
                                          'Create &Ensemble hazard')
         self.analysisMenu.AppendItem(self.ensemble_item)
-        # self.analysisMenu.AppendItem(ensemble_item)
-    # END ROBERTO 13/06/2013
+
         self.menuBar.Append(self.analysisMenu, '&Analysis')
 
-    # ROBERTO 13/06/2013
-        # self.Bind(wx.EVT_MENU, self.ensemble_do, id=211)
         self.Bind(wx.EVT_MENU, self.openEnsembleFr, id=211)
         self.ensemble_item.Enable(False)
-    # END ROBERTO 13/06/2013
-    # END JACOPO 4/6/13
 
         self.SetMenuBar(self.menuBar)
 
@@ -241,44 +213,10 @@ class BymurFrame(wx.Frame):
         self.vbox_haz_lt.Add(self.ctw, 0, wx.TOP, 4)
         self.Bind(wx.EVT_COMBOBOX, self.selTimeWindow, self.ctw)
 
-        # self.rb1 = wx.RadioButton(self.pnl_lt, wx.ID_ANY, "Volcanic",
-        # style=wx.RB_GROUP)
-        # self.rb2 = wx.RadioButton(self.pnl_lt, wx.ID_ANY, "Seismic")
-        # self.rb3 = wx.RadioButton(self.pnl_lt, wx.ID_ANY, "Tsunami")
-        # self.rb1.SetValue(True)
-
-        # self.Bind(wx.EVT_RADIOBUTTON, self.selHazard, self.rb1)
-        # self.Bind(wx.EVT_RADIOBUTTON, self.selHazard, self.rb2)
-        # self.Bind(wx.EVT_RADIOBUTTON, self.selHazard, self.rb3)
-
-        # self.vbox_haz_rt.Add(self.rb1, 0, wx.TOP, 10)
-        # self.vbox_haz_rt.Add(self.rb2, 0, wx.TOP, 10)
-        # self.vbox_haz_rt.Add(self.rb3, 0, wx.TOP, 10)
-
         hbox_haz.Add(self.vbox_haz_lt, 0, wx.EXPAND | wx.ALL, 10)
         hbox_haz.Add(self.vbox_haz_rt, 0, wx.EXPAND | wx.ALL, 10)
 
-    # ROBERTO 27/06/2013
-    #    hbox_vul = wx.StaticBoxSizer(wx.StaticBox(self.pnl_lt, wx.ID_ANY,
-    #                                 'Vulnerability'), orient=wx.HORIZONTAL)
-    #    self.b_bld_tab = wx.Button(self.pnl_lt, wx.ID_ANY, 'Buildings Table')
-    #    self.Bind(wx.EVT_BUTTON, self.show_bld_tab, self.b_bld_tab)
-    #    hbox_vul.Add(self.b_bld_tab, 0, wx.ALIGN_BOTTOM|wx.TOP|wx.LEFT, 5)
-    #    self.b_bld_tab.Disable()
-    #
-    #    hbox_exp = wx.StaticBoxSizer(wx.StaticBox(self.pnl_lt, wx.ID_ANY,
-    #                                 'Exposure'), orient=wx.HORIZONTAL)
-    #
-    #    hbox_risk = wx.StaticBoxSizer(wx.StaticBox(self.pnl_lt, wx.ID_ANY,
-    #                                  'Risk'), orient=wx.HORIZONTAL)
-    # END ROBERTO 27/06/2013
-
         vbox_lt.Add(hbox_haz, 0, wx.EXPAND | wx.ALL, 5)
-    # ROBERTO 27/06/2013
-    #    vbox_lt.Add(hbox_vul, 0, wx.EXPAND|wx.ALL, 5)
-    #    vbox_lt.Add(hbox_exp, 0, wx.EXPAND|wx.ALL, 5)
-    #    vbox_lt.Add(hbox_risk, 0, wx.EXPAND|wx.ALL, 5)
-    # END ROBERTO 27/06/2013
 
         self.pnl_lt.SetSizer(vbox_lt)
         self.pnl_lt.Enable(False)
@@ -303,7 +241,6 @@ class BymurFrame(wx.Frame):
         self.nb.AddPage(self.pn4, "Risk")
 
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.onTabChanged)
-        # self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGING, self.on_tab_changed)
         box_nb = wx.BoxSizer(orient=wx.VERTICAL)
         box_nb.Add(self.nb, 1, wx.EXPAND | wx.ALL, 10)
         self.pnl_curves.SetSizer(box_nb)
@@ -324,7 +261,6 @@ class BymurFrame(wx.Frame):
         self.pnl_curves.SetSize((-1, 100))
         self.Centre()
 
-    # ROBERTO 26/09/2013
     def loadBymurDB(self, event):
         """
         """
@@ -335,9 +271,6 @@ class BymurFrame(wx.Frame):
         self.con, self.cur = db.dbConnection(server, user, pwd, dbname)
         self.loadDB()
 
-    # ROBERTO 26/09/2013
-
-    # ROBERTO 27/06/2013
     def exportAsciiGis(self, event):
         """
         """
@@ -370,8 +303,6 @@ class BymurFrame(wx.Frame):
             fp.close()
 
         dlg.Destroy()
-
-    # END ROBERTO 27/06/2013
 
     def dropAllTabs(self, event):
         """
@@ -409,10 +340,7 @@ class BymurFrame(wx.Frame):
                     dist = np.sqrt((self.lon - xsel) ** 2 +
                                    (self.lat - ysel) ** 2)
                     self.pt_sel = np.argmin(dist)
-    # JACOPO 3/5/13
-    #        self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-    #                             self.dtime, self.pt_sel, self.perc, self.iml,
-    #                             self.imt)
+
                     self.pn2.hazardCurve(
                         self.hc,
                         self.haz_sel,
@@ -426,7 +354,6 @@ class BymurFrame(wx.Frame):
                         self.th,
                         self.hc_perc,
                         self.intTh)
-    # FINE JACOPO 3/5/13
                 else:
                     return
 
@@ -460,14 +387,12 @@ class BymurFrame(wx.Frame):
             msg = ("WARNING:\nThis feature has not been implemented yet")
             gf.showWarningMessage(self, msg, "WARNING")
             return
-            # self.Layout()
 
         elif (sel == 2):
             self.nb.ChangeSelection(old)
             msg = ("WARNING:\nThis feature has not been implemented yet")
             gf.showWarningMessage(self, msg, "WARNING")
             return
-            # self.Layout()
 
         else:
             pass
@@ -491,7 +416,6 @@ class BymurFrame(wx.Frame):
             print item
             self.ctw.Append(item)
         self.ctw.SetSelection(self.tw)
-    # JACOPO 7/6/13
         print '---------selHazard--------------'
         print 'Selected model: ', self.haz_sel
         ntry = int(math.floor(self.npts * 0.5))
@@ -504,7 +428,6 @@ class BymurFrame(wx.Frame):
             db.dbReadHC(self.haz_sel, self.tw, self.dtime, self.cur, self.hc,
                         self.hc_perc)
             busydlg = None
-    # END JACOPO 7/6/13
 
         self.zmap = self.pn1.hazardMap(
             self.hc,
@@ -524,45 +447,16 @@ class BymurFrame(wx.Frame):
             self.limits,
             self.iml,
             self.imt)
-    # JACOPO 3/6/13
-    #    self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-    #                         self.dtime, self.pt_sel, self.perc, self.iml,
-    #                         self.imt)
         self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
                              self.dtime, self.pt_sel, self.perc, self.iml,
                              self.imt, self.th, self.hc_perc, self.intTh)
         print '------------------------------'
-    # FINE JACOPO 3/6/13
-
-        # if (self.rb1.GetValue()):
-        # self.haz_sel = 0
-        # self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-        # self.dtime, self.pt_sel, self.perc, self.iml,
-        # self.imt)
-
-        # elif (self.rb2.GetValue()):
-        # self.haz_sel = 1
-        # self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-        # self.dtime, self.pt_sel, self.perc, self.iml,
-        # self.imt)
-
-        # elif (self.rb3.GetValue()):
-        # self.haz_sel = 2
-        # self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-        # self.dtime, self.pt_sel, self.perc, self.iml,
-        # self.imt)
-        # else:
-        # msg = ("ERROR\nHazard selection gave an unexpected error")
-        # gf.showErrorMessage(self, msg, "ERROR")
-        # self.fr.Raise()
-        # return
 
     def selTimeWindow(self, event):
         """
         """
         self.tw = int(self.ctw.GetSelection())
 
-    # JACOPO 10/6/13
         print '----------selTimeWindow-------------'
         self.th = scientLibs.prob_thr(self.RP,
                                       self.dtime[self.haz_sel][self.tw])
@@ -570,16 +464,12 @@ class BymurFrame(wx.Frame):
         ntry = int(math.floor(self.npts * 0.5))
         tmp2 = self.hc[self.haz_sel][self.tw][0][ntry]
         tmp = sum([float(j) for j in tmp2.split()])
-    #    if not tmp:
-    #      print 'Model not available!!'
-    #    else:
         if (tmp == 0):
             busydlg = wx.BusyInfo("...Reading hazard from DB")
             wx.Yield()
             db.dbReadHC(self.haz_sel, self.tw, self.dtime, self.cur, self.hc,
                         self.hc_perc)
             busydlg = None
-    # END JACOPO 10/6/13
 
         self.zmap = self.pn1.hazardMap(
             self.hc,
@@ -600,27 +490,18 @@ class BymurFrame(wx.Frame):
             self.iml,
             self.imt)
 
-    # JACOPO 3/6/13
-    #    self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-    #                         self.dtime, self.pt_sel, self.perc, self.iml,
-    #                         self.imt)
         self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
                              self.dtime, self.pt_sel, self.perc, self.iml,
                              self.imt, self.th, self.hc_perc, self.intTh)
         print '------------------------------'
-    # FINE JACOPO 3/6/13
 
-    # ROBERTO 26.09.2013
     def selReturnPeriod(self, event):
         """
         """
-    # JACOPO 10/6/13
         print '---------selReturnPeriod--------------'
         self.RP = float(self.cpth.GetValue())
         self.th = scientLibs.prob_thr(self.RP,
                                       self.dtime[self.haz_sel][self.tw])
-    #    self.th = float(self.cth.GetValue())
-    # FINE JACOPO 10/6/13
 
         self.zmap = self.pn1.hazardMap(
             self.hc,
@@ -640,11 +521,9 @@ class BymurFrame(wx.Frame):
             self.limits,
             self.iml,
             self.imt)
-    # JACOPO 10/6/13
         self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
                              self.dtime, self.pt_sel, self.perc, self.iml,
                              self.imt, self.th, self.hc_perc, self.intTh)
-    # FINE JACOPO 10/6/13
         print '------------------------------'
 
     def selIntensityTh(self, event):
@@ -675,7 +554,6 @@ class BymurFrame(wx.Frame):
                              self.dtime, self.pt_sel, self.perc, self.iml,
                              self.imt, self.th, self.hc_perc, self.intTh)
         print '------------------------------'
-    # END ROBERTO 26.09.2013
 
     def openAddDB(self, event):
         """
@@ -718,7 +596,6 @@ class BymurFrame(wx.Frame):
         hbox_pt = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.gridfile = wx.TextCtrl(self.fr, wx.ID_ANY, size=(200, 24))
         self.gridfile.SetValue(self.gridpath)
-        # self.gridfile.SetValue("(Grid file path)")
         hbox_pt.Add(self.gridfile, 0, wx.TOP, 4)
         self.ptbut = wx.Button(
             self.fr, wx.ID_ANY, "Select File", size=(-1, 26))
@@ -851,29 +728,11 @@ class BymurFrame(wx.Frame):
         hbox_h1 = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.hazpath = wx.TextCtrl(self.fr, wx.ID_ANY, size=(200, 24))
         self.hazpath.SetValue(self.srcdir)
-        # self.hazpath.SetValue("(Directory path)")
         hbox_h1.Add(self.hazpath, 0, wx.TOP, 2)
         self.bsel = wx.Button(self.fr, wx.ID_ANY, "Select Path", size=(-1, 26))
         self.Bind(wx.EVT_BUTTON, self.selHazPath, self.bsel)
         hbox_h1.Add(self.bsel, 0, wx.LEFT, 5)
         self.vbox_haz.Add(hbox_h1)
-
-        # hbox_h2 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        # hbox_h2.Add(wx.StaticText(self.fr, wx.ID_ANY,
-        # label="Number of hazard models:",
-        # size=(200,24)), 0, wx.TOP|wx.ALIGN_BOTTOM, 12)
-        # self.nhazmod = wx.ComboBox(self.fr, wx.ID_ANY, pos=(-1, -1), size=(95, -1),
-        # choices=["1", "2", "3", "4", "5"],
-        # style=wx.CB_DROPDOWN)
-        # self.Bind(wx.EVT_COMBOBOX, self.defineModels, self.nhazmod)
-        # self.nhazmod = wx.SpinCtrl(self.fr, wx.ID_ANY, "1", min=1, max=120,
-        # size=(60,26))
-        # self.Bind(wx.EVT_SPINCTRL, self.spinModels, self.nhazmod)
-        # hbox_h2.Add(self.nhazmod, 0, wx.LEFT|wx.ALIGN_CENTER_VERTICAL, 2)
-        # self.vbox_haz.Add(hbox_h2)
-
-        # self.vbox_models = wx.BoxSizer(orient=wx.VERTICAL)
-        # self.vbox_haz.Add(self.vbox_models)
 
         self.vbox_haz.Add(wx.StaticText(self.fr, wx.ID_ANY,
                                         label="Insert percentile single values or ranges:",
@@ -887,18 +746,10 @@ class BymurFrame(wx.Frame):
                                       size=(-1, -1))
         self.vbox_haz.Add(self.perc_lbl, 0, wx.TOP, 5)
 
-        # hbox_vul = wx.StaticBoxSizer(wx.StaticBox(self.fr, wx.ID_ANY,
-        # 'Vulnerability'), orient=wx.HORIZONTAL)
-
-        # hbox_exp = wx.StaticBoxSizer(wx.StaticBox(self.fr, wx.ID_ANY,
-        # 'Exposure'), orient=wx.HORIZONTAL)
-
         vbox1.Add(vbox_geo, 0, wx.EXPAND | wx.ALL, 5)
         vbox1.Add(vbox_map, 0, wx.EXPAND | wx.ALL, 5)
         vbox1.Add(vbox_con, 1, wx.EXPAND | wx.ALL, 5)
         vbox2.Add(self.vbox_haz, 0, wx.EXPAND | wx.ALL, 5)
-        # vbox2.Add(hbox_vul, 1, wx.EXPAND|wx.ALL, 5)
-        # vbox2.Add(hbox_exp, 1, wx.EXPAND|wx.ALL, 5)
 
         hbox_bot = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.canc_button = wx.Button(self.fr, wx.ID_ANY, "Cancel",
@@ -956,7 +807,6 @@ class BymurFrame(wx.Frame):
                        float(self.lat_max.GetValue()) / 1000]
 
         # getting the hazard directory and subdirectories
-    # ROBERTO 25/09/2013
         hpath = str(self.hazpath.GetValue())
         self.hazards = os.listdir(hpath)
         self.models = []
@@ -976,24 +826,7 @@ class BymurFrame(wx.Frame):
                                  for i in range(len(tmp))]
                     self.dtime.append(dtime_tmp)
 
-    #          print 'tmp-->',tmp
-    #          for itmp in range(len(tmp)):
-    #             tmp2 = tmp[itmp]
-    #             tmp3 = re.findall('\d+',tmp2)
-    #             itmp3 = tmp3[0]
-    #             tmp4 = str(itmp3).zfill(3)
-    #             self.dtime[itmp] = tmp4
-    #
-    #          print 'dtime-->',self.dtime
-
-    #          self.dtime = os.listdir(os.path.join(hpath,haz,mod))
-    # JACOPO 18.06.2013
-    # END ROBERTO 25/09/2013
-
-    # ROBERTO 04.06.2013
-        # self.nt = len(self.dtime)
         self.nt = max([len(self.dtime[i]) for i in range(len(self. dtime))])
-    # END ROBERTO 04.06.2013
         print self.hazards
         print self.models
         print self.dtime
@@ -1012,9 +845,7 @@ class BymurFrame(wx.Frame):
             self.fr.Raise()
             return
 
-    # ROBERTO 04.06.2013
         self.nperc = len(self.perc)
-    # END ROBERTO 04.06.2013
 
         # database data connection
         server = self.server.GetValue()
@@ -1023,10 +854,6 @@ class BymurFrame(wx.Frame):
         dbname = self.dbname.GetValue()
         self.fr.Destroy()
         self.con, self.cur = db.dbConnection(server, user, pwd, dbname)
-    # JACOPO 10/06/13
-    #    self.cur = cur
-    #    self.con = con
-    # END JACOPO 10/06/13
 
         # opening pop-up frame
         busydlg = wx.BusyInfo("Task has been processing.. please wait",
@@ -1038,9 +865,6 @@ class BymurFrame(wx.Frame):
                           self.models)
         db.dbGenInfoPop(self.con, self.cur, self.imgpath, self.limits)
         self.npts = db.dbSpatDataPop(self.con, self.cur, gridpath)
-    # JACOPO 18/06/13
-    #    db.dbHazTabPop(con, cur, self.perc, self.hazards, self.models, self.dtime,
-    #                   hpath, self.npts)
         db.dbHazTabPop(
             self.con,
             self.cur,
@@ -1051,10 +875,8 @@ class BymurFrame(wx.Frame):
             hpath,
             self.npts,
             self.dtimefold)
-    # FINE JACOPO 18/06/13
 
         busydlg = None    # closing waiting pop-up frame
-    #    self.sb.SetStatusText("Bymur Database successfully created")
         self.sb.SetStatusText("DPC-V1-DB Database successfully created")
 
     def openLoadDB(self, event):
@@ -1078,8 +900,7 @@ class BymurFrame(wx.Frame):
         hbox2.Add(wx.StaticText(self.conFr, wx.ID_ANY, label="User Name:",
                                 size=(120, -1), style=wx.ALIGN_LEFT),
                   0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-    #    self.user = wx.TextCtrl(self.conFr, wx.ID_ANY, "bymurUser", size=(120,-1))
-    #    hbox2.Add(self.user, 0, wx.ALIGN_BOTTOM|wx.LEFT|wx.TOP, 0)
+
         self.user = wx.TextCtrl(
             self.conFr, wx.ID_ANY, "V1User", size=(120, -1))
         hbox2.Add(self.user, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
@@ -1088,8 +909,6 @@ class BymurFrame(wx.Frame):
         hbox3.Add(wx.StaticText(self.conFr, wx.ID_ANY, label="Password:",
                                 size=(120, -1), style=wx.ALIGN_LEFT),
                   0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-    #    self.pwd = wx.TextCtrl(self.conFr, wx.ID_ANY, "bymurPwd",
-    #                           size=(120,-1), style=wx.TE_PASSWORD)
         self.pwd = wx.TextCtrl(self.conFr, wx.ID_ANY, "V1Pwd",
                                size=(120, -1), style=wx.TE_PASSWORD)
         hbox3.Add(self.pwd, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
@@ -1098,15 +917,13 @@ class BymurFrame(wx.Frame):
         hbox4.Add(wx.StaticText(self.conFr, wx.ID_ANY, label="Database Name:",
                                 size=(120, -1), style=wx.ALIGN_LEFT),
                   0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-    #    self.dbname = wx.TextCtrl(self.conFr, wx.ID_ANY, "bymurDB", size=(120,-1))
-    #    hbox4.Add(self.dbname, 0, wx.ALIGN_BOTTOM|wx.LEFT|wx.TOP, 0)
+
         self.dbname = wx.TextCtrl(self.conFr, wx.ID_ANY, "DPC-V1-DB",
                                   size=(120, -1))
         hbox4.Add(self.dbname, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
 
         hbox5 = wx.BoxSizer(orient=wx.HORIZONTAL)
         self.conDB = wx.Button(self.conFr, wx.ID_ANY, "Connect", size=(-1, 26))
-    #    self.Bind(wx.EVT_BUTTON, self.loadDB, self.conDB)
         self.Bind(wx.EVT_BUTTON, self.getServerData, self.conDB)
         hbox5.Add(self.conDB, 0, wx.TOP, 10)
 
@@ -1116,7 +933,6 @@ class BymurFrame(wx.Frame):
         vbox.Add(hbox4, 0, wx.ALL, 3)
         vbox.Add(hbox5, 0, wx.ALL | wx.ALIGN_RIGHT, 3)
 
-        # self.fr.Bind(wx.EVT_CLOSE, self.closeInputFr)
         self.conFr.SetSizer(vbox)
         self.conFr.Fit()
         self.conFr.Center()
@@ -1139,17 +955,6 @@ class BymurFrame(wx.Frame):
         By pressing the Connect Button it will be launched the connectDB()
         """
 
-    #    server = self.server.GetValue()
-    #    user = self.user.GetValue()
-    #    pwd = self.pwd.GetValue()
-    #    dbname = self.dbname.GetValue()
-    #    self.conFr.Destroy()
-    #    con, cur = db.dbConnection(server, user, pwd, dbname)
-    # JACOPO 10/06/13
-    #    self.cur = cur
-    #    self.con = con
-    # END JACOPO 10/06/13
-
         self.pn1.Enable(True)
         self.pnl_curves.Enable(True)
 
@@ -1157,11 +962,6 @@ class BymurFrame(wx.Frame):
         busydlg = wx.BusyInfo(
             "Task has been processing.. please wait", parent=self)
         wx.Yield()
-
-        # all data stored in DB are loaded in numpy arrays
-        # tmp = db.dbReadTable(con, cur, "map_info")
-        # self.imgpath = str(tmp[0][1])
-        # self.limits = [float(tmp[0][i]) for i in [2,3,4,5]]
 
         # all data stored in DB are loaded in numpy arrays
         tmp = db.dbReadTable(self.con, self.cur, "spatial_data1")
@@ -1182,7 +982,6 @@ class BymurFrame(wx.Frame):
 
         niml = max([len(self.iml[i]) for i in range(self.nhaz)])
 
-    # ROBERTO 25/09/2013
         self.dtime = []
         for k in range(self.nhaz):
             hazmodtb = "hazard" + str(k + 1)
@@ -1192,25 +991,20 @@ class BymurFrame(wx.Frame):
         print "dtime = ", self.dtime
         self.nt = max([len(self.dtime[i]) for i in range(len(self.dtime))])
 
-    # END ROBERTO 25/09/2013
 
         for k in range(self.nhaz):
             if (len(self.iml[k]) < niml):
                 for i in range(niml - len(self.iml[k])):
                     self.iml[k].append(0)
 
-        # self.hc = np.zeros((self.nhaz, self.nt, self.nperc+1, self.npts, niml))
         self.hc = [[[['0' for i in range(self.npts)] for j in range(100)]
                     for k in range(self.nt)] for h in range(self.nhaz)]
 
-    # JACOPO 11/6/13
         print 'niml=', niml
         self.hc_perc = list()
         for k in range(self.nhaz):
             self.hc_perc.append(0)
-    # JACOPO 11/6/13
 
-    # ROBERTO 11/09/2013
         self.perc_flag = []
         for i in range(self.nhaz):
             haznametb = "hazard" + str(i + 1)
@@ -1218,9 +1012,7 @@ class BymurFrame(wx.Frame):
                                                       self.cur, haznametb))
 
         print("FLAGS PERCENTILES = {0}".format(self.perc_flag))
-    # END ROBERTO 11/09/2013
 
-    # ROBERTO 19/09/2013
         if (gf.verifyInternetConn()):
             srcdir = os.path.dirname(os.path.realpath(__file__))
             savepath = os.path.join(srcdir, "data", "naples_gmaps.png")
@@ -1228,60 +1020,11 @@ class BymurFrame(wx.Frame):
             self.imgpath = gmaps.getUrlGMaps(375300, 4449200,
                                              508500, 4569800,
                                              utm_zone, savepath)
-    #      self.imgpath = gmaps.getUrlGMaps(min(self.lon)*1000, min(self.lat)*1000,
-    #                                       max(self.lon)*1000, max(self.lat)*1000,
-    #                                       utm_zone, savepath)
-    # END ROBERTO 19/09/2013
 
         self.th = scientLibs.prob_thr(self.RP,
                                       self.dtime[self.haz_sel][self.tw])
         self.hc = db.dbReadHC(self.haz_sel, self.tw, self.dtime, self.cur,
                               self.hc, self.hc_perc)
-    #    print self.npts
-    #    tbname = "hazard" + str(1)
-    #    cmd = "SELECT stat FROM " + tbname + " WHERE dtime = 'dt" \
-    #       + self.dtime[0] + "' AND stat != 'Average' AND id_points = 1"
-    #    cur.execute(cmd)
-    #    percall = cur.fetchall()
-    # percsel = range(1,100) #[10,50,90]
-    # hc[hsel][tw][perc][pt_sel][:]
-    #    cmd = "SELECT id_points,curve FROM " + tbname + " WHERE dtime = 'dt" \
-    #         + self.dtime[0] + "' AND stat = 'Average'"
-    #    cur.execute(cmd)
-    #    rows = cur.fetchall()
-    #    for row in rows:
-    #       ipoint = row[0]
-    #       curvetmp = row[1].split()
-    #       self.hc[0][0][0][ipoint-1] = curvetmp
-    #
-    #    for ipercsel in range(len(percsel)):
-    #      perctmp=percsel[ipercsel]
-    # print "Selected percentile:" + str(perctmp)
-    #      cmd = "SELECT id_points,curve FROM " + tbname + " WHERE dtime = 'dt" \
-    #         + self.dtime[0] + "' AND stat = 'Perc" + str(perctmp) + "'"
-    #      cur.execute(cmd)
-    #      rows = cur.fetchall()
-    #      for row in rows:
-    #         ipoint = row[0]
-    #         curvetmp = row[1].split()
-    #         self.hc[0][0][perctmp][ipoint-1] = curvetmp
-    # TESTO PRECEDENTE:
-    #    for h in range(self.nhaz):
-    #      tbname = "hazard" + str(h+1)
-    #      tmp = db.dbReadTable(con, cur, tbname)
-    #      hcTmp1 = [[float(j) for j in tmp[i][5].split()] for i in range(len(tmp))]
-    #      for k in range(self.nt*(self.nperc+1)*self.npts):
-    #        if (len(hcTmp1[k]) < niml):
-    #          for i in range(niml-len(hcTmp1[k])):
-    #            hcTmp1[k].append(0)
-    #
-    #      hcTmp2 = np.array(hcTmp1)
-    #      print self.nt, self.nperc+1, self.npts, niml, np.shape(hcTmp2)
-    #      hcTmp3 = np.reshape(hcTmp2,(self.nt, self.nperc+1, self.npts, niml))
-    #      self.hc[h] = hcTmp3
-    #
-    #    print np.shape(self.hc)
-    # FINE JACOPO 5/5/13
 
         self.zmap = self.pn1.hazardMap(
             self.hc,
@@ -1301,19 +1044,12 @@ class BymurFrame(wx.Frame):
             self.limits,
             self.iml,
             self.imt)
-    # JACOPO 3/5/13
-    #    self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-    #                         self.dtime, self.pt_sel, self.perc, self.iml,
-    #                         self.imt)
+
         self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
                              self.dtime, self.pt_sel, self.perc, self.iml,
                              self.imt, self.th, self.hc_perc, self.intTh)
-    # FINE JACOPO 3/5/13
 
-    # ROBERTO 27/06/2013
         self.map_export_gis.Enable(True)
-    # END ROBERTO 27/06/2013
-        # self.map_menu_ch.Enable(True)
 
         self.chaz.Clear()
         for i in range(self.nhaz):
@@ -1324,10 +1060,9 @@ class BymurFrame(wx.Frame):
         self.chaz.SetSelection(0)
 
         self.pnl_lt.Enable(True)
-    # ROBERTO 13/06/2013
+
         self.ensemble_item.Enable(True)
-    # END ROBERTO 13/06/2013
-    #    self.sb.SetStatusText("Bymur Database successfully loaded")
+
         self.sb.SetStatusText("DPC-V1-DB Database successfully loaded")
 
     def closeInputFr(self, event):
@@ -1394,7 +1129,6 @@ class BymurFrame(wx.Frame):
                             defaultFile="", wildcard="*.*", style=wx.OPEN)
 
         if (dlg.ShowModal() == wx.ID_OK):
-            # self.imgpath = dlg.GetPath()
             self.imgpath = str(dlg.GetPath())
 
             if (self.imgpath):
@@ -1427,7 +1161,6 @@ class BymurFrame(wx.Frame):
 
         self.Destroy()
 
-    # ROBERTO 28/06/2013
     def openEnsembleFr(self, event):
 
         self.fr = wx.Frame(self, title="Ensable Selection")
@@ -1512,13 +1245,10 @@ class BymurFrame(wx.Frame):
         msg = ("WARNING\nYou are leaving the ensemble procedure")
         gf.showWarningMessage(self, msg, "WARNING")
         return
-    # END ROBERTO 28/06/2013
 
-    # JACOPO 4/6/13
     def ensemble_do(self, event):
         # selection of models and weights
 
-        # ROBERTO 28/06/2013
         self.fr.Destroy()
 
         self.selected = []
@@ -1537,21 +1267,7 @@ class BymurFrame(wx.Frame):
 
         print self.selected
 
-    #    dtsel = self.dt_sel.GetValue()
-    #    self.twsel = []
-    #    for i in range(self.nhaz):
-    #      tmp = self.dtime[i].index(dtsel)
-    #      self.twsel.append(tmp)
-    #      print self.dtime[i][self.twsel[i]]
-    #    print "index dt sel = ", self.twsel
-
-    #    for i in range(len(self.selected)):
-    #      print self.selected[i], self.weights[i]
-
-    # END ROBERTO 28/06/2013
-
         print self.hc_perc
-        # self.twsel = [self.tw]
         self.percsel = range(10, 100, 10)
 
         print "TWSEL", self.tw, self.twsel
@@ -1596,22 +1312,19 @@ class BymurFrame(wx.Frame):
         for i in range(nmod_comb):
             tmpmodel = tmpmodel + str(self.model[self.selected[i]]) + "("
             tmpmodel = tmpmodel + str(self.weights[i]) + ");"  # ID in DB
-        # tmpmodel = tmpmodel + "_W:"
-        # for i in range(nmod_comb):
-        #   tmpmodel = tmpmodel + str(self.weights[i]) + ";"
+
         tmpmodel = tmpmodel + "_T:"
         tmpmodel = tmpmodel + str(self.dtime[self.
                                              selected[0]][self.twsel[0]]) + ";"
         tmpimt = self.imt[self.selected[0]]
         tmp = self.iml[self.selected[0]]
         tmpiml = ' '.join(map(str, tmp[:]))
-        # print 'Thresholds:',tmpiml
+
         sql = """
               INSERT INTO hazard_phenomena (id_haz,name,model,imt,iml,
               id_map_info, id_spatial_data, vd_ID)
               VALUES('{0}','{1}','{2}','{3}','{4}',1, 1, 0)
               """
-        # print sql.format(tmpid,tmpname,tmpmodel,tmpimt,tmpiml[:])
         self.cur.execute(sql.format(tmpid, tmpname, tmpmodel, tmpimt, tmpiml))
 
         # update variables
@@ -1624,22 +1337,15 @@ class BymurFrame(wx.Frame):
                     for i in range(self.nhaz)]
 
         # update array hc & hc_perc
-        # self.hc = np.concatenate((self.hc, hccomb))
-        # print hccomb.shape
         hctmp = self.hc
         niml = len(self.iml[self.selected[0]])
-        # self.hc = np.zeros((self.nhaz, self.nt, self.nperc+1, self.npts, niml))
         self.hc = [[[['0' for i in range(self.npts)] for j in range(100)]
                     for k in range(self.nt)] for h in range(self.nhaz)]
         for ihz in range(self.nhaz - 1):
             self.hc[ihz] = hctmp[ihz]
         self.hc[-1][0] = hccomb[0]
-        # print self.hc.shape
 
-        # print 'prima-->',self.hc_perc
-        # self.hc_perc.insert(self.nhaz,np.asarray(self.percsel))
         self.hc_perc.append(np.asarray(self.percsel))
-        # print 'dopo-->',self.hc_perc
 
         # update DB, table hazard#
         tbname = "hazard" + str(self.nhaz)
@@ -1656,9 +1362,6 @@ class BymurFrame(wx.Frame):
         npts = len(self.hc[0][0][0])
 
         for iii in range(ntw):
-            #      k = self.twsel[iii]
-            # k = 0
-            #      dt = str(dtimetmp[k]).zfill(3)
             dt = self.dtime[self.selected[0]][self.twsel[0]]
             print 'dT= ', dt, ' yr'
             for i in range(npts):
@@ -1667,7 +1370,6 @@ class BymurFrame(wx.Frame):
                   INSERT INTO {0} (id, id_haz, id_points, stat,
                   dtime, curve) VALUES ( {1}, {2}, {3}, '{4}', '{5}', '{6}' )
                   """
-                # tmp = ' '.join(map(str,hccomb[0,0,i][:]))
                 self.cur.execute(sql.format(tbname, idc, tmpid, i + 1,
                                             "Average", dt, hccomb[0][0][i]))
             for p in range(len(self.percsel)):
@@ -1680,9 +1382,6 @@ class BymurFrame(wx.Frame):
                       dtime, curve) VALUES
                       ( {1}, {2}, {3}, '{4}', '{5}', '{6}' )
                       """
-                    # tmp = ' '.join(map(str,hccomb[0,self.percsel[p],i][:]))
-                    # or just p, as in dbFunctions.py???
-                    # print 'tmp--> ',tmp
                     self.cur.execute(
                         sql.format(
                             tbname,
@@ -1695,34 +1394,21 @@ class BymurFrame(wx.Frame):
                                 self.percsel[p]][i]))
         print 'DB populated!!'
 
-    # ROBERTO 11/09/2013 -- update true/false flag for percentiles in new
+
     # hazard tab
         self.perc_flag.append(db.dbAssignFlagPerc(self.con, self.cur, tbname))
         print("UPDATE FLAGS PERCENTILES = {0}".format(self.perc_flag))
-    # END ROBERTO 11/09/2013
 
-        # update visualization (CHIEDERE ROB!!)
         item = tmpmodel
-        # item = tmpname + " - " + tmpmodel
-        self.chaz.Append(item)
-    #    self.chaz.SetSelection(self.nhaz)
-    #    self.haz_sel = int(self.chaz.GetSelection())
-    #    print 'self.haz_sel:',self.haz_sel
-    #    self.pn1.hazardMap(self.hc, self.lon, self.lat, self.id_area,
-    #                       self.nareas, self.npts, self.hazards, self.dtime,
-    #                       self.haz_sel, self.tw, self.th, self.perc, self.imgpath,
-    #                       self.limits, self.iml, self.imt)
-    #    self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-    #                         self.dtime, self.pt_sel, self.perc, self.iml,
-    #                         self.imt,self.th,self.hc_perc,self.intTh)
 
-    # FINE
+        self.chaz.Append(item)
+
         busydlg = None    # closing waiting pop-up frame
         self.sb.SetStatusText("... ensemble model evaluated")
 
         print 'Task completed!!'
         print '------------------------------'
-    # END JACOPO 4/6/13
+
 
 
 class BymurGui(wx.App):
@@ -1732,7 +1418,6 @@ class BymurGui(wx.App):
     """
 
     def OnInit(self):
-        # frame = BymurFrame(None, -1, "BYMUR - BaYesian MUlti-Risk")
         frame = BymurFrame(None, -1, "V1 - BYMUR")
         frame.Show(True)
         self.SetTopWindow(frame)

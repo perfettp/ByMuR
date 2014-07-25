@@ -34,19 +34,9 @@ import wx
 import numpy as np
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as figcv
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as navtb
-
-from matplotlib.patches import Circle, Wedge, Rectangle
-from matplotlib.collections import PatchCollection
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
 import matplotlib.pyplot as plt
 import matplotlib.mlab as mlab
 import matplotlib as mpl
-# ROBERTO 18/09/2013
-# JACOPO, 05/06/13
-# import math
-# END JACOPO, 05/06/13
-
-import globalFunctions as gf
 
 
 # some global plotting settings
@@ -70,15 +60,12 @@ class pn1Canvas(wx.Panel):
         wx.Panel.__init__(self, parent)
 
         vbox = wx.BoxSizer(orient=wx.VERTICAL)
-        # hbox_top = wx.BoxSizer(orient=wx.HORIZONTAL)
 
         self.fig = plt.figure()
         self.canvas = figcv(self, -1, self.fig)
         self.toolbar = navtb(self.canvas)
-        # self.toolbar.Disable()
 
         self.fig.clf()
-        # self.axes = self.fig.add_axes([0.1,0.1,0.85,0.85])
 
         self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
                                  wspace=None, hspace=0.3)
@@ -87,16 +74,6 @@ class pn1Canvas(wx.Panel):
         self.canvas.SetSize(self.GetSize())
         self.canvas.draw()
 
-        # self.chpoints = wx.CheckBox(self, -1, 'Show Points', (-1, -1))
-        # wx.EVT_CHECKBOX(self, self.chpoints.GetId(), self.show_points)
-        # self.chareas = wx.CheckBox(self, -1, 'Show Areas', (-1, -1))
-        # wx.EVT_CHECKBOX(self, self.chareas.GetId(), self.show_areas)
-        # self.chpoints.Disable()
-        # self.chareas.Disable()
-        # hbox_top.Add(self.chpoints, 0, wx.ALL, 5)
-        # hbox_top.Add(self.chareas, 0, wx.ALL, 5)
-
-        # vbox.Add(hbox_top, 0, wx.EXPAND|wx.ALL, 0)
         vbox.Add(self.canvas, 1, wx.EXPAND | wx.ALL, 0)
         vbox.Add(self.toolbar, 0, wx.EXPAND | wx.ALL, 0)
 
@@ -125,15 +102,8 @@ class pn1Canvas(wx.Panel):
         iml = kargs[15]
         imt = kargs[16]
 
-#    print hsel
-#    print iml
 
         nperc = len(perc)
-#    self.fig.clf()
-#    self.axes = self.fig.add_axes([0.0,0.15,0.9,0.75])
-#    self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
-#                             wspace=None, hspace=0.3)
-#    self.fig.hold(True)
 
         nx = 100
         ny = 100
@@ -148,10 +118,6 @@ class pn1Canvas(wx.Panel):
         for i in range(npt):
             tmp = hc[hsel][tw][0][i]
             curve = [float(j) for j in tmp.split()]
-            # hc = np.cumsum(vh[nperc/2][i][:])
-            # hc = list(1 - hc/hc[0])
-            # finding intensity value corresponding to probability threshold
-            # (pth)
             if (pth < curve[0] and pth > curve[-1]):
                 for j in range(len(curve)):
                     if (curve[j] < pth):
@@ -165,10 +131,6 @@ class pn1Canvas(wx.Panel):
                 z[i] = iml[hsel][-1]
             else:
                 pass
-                # print "error"
-
-            # finding probability value corresponding to intensity threshold
-            # (ith)
             if (ith < iml[hsel][-1] and ith > iml[hsel][0]):
                 for j in range(len(iml)):
                     if (iml[hsel][j] < ith):
@@ -182,9 +144,6 @@ class pn1Canvas(wx.Panel):
                 zp[i] = curve[0]
             else:
                 pass
-                # print "error"
-
-        # print min(z),max(z)
 
         xv = np.linspace(self.xmin, self.xmax, nx)
         yv = np.linspace(self.ymin, self.ymax, ny)
@@ -196,7 +155,6 @@ class pn1Canvas(wx.Panel):
         cmaplist = [cmap(i) for i in range(cmap.N)]
         dcmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
 
-        # JACOPO 26/09/13
         maxint = 10
         maxz = np.ceil(max(z)) + 1
         minz = 0
@@ -219,12 +177,6 @@ class pn1Canvas(wx.Panel):
         maxz = minz + chk * inter
         bounds = np.linspace(minz, maxz, chk + 1)
 
-        # print 'maxz->',maxz
-        # print 'inter->',inter
-        # print 'bounds->',bounds
-        # END JACOPO 26/09/13
-
-        # bounds = np.linspace(gf.floatFloor(min(z)), gf.floatCeil(max(z)), 11)
 
         norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
 
@@ -243,15 +195,6 @@ class pn1Canvas(wx.Panel):
                 xmap2,
                 ymap1,
                 ymap2))
-
-        # img2 = self.axes.imshow(zg, origin="lower", aspect="equal", vmin=bounds[0],
-        #    vmax=bounds[-1], cmap=dcmap, alpha=0.75,
-        #    extent=(self.xmin,self.xmax,self.ymin,self.ymax))
-
-        # img2 = self.axes.scatter(self.xx[::10], self.yy[::10], c=z[::10],
-        # s=22, linewidths=0, color="#000000",
-        #      cmap=plt.cm.RdYlGn_r, vmin=min(z),
-        #      vmax=max(z), alpha=0.75)
 
         self.map1 = self.ax1.contourf(xg, yg, zg, bounds, origin="lower",
                                       cmap=plt.cm.RdYlGn_r, alpha=0.5)
@@ -309,15 +252,12 @@ class pn1Canvas(wx.Panel):
             shrink=0.9,
             orientation='vertical')
 
-        # self.cb2.set_label("P", rotation=90)
         self.cb2.set_alpha(1)
         self.cb2.draw_all()
         self.ax2.axis([xmap1, xmap2, ymap1, ymap2])
 
         self.ax2.set_title("Probability Map\n", fontsize=9)
         self.ax2.set_xlabel("Easting (km)")
-        # self.ax2.set_ylabel("Northing (km)")
-        # self.ax2.set_ylabel(ylab)
 
         self.canvas.draw()
         self.canvas.mpl_connect('motion_notify_event', self.updateMouseSel)
@@ -338,32 +278,10 @@ class pn1Canvas(wx.Panel):
                 y = self.yy[i]
                 tt = "Hazard Map\nPoint n. %s, Lon = %8.3f km, Lat = %8.3f km" % (
                     i, x, y)
-                # tt = "Point n. {:}, Lon = {:f8.3} km,  Lat = {:f8.3} km".format(i,x,y)
-#        self.ax1.set_title(tt, fontsize=9)
                 self.canvas.draw()
             else:
                 tt = "Hazard Map\nOut of data points bounds"
-#        self.ax1.set_title(tt, fontsize=9)
                 self.canvas.draw()
-
-#    if (event.inaxes != self.ax2):
-#          return
-#    else:
-#      xsel, ysel = event.xdata, event.ydata
-#      if ( xsel >= self.xmin and xsel <= self.xmax and
-#           ysel >= self.ymin and ysel <= self.ymax ):
-#        dist = np.sqrt( (self.xx-xsel)**2 + (self.yy-ysel)**2 )
-#        i = np.argmin(dist) + 1
-#        x = self.xx[i]
-#        y = self.yy[i]
-#        tt = "Hazard Map\nPoint n. %s, Lon = %8.3f km, Lat = %8.3f km" %(i, x, y)
-# tt = "Point n. {:}, Lon = {:f8.3} km,  Lat = {:f8.3} km".format(i,x,y)
-# self.ax2.set_title(tt, fontsize=9)
-#        self.canvas.draw()
-#      else:
-#        tt = "Hazard Map\nOut of data points bounds"
-# self.ax2.set_title(tt, fontsize=9)
-#        self.canvas.draw()
 
 
 class pn2Canvas(wx.Panel):
@@ -385,9 +303,6 @@ class pn2Canvas(wx.Panel):
         # self.toolbar.Disable()
 
         self.fig.clf()
-        # self.axes = self.fig.add_axes([0.1,0.1,0.85,0.85])
-
-        # cid = self.fig.canvas.mpl_connect('button_press_event', self.onclick)
 
         self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
                                  wspace=None, hspace=0.3)
@@ -417,11 +332,9 @@ class pn2Canvas(wx.Panel):
         perc = kargs[6]           # percentiles
         iml = kargs[7]            # intensity
         imt = kargs[8]            # intensity unit
-# JACOPO, 05/06/13
         th = kargs[9]             # threshold hazard map
         hc_perc = kargs[10]       # percentiles in hc
         ith = kargs[11]          # intensity threshold
-# FINE JACOPO, 05/06/13
 
         self.fig.clf()
         self.axes = self.fig.add_axes([0.15, 0.15, 0.75, 0.75])
@@ -432,24 +345,8 @@ class pn2Canvas(wx.Panel):
 
         nperc = len(perc)
 
-# JACOPO 5/5/13
-#    tmp = [perc[0], perc[nperc/2], perc[-1]]
-#   index = [1, nperc/2, -1]
-# print 'hc_perc--->',hc_perc
-#    percsel=hc_perc[hsel]
-        perc_lbl = ['10', '50', '90']
-#    n10=np.where(percsel==10)
-#    n50=np.where(percsel==50)
-#    n90=np.where(percsel==90)
-# print 'n10--->',n10
-# print 'n50--->',n50
-# print 'n90--->',n90
-#
-#    index = [n10[0][0]+1,n50[0][0]+1,n90[0][0]+1]
-#    index = [percsel.index(10), percsel.index(50), percsel.index(90)]
         index = [10, 50, 90]
         print 'index of percentiles--->', index
-# END JACOPO 5/5/13
 
         pmin = 1000
         for p in range(3):
@@ -464,13 +361,6 @@ class pn2Canvas(wx.Panel):
         self.pt, = self.axes.plot(iml[hsel], ave, color="#000000",
                                   linewidth=1, alpha=1, label="Average")
 
-# JACOPO, 05/06/13
-# AGGIUNGERE LINEA DI SOGLIA IN PROB (th), DA PASSARE NEGLI ARGOMENTI (kargs)
-#    thmax = iml[hsel][-1]
-#    limi = [0,thmax]
-#    valu = [th,th]
-        # self.pt, = self.axes.plot(limi, valu, '--', color="#000000",
-        # linewidth=1, alpha=1, label="Threshold in probability")
         self.axes.axhline(
             y=th,
             linestyle='--',
@@ -479,32 +369,11 @@ class pn2Canvas(wx.Panel):
             alpha=1,
             label="Threshold in Probability")
 
-#    ind = -1;
-#    curve = hc[hsel][tw][index[0]][pt_sel][:]
-# print 'curve-->',curve
-#    prmin = min([x for x in curve if x >0])
-#    order = np.floor(np.log10(prmin))
-#    prmin = 10**order
-#    prmax = hc[hsel][tw][index[2]][pt_sel][0]
-#    order = np.ceil(np.log10(prmax))
-#    prmax = 10**order
-# print 'prmin-->',prmin
-# print 'prmax-->',prmax
-# print 'ith-->',ith
-#    limi = [ith,ith]
-#    valu = [prmin,prmax]
-# self.pt, = self.axes.plot(limi, valu, '-', color="#000000",
-# linewidth=1, alpha=1, label="Threshold in Intensity")
         self.axes.axvline(x=ith, linestyle='-', color="#000000",
                           linewidth=1, alpha=1, label="Threshold in Intensity")
 
 
-# END JACOPO, 05/06/13
         self.axes.legend()
-        # print tw
-        # print dtime[tw]
-        # tt = (hazard[hsel] + " Hazard - Point n." + str(pt_sel+1) +
-        # " - Time window = " + dtime[tw] + " years")
         tt = ("Point n." + str(pt_sel + 1) +
               " - Time window = " + dtime[hsel][tw] + " years")
 
@@ -512,7 +381,6 @@ class pn2Canvas(wx.Panel):
         self.axes.set_xlabel(imt[hsel])
         self.axes.set_ylabel("Probability of Exceedance")
         self.axes.set_yscale("log")
-        # self.axes.axis([0,1,0,1])
         self.canvas.draw()
         self.Layout()
 

@@ -1,4 +1,3 @@
-# JACOPO 4/6/13
 import numpy as np
 import random as rnd
 import math
@@ -26,9 +25,7 @@ def ensemble(*kargs):
     wx.Yield()
 
     print "----ensemble()--------------"
-# hc[hsel][tw][perc][pt_sel][:]
     sel_first = haz_selected[0]
-#  ntw = len(hc[sel_first])
     ntw = 1
 
     npts = len(hc[sel_first][0][0])
@@ -70,20 +67,16 @@ def ensemble(*kargs):
             nrun_haz = int(run_fl[jhaz])
             print "--> n run: " + str(nrun_haz)
             hazperc = hc_perc[ihc]
-#     print "--> hazperc: " + str(hazperc)
             nperc = len(hazperc)
             print "--> n perc: " + str(nperc) + "(val:" + str(hazperc) + ")"
             for irun in range(nrun_haz):
                 xrnd = rnd.uniform(0., 100.)
-#        print xrnd
                 ipercsel = nperc - 1
                 for j in range(nperc):
                     if (xrnd < float(hazperc[j])):
                         ipercsel = j
                         break
-#        print "Perc. sel: " + str(ipercsel)
                 isample = isample + 1
-#        print hazperc[ipercsel]
                 for ipt in range(npts):
                     tmp = hc[ihc][itw][hazperc[ipercsel]][ipt]
                     curve = [float(j) for j in tmp.split()]
@@ -93,15 +86,12 @@ def ensemble(*kargs):
         print "N run totali: " + str(nrun_eff)
 
         npercsel = len(percsel)
-        # hccomb = np.zeros((ntw, nperc+1, npts, nimls))
         hccomb = np.zeros((ntw, 100, npts, nimls))
         ntot = ntw * npts
         for iii in range(ntw):
-            # itw = twsel[iii]
             itw = 1
             for ipt in range(npts):
                 msg = str(ipt + 1 + iii * ntw) + "/" + str(ntot)
-#      print msg
                 for iptensity in range(nimls):
                     values = hccomb_sample[0][ipt][0:nrun_eff + 1, iptensity]
                     value = np.mean(values)
@@ -155,4 +145,3 @@ def prob_thr(RP, dt):
     th = 1 - math.exp(-dtmp / dRP)
     print 'Prob. threshold= ', th
     return th
-# FINE JACOPO 4/6/13
