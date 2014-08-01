@@ -32,7 +32,6 @@
 import os
 import sys
 import warnings
-import wx
 import numpy as np
 import xml.etree.ElementTree as xml
 import MySQLdb as mdb

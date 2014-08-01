@@ -173,6 +173,10 @@ class BymurFrame(wx.Frame):
 
         self.SetMenuBar(self.menuBar)
 
+
+
+
+
         # main sizer
         hbox = wx.BoxSizer(orient=wx.HORIZONTAL)
 
@@ -285,6 +289,9 @@ class BymurFrame(wx.Frame):
         self.pnl_lt.SetSizer(vbox_lt)
         self.pnl_lt.Enable(False)
         hbox.Add(self.pnl_lt, 0, wx.EXPAND | wx.ALL, 5)
+
+
+
 
         # right panel
         vbox_rt = wx.BoxSizer(orient=wx.VERTICAL)
