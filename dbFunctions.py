@@ -38,6 +38,121 @@ import MySQLdb as mdb
 import globalFunctions as gf
 
 
+
+class BymurDB():
+
+    def __init__(self, **kwargs):
+        """
+        Connecting to database
+        """
+
+        try:
+            self._connection = mdb.connect(host=kwargs.pop('dbHost',''),
+                                           port=int(kwargs.pop('dbPort',0)),
+                                           user=kwargs.pop('dbUser',''),
+                                           passwd=kwargs.pop('dbPassword',''),
+                                           db=kwargs.pop('dbName',''))
+            self._cursor = self._connection.cursor()
+        except:
+            raise
+
+    def getVersion(self):
+        try:
+            self._cursor.execute("SELECT VERSION()")
+            db_version = self._cursor.fetchone()
+        except:
+            raise
+        return db_version[0]
+
+    def closeDB(self):
+        self._connection.close()
+
+    def dbReadTable(self, table_name):
+        """
+        Reading all tables from Bymur DB and storing all data in python lists.
+        """
+        query = "SELECT * FROM {0}"
+        self._cursor.execute(query.format(table_name))
+        return self._cursor.fetchall()
+
+    def dbSelectDtime(self, nhaz):
+        """
+        """
+        sql_query = """
+            SELECT dtime from {0} WHERE id_points=1 AND stat='Average'
+            """
+        self._cursor.execute(sql_query.format(nhaz))
+        return self._cursor.fetchall()
+
+
+    def dbAssignFlagPerc(self,nhaz):
+        """
+        """
+
+        sql_query = """
+                SELECT curve from {0} WHERE stat LIKE 'Perc%' AND id_points=1
+                """
+        self._cursor.execute(sql_query.format(nhaz))
+        rows = self._cursor.fetchall()
+        sumval = 0
+        for row in rows:
+            tmp = [float(j) for j in str(row[0]).split()]
+            sumval = sumval + tmp[0]
+
+        if (sumval > 0):
+            return 1
+        else:
+            return 0
+
+    def dbReadHC(self, *kargs):
+        haz_sel = kargs[0]        # selected hazard phenomenon
+        tw = kargs[1]             # selected time window
+        dtime = kargs[2]          # selected hazard phenomenon
+        hc = kargs[3]             # hazard array
+        hc_perc = kargs[4]        # percentiles given for this hazard
+
+        print 'haz_sel-->', haz_sel
+        print 'tw-->', tw
+
+        tbname = "hazard" + str(haz_sel + 1)
+
+        cmd = "SELECT stat FROM " + tbname + " WHERE dtime = '" + \
+            dtime[haz_sel][tw].zfill(3) + "' AND stat != 'Average' AND id_points = 1"
+        self._cursor.execute(cmd)
+        tmp1 = self._cursor.fetchall()
+        nperc_haz = len(tmp1)
+        perc_haz = np.zeros(nperc_haz, dtype=np.int8)
+        print cmd
+        print 'cur.fetchall: ', tmp1
+        for iperchaz in range(nperc_haz):
+            line = tmp1[iperchaz]
+            tmp2 = line[0].split('Perc')
+            perc_haz[iperchaz] = tmp2[1]
+        hc_perc[haz_sel] = perc_haz
+        percsel = range(1, 100)  # [10,50,90]
+        cmd = "SELECT id_points,curve FROM " + tbname + " WHERE dtime ='" \
+            + dtime[haz_sel][tw].zfill(3) + "' AND stat = 'Average'"
+        self._cursor.execute(cmd)
+        rows = self._cursor.fetchall()
+        for row in rows:
+            ipoint = row[0]
+            curvetmp = row[1]
+            hc[haz_sel][tw][0][ipoint - 1] = curvetmp
+
+        for ipercsel in range(len(perc_haz)):
+            perctmp = perc_haz[ipercsel]
+            cmd = "SELECT id_points,curve FROM " + tbname + " WHERE dtime = '" + \
+                dtime[haz_sel][tw].zfill(3) + "' AND stat = 'Perc" + str(perctmp) + "'"
+            self._cursor.execute(cmd)
+            rows = self._cursor.fetchall()
+            for row in rows:
+                ipoint = row[0]
+                curvetmp = row[1]
+                hc[haz_sel][tw][perctmp][ipoint - 1] = curvetmp
+        return hc
+
+
+
 # JACOPO 10/06/13
 def dbReadHC(*kargs):
     haz_sel = kargs[0]        # selected hazard phenomenon
@@ -156,30 +271,6 @@ def dbAssignFlagPerc(*kargs):
 
 # END ROBERTO 23/09/2013
 
-
-def dbConnection(*kargs):
-    """
-    Connecting to database
-    """
-
-    server = kargs[0]
-    user = kargs[1]
-    pwd = kargs[2]
-    dbname = kargs[3]
-
-    try:
-        connection = mdb.connect(server, user, pwd, dbname)
-        cursor = connection.cursor()
-        cursor.execute("SELECT VERSION()")
-        db_version = cursor.fetchone()
-        txt = "\nConnection Succeded!\nMySQL version : {0} ".format(
-            db_version[0])
-        gf.show_message(None, txt, "Info")
-        return connection, cursor
-
-    except mdb.Error as e:
-        print "Error %d: %s" % (e.args[0], e.args[1])
-        sys.exit(1)
 
 def dbClose(*kargs):
     cursor = kargs[0]

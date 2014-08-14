@@ -55,7 +55,15 @@ mpl.rcParams['font.sans-serif'] = 'Times'
 
 
 
+# TODO: refactor completely this object.
+# Which fields have to be initialized in
+#  __init__, which in other methods? What is really required? etc
 class MapFigure():
+    """
+    Graphical object containing matplot canvas. This is the main graph where
+    hazard map is plotted and where is possible to click to select for which
+    point visualize hazard's curves.
+    """
 
     def __init__(self, parent, controller):
 
@@ -74,28 +82,34 @@ class MapFigure():
         self.canvas.draw()
 
 
-    def hazardMap(self, *kargs):
+    def hazardMap(self, **kwargs):
         """
-        Loading map ...
+        Main method to draw updated map.
+        It accept a dictionary as argument, that must contains following keys
+            and data:
+                hc:
+                lon:
+                lat:
+                ...
         """
 
-        hc = kargs[0]            # volcanic hazard
-        self.xx = kargs[1]       # x coord of each point
-        self.yy = kargs[2]       # y coord of each point
-        aa = kargs[3]            # id area for each point
-        na = kargs[4]            # nareas
-        npt = kargs[5]           # n. point
-        hazard = kargs[6]        # hazard phenomena
-        dtime = kargs[7]         # time windows
-        hsel = kargs[8]          # hazard phenomenon
-        tw = kargs[9]            # time window
-        pth = kargs[10]          # probability threshold
-        ith = kargs[11]          # intensity threshold
-        perc = kargs[12]         # n. percentiles
-        imgfile = kargs[13]
-        xmap1, xmap2, ymap1, ymap2 = kargs[14]
-        iml = kargs[15]
-        imt = kargs[16]
+        hc = kwargs.get('hc')            # volcanic hazard
+        self.xx = kwargs.get('lon')       # x coord of each point
+        self.yy = kwargs.get('lat')       # y coord of each point
+        aa = kwargs.get('id_area')            # id area for each point
+        na = kwargs.get('nareas')            # nareas
+        npt = kwargs.get('npts')           # n. point
+        hazard = kwargs.get('hazards')        # hazard phenomena
+        dtime = kwargs.get('dtime')         # time windows
+        hsel = kwargs.get('haz_mod')          # hazard phenomenon
+        tw = kwargs.get('exp_time')            # time window
+        pth = kwargs.get('th')          # probability threshold
+        ith = kwargs.get('int_thres')      # intensity threshold
+        perc = kwargs.get('perc')         # n. percentiles
+        imgfile = kwargs.get('imgpath')
+        xmap1, xmap2, ymap1, ymap2 = kwargs.get('limits')
+        iml = kwargs.get('iml')
+        imt = kwargs.get('imt')
 
 
         nperc = len(perc)
@@ -172,7 +186,7 @@ class MapFigure():
         while chk > maxint:
             itmp = itmp + 1
             inter = inter * itmp
-            bounds = range(minz, maxz, inter)
+            bounds = range(int(minz), int(maxz), int(inter))
             chk = len(bounds)
         maxz = minz + chk * inter
         bounds = np.linspace(minz, maxz, chk + 1)
@@ -265,7 +279,6 @@ class MapFigure():
 
         self.canvas.draw()
         self.canvas.mpl_connect('motion_notify_event', self.updateMouseSel)
-        self.Layout()
         return z
 
     def updateMouseSel(self, event):
@@ -290,6 +303,7 @@ class MapFigure():
 
 
 class HazFigure():
+    _perc_lbl = ['10', '50', '90']
 
     def __init__(self, parent, controller):
 
@@ -304,24 +318,44 @@ class HazFigure():
         self.canvas.SetSize(self._parent.GetSize())
         self.canvas.draw()
 
-    def hazardCurve(self, *kargs):
+    def hazardCurve(self, **kwargs):
         """
         It plots hazard curves.
 
         """
 
-        hc = kargs[0]             # hazard curves
-        hsel = kargs[1]           # selected hazard phenomenon
-        tw = kargs[2]             # selected time window
-        hazard = kargs[3]         # hazard phenomena
-        dtime = kargs[4]          # time windows
-        pt_sel = kargs[5]         # selected point
-        perc = kargs[6]           # percentiles
-        iml = kargs[7]            # intensity
-        imt = kargs[8]            # intensity unit
-        th = kargs[9]             # threshold hazard map
-        hc_perc = kargs[10]       # percentiles in hc
-        ith = kargs[11]          # intensity threshold
+        hc = kwargs.get('hc')            # volcanic hazard
+        self.xx = kwargs.get('lon')       # x coord of each point
+        self.yy = kwargs.get('lat')       # y coord of each point
+        aa = kwargs.get('id_area')            # id area for each point
+        na = kwargs.get('nareas')            # nareas
+        npt = kwargs.get('npts')           # n. point
+        hazard = kwargs.get('hazards')        # hazard phenomena
+        dtime = kwargs.get('dtime')         # time windows
+        hsel = kwargs.get('haz_mod')          # hazard phenomenon
+        tw = kwargs.get('exp_time')            # time window
+        pth = kwargs.get('th')          # probability threshold
+        ith = kwargs.get('int_thres')      # intensity threshold
+        perc = kwargs.get('perc')         # n. percentiles
+        imgfile = kwargs.get('imgpath')
+        xmap1, xmap2, ymap1, ymap2 = kwargs.get('limits')
+        iml = kwargs.get('iml')
+        imt = kwargs.get('imt')
+        pt_sel = kwargs.get('pt_sel')
+
+
+        # hc = kargs[0]             # hazard curves
+        # hsel = kargs[1]           # selected hazard phenomenon
+        # tw = kargs[2]             # selected time window
+        # hazard = kargs[3]         # hazard phenomena
+        # dtime = kargs[4]          # time windows
+        # pt_sel = kargs[5]         # selected point
+        # perc = kargs[6]           # percentiles
+        # iml = kargs[7]            # intensity
+        # imt = kargs[8]            # intensity unit
+        # pth = kargs[9]             # threshold hazard map
+        # hc_perc = kargs[10]       # percentiles in hc
+        # ith = kargs[11]          # intensity threshold
 
 
         self.fig.clf()
@@ -338,7 +372,7 @@ class HazFigure():
 
         pmin = 1000
         for p in range(3):
-            ll = perc_lbl[p] + "th Percentile"
+            ll = self._perc_lbl[p] + "th Percentile"
             tmp = hc[hsel][tw][index[p]][pt_sel]
             curve = [float(j) for j in tmp.split()]
             self.pt, = self.axes.plot(iml[hsel], curve,
@@ -350,7 +384,7 @@ class HazFigure():
                                   linewidth=1, alpha=1, label="Average")
 
         self.axes.axhline(
-            y=th,
+            y=pth,
             linestyle='--',
             color="#000000",
             linewidth=1,
@@ -367,7 +401,7 @@ class HazFigure():
         self.axes.set_yscale("log")
         # self.axes.axis([0,1,0,1])
         self.canvas.draw()
-        self.Layout()
+
 
 
 class VulnFigure():
