@@ -43,7 +43,6 @@ class BymurDB():
         """
         Connecting to database
         """
-
         try:
             self._connection = mdb.connect(host=kwargs.pop('db_host',''),
                                            port=int(kwargs.pop('db_port',0)),

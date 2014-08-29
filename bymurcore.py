@@ -5,6 +5,7 @@ import getGMapsImg as gmaps
 import numpy as np # ma lo uso solo per sqrt?
 import math
 import random as rnd
+import time
 
 
 class BymurCore():
@@ -24,6 +25,16 @@ class BymurCore():
     def __init__(self):
         self._db_details=None
         pass
+
+    def connectAndFetch(self, **dbDetails):
+        self.connectDB(**dbDetails)
+        data = self.getHazMapData()
+        self._data.update(data)
+
+    def fetchDataFromDB(self):
+        data = self.getHazMapData()
+        self._data.update(data)
+
 
     def connectDB(self, **dbDetails):
         self._db_details=dbDetails
@@ -154,9 +165,12 @@ class BymurCore():
             createDBDetails['haz_path'],
             createDBdata['npts'],
             createDBdata['dtimefold'])
+        # TODO: add a dialog for successfull creation
 
     def getHazMapData(self):
         data_tmp ={}
+        print "prima di readTable"
+        time.sleep(5)
         table_rows=self._db.readTable("spatial_data1")
         data_tmp['npts'] = len(table_rows)
         data_tmp['id_area'] = [int(table_rows[i][1])
@@ -245,8 +259,8 @@ class BymurCore():
         else:
             return False
 
-    def updateModel(self, values):
-        self.data['haz_mod'] = values['haz_mod']
+    def updateModel(self, **kwargs):
+        self.data['haz_mod'] = kwargs.pop('haz_mod','')
         self.data['dtime'] = []
         for k in range(self.data['nhaz']):
             hazmodtb = "hazard" + str(k + 1)
@@ -273,8 +287,8 @@ class BymurCore():
             # Dovrei almeno assegnare dbReadHC a last_data['hc']??
             # busydlg = None
 
-        self.data['int_thres']=float(values['int_thres'])
-        self.data['ret_per'] = float(values['ret_per'])
+        self.data['int_thres']=float(kwargs.pop('int_thres',0))
+        self.data['ret_per'] = float(kwargs.pop('ret_per',0))
 
         self.data['th'] = prob_thr(self.data['ret_per'],
                             self.data['dtime'][self.data['haz_mod']]

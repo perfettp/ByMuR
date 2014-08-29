@@ -34,6 +34,62 @@ import os
 import urllib2
 import xml.etree.ElementTree as xml
 import wx
+import linecache
+import sys
+import threading
+
+class BymurThread(threading.Thread):
+    _function = None
+    _callback = None
+    _callback_args = {}
+    _function_args = {}
+    def __init__(self, callback, callback_args, function, function_args):
+        self._function = function
+        self._callback = callback
+        self._callback_args = callback_args
+        self._function_args = function_args
+        super(BymurThread, self).__init__()
+
+    def run(self):
+        print "nel thread"
+        self._function(**self._function_args)
+        # TODO: here i should use events to have better control on GUI behaviour
+        wx.CallAfter(self._callback, **self._callback_args)
+
+
+def showMessage(**kwargs):
+        debug = kwargs.pop('debug', False)
+        style = kwargs.pop('style', 0)
+        kind = kwargs.pop('kind', '')
+        style |= wx.CENTRE | wx.STAY_ON_TOP
+        if ( kind == 'BYMUR_ERROR'):
+            style |= wx.ICON_ERROR | wx.OK
+        elif (kind == 'BYMUR_CONFIRM'):
+            style |= wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION
+            print style
+        else:
+            style |= wx.ICON_INFORMATION | wx.OK
+            print style
+
+        if debug:
+            exc_type, exc_obj, tb = sys.exc_info()
+            f = tb.tb_frame
+            lineno = tb.tb_lineno
+            filename = os.path.split(f.f_code.co_filename)[1]
+            linecache.checkcache(filename)
+            line = linecache.getline(filename, lineno, f.f_globals)
+            message = 'Exception in %s\nLine %s : "%s")\n%s' % \
+                    ( filename, str(lineno),
+                      str(line.strip()), str(exc_obj))
+        else:
+            message=kwargs.pop('message', '')
+
+        msgDialog = wx.MessageDialog( parent = kwargs.pop('parent'),
+                                      message = message,
+                                      caption=kwargs.pop('caption', ''),
+                                      style=style)
+        answer = msgDialog.ShowModal()
+        return (answer == wx.ID_OK) or (answer == wx.ID_YES)
 
 
 def show_message(self, *kargs):
