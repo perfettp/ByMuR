@@ -169,8 +169,6 @@ class BymurCore():
 
     def getHazMapData(self):
         data_tmp ={}
-        print "prima di readTable"
-        time.sleep(5)
         table_rows=self._db.readTable("spatial_data1")
         data_tmp['npts'] = len(table_rows)
         data_tmp['id_area'] = [int(table_rows[i][1])
@@ -431,9 +429,16 @@ class BymurCore():
 
         # update DB, table hazard#
 
+    def GetData(self):
+        return self.data
+
     @property
     def data(self):
         return self._data
+
+    @data.setter
+    def data(self, value):
+        self._data = value
 
     @property
     def db(self):

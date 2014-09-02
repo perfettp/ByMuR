@@ -54,6 +54,8 @@ class BymurThread(threading.Thread):
         print "nel thread"
         self._function(**self._function_args)
         # TODO: here i should use events to have better control on GUI behaviour
+        # print "self._callback %s" % self._callback
+        # print "self._callback_args %s" % self._callback_args
         wx.CallAfter(self._callback, **self._callback_args)
 
 

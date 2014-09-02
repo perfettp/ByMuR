@@ -78,6 +78,7 @@ class BymurController(object):
                                              self._core.data,
                                              self._core.connectAndFetch,
                                              self._dbDetails,
+                                             fetch_args=self._core.GetData,
                                              wait_msg="Loading database...")
                     self.wxframe.dbLoaded = True
                 except Exception as e:

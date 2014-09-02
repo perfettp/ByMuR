@@ -823,6 +823,8 @@ class BymurWxLeftPanel(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxLeftPanel, self).updateView(**kwargs)
+        # print "kwargs %s"
+        # print "kwargs %s" % kwargs
         self._hazModCB.Clear()
         self._hazModCB.AppendItems(kwargs['model'])
         self._hazModCB.SetSelection(kwargs['haz_mod'])
@@ -1029,18 +1031,6 @@ class BymurWxView(wx.Frame):
         else:
             return None
 
-    @property
-    def rightPanel(self):
-        return self._rightPanel
-
-    @property
-    def leftPanel(self):
-        return self._leftPanel
-
-    @property
-    def ctrlsValues(self):
-        return self._leftPanel.ctrlsValues
-
     def GetBusy(self):
         """
         Is the application busy?
@@ -1079,8 +1069,49 @@ class BymurWxView(wx.Frame):
 
     def back(self, **real_callback):
         if real_callback and real_callback['function']:
-            real_callback['function'](**real_callback['args'])
+            if real_callback['fetch_args']:
+                real_callback['function'](**real_callback['fetch_args']())
+            else:
+                real_callback['function'](**real_callback['args'])
         self.SetBusy(False)
+
+    def SpawnThread(self, callback, callback_args,
+                    function, function_args, fetch_args= None,
+                    wait_msg='Wait please...'):
+        """
+        :param function: callable to invoke in a new thread
+        :param args:
+        :param kwargs:
+        :return:
+        """
+
+        # print "callback %s" % callback
+        # print "callback_args %s" % callback_args
+        # print "function %s" % function
+        # print "function_args %s" % function_args
+
+
+        threadId = wx.NewId()
+        self.wait(wait_msg=wait_msg)
+        first_callback = self.back
+        worker = gf.BymurThread(first_callback, {'function': callback,
+                                                 'fetch_args':fetch_args,
+                                                 'args': callback_args},
+                                function, function_args)
+        worker.start()
+
+    @property
+    def rightPanel(self):
+        return self._rightPanel
+
+    @property
+    def leftPanel(self):
+        return self._leftPanel
+
+    @property
+    def ctrlsValues(self):
+        return self._leftPanel.ctrlsValues
+
 
     @property
     def busymsg(self):
@@ -1112,23 +1143,6 @@ class BymurWxView(wx.Frame):
         self._db_loaded = value
         for item in self.menuBar.mapControls:
             self.menuBar.Enable(item.GetId(), value)
-
-    def SpawnThread(self, callback, callback_args,
-                    function, function_args, wait_msg='Wait please...'):
-        """
-        :param function: callable to invoke in a new thread
-        :param args:
-        :param kwargs:
-        :return:
-        """
-
-        threadId = wx.NewId()
-        self.wait(wait_msg=wait_msg)
-        first_callback = self.back
-        worker = gf.BymurThread(first_callback, {'function': callback,
-                                                 'args': callback_args},
-                                function, function_args)
-        worker.start()
 
 
 class BymurWxApp(wx.App):
