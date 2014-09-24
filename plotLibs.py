@@ -82,6 +82,17 @@ class MapFigure():
             'button_press_event', self._controller.onMapClick)
         self.canvas.draw()
 
+    def update_map(self, haz_id, int_thres, exp_time):
+        haz_details = {'haz_id':1, 'grid_id':1, 'exptime_id':1, 'stat_id': 1,
+                       'iml':[12], 'imt':"unita di misura"}
+
+        points_values =  [{ 'point_id':1,
+                           'latitude':213,
+                           'longitude':4324,
+                           'curve':[34, 43,43]}]
+
+
+
 
     def hazardMap(self, **kwargs):
         """
@@ -97,11 +108,11 @@ class MapFigure():
         hc = kwargs.get('hc')            # volcanic hazard
         self.xx = kwargs.get('lon')       # x coord of each point
         self.yy = kwargs.get('lat')       # y coord of each point
-        aa = kwargs.get('id_area')            # id area for each point
-        na = kwargs.get('nareas')            # nareas
+        NONaa = kwargs.get('id_area')            # id area for each point
+        NONna = kwargs.get('nareas')            # nareas
         npt = kwargs.get('npts')           # n. point
-        hazard = kwargs.get('hazards')        # hazard phenomena
-        dtime = kwargs.get('dtime')         # time windows
+        NONhazard = kwargs.get('hazards')        # hazard phenomena
+        NONdtime = kwargs.get('dtime')         # time windows
         hsel = kwargs.get('haz_mod')          # hazard phenomenon
         tw = kwargs.get('tw')            # time window
         pth = kwargs.get('th')          # probability threshold

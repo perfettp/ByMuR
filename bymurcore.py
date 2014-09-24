@@ -9,34 +9,36 @@ import time
 
 
 class BymurCore():
-    _conf = { 'haz_mod':0,                  # selected hazard phenomenon
-              'ret_per':4975,               # selected Return Period
-              'int_thres': 3.0,             # selected intensity threshold
-              'tw': 0,                # selected time window
-              # Qui sotto non so perche' siano definite queste costanti
-              'limits':[375.300, 508.500, 4449.200, 4569.800],
-              'perc': range(1, 100),
-              'pt_sel': 0
+    # Default values regardless of hazard model
+    _ctrls_defaut = {'ret_per': 4975,
+                     'int_thres': 3.0,
+                    'hazard_models' : []
     }
 
-    _data = {}
-    _db = None
-
     def __init__(self):
+        self._conf = { 'haz_mod':0,        # selected hazard phenomenon
+                       'ret_per':4975,     # selected Return Period
+                        'int_thres': 3.0,   # selected intensity  threshold
+                        'tw': 0,           # selected time window
+                        #  Qui sotto non so perche' siano definite queste costanti
+                        'limits':[375.300, 508.500, 4449.200, 4569.800],
+                        'perc': range(1, 100),
+                        'pt_sel': 0
+        }
+        self._data = {}
+        self._ctrls_data = {}
+        self._db = None
         self._db_details=None
-        pass
 
     def connectAndFetch(self, **dbDetails):
-        self.connectDB(**dbDetails)
-        data = self.getHazMapData()
-        self._data.update(data)
-
-    def fetchDataFromDB(self):
-        data = self.getHazMapData()
-        self._data.update(data)
-
+        if (not self._db) and dbDetails:
+            self.connectDB(**dbDetails)
+        self._ctrls_data = {'hazard_models' : []}
+        self._ctrls_data['hazard_models'] = self.get_controls_data()
+        print "connectandfetchdata %s" % self._ctrls_data
 
     def connectDB(self, **dbDetails):
+        print "Connect"
         self._db_details=dbDetails
         try:
             self._db = db.BymurDB(**self._db_details)
@@ -56,39 +58,16 @@ class BymurCore():
 
     def dropDBTables(self):
         try:
-            self._db.dropAllTables()
+            self._db.drop_tables()
         except:
             raise
 
 
     def createDB(self, **createDBDetails):
         """
-        Using data provided by the input form (see openCreateDB function)
-        to create Tables in Bymur DB and populate them.
 
-        NOTA: STO SUPPONENDO CHE L'UTENTE PREPARI UNA STRUTTURA AD ALBERO
-        GERARCHICA DEI DATI :
-
-        cartella_hazard/
-            |--hazard1/
-               |--model1/
-                  |--time1/
-                  |--time2/
-                  |--time3/
-               |--model2/
-                  |--time1/
-                  |--time2/
-                  |--time3/
-            |--hazard2/
-            |--hazard3/
-
-        NB: ogni hazard puo' avere una quantita' diversa di modelli (minimo uno),
-            e invece suppongo che i tempi di ricorrenza (time1,time2...) siano
-            gli stessi per ogni modello
         """
 
-
-        # TODO: mancano MOLTI controlli sulla struttura delle directory
         # TODO: prima di creare un nuovo database devo chiudere quello
         # eventualmente aperto. Dopo averlo creato devo chiedere se voglio
         # caricarne i dati
@@ -96,51 +75,6 @@ class BymurCore():
         print "createDB"
         if self._db:
             raise Exception("You need to close the open db first!")
-        createDBdata = {}
-        createDBdata['limits'] = [createDBDetails['lon_min']/1000,
-                                  createDBDetails['lon_max']/1000,
-                                  createDBDetails['lat_min']/1000,
-                                  createDBDetails['lat_max']/1000]
-        createDBdata['hazards'] = os.listdir(createDBDetails['haz_path'])
-        createDBdata['models'] = []
-        createDBdata['dtime'] = []
-        createDBdata['dtimefold'] = []
-
-        for ind, haz in enumerate(createDBdata['hazards']):
-            print 'hpath-->', createDBDetails['haz_path']
-            print 'haz-->', haz
-            createDBdata['models'].append(os.listdir(
-                os.path.join(createDBDetails['haz_path'], haz)))
-            for mod in createDBdata['models'][ind]:
-                if (os.path.isdir(os.path.join(createDBDetails['haz_path'],
-                                               haz, mod))
-                    and (os.listdir(os.path.join(createDBDetails['haz_path'],
-                                                 haz, mod)))):
-                    tmp = os.listdir(os.path.join(createDBDetails['haz_path'],
-                                                  haz, mod))
-                    createDBdata['dtimefold'].append(tmp)
-
-                    dtime_tmp = [str(tmp[i].replace("dt", "")).zfill(3)
-                                 for i in range(len(tmp))]
-                    createDBdata['dtime'].append(dtime_tmp)
-
-        createDBdata['nt'] = max([len(createDBdata['dtime'][i])
-                       for i in range(len(createDBdata['dtime']))])
-
-        print createDBdata['hazards']
-        print createDBdata['models']
-        print createDBdata['dtime']
-
-        percpattern = str(createDBDetails['haz_perc'])  # selected percentiles
-
-        if (percpattern.find(":") != -1):
-            ii, ff, dd = percpattern.split(":")
-            createDBdata['perc'] = range(int(ii), int(ff) + int(dd), int(dd))
-        elif (percpattern.find(",") != -1):
-            val = percpattern.split(",")
-            createDBdata['perc'] = [int(val[i]) for i in range(len(val))]
-        else:
-            raise Exception("Input in percentiles field is not correct")
 
         self._db = db.BymurDB(db_host=createDBDetails['db_host'],
                                  db_port=createDBDetails['db_port'],
@@ -148,27 +82,38 @@ class BymurCore():
                                  db_password=createDBDetails['db_password'],
                                  db_name=createDBDetails['db_name'])
 
+        self.db.create()
 
-        # comment the following two lines if DB tables exist and are populated
-        self._db.createTables(createDBdata['models'])
+        self.db.populate(createDBDetails['haz_path'],
+                         createDBDetails['haz_perc'],
+                         createDBDetails['grid_path'])
 
-        self._db.genInfoPop( createDBDetails['map_path'],
-                                createDBdata['limits'])
-
-        createDBdata['npts'] = self._db.spatDataPop(createDBDetails['grid_path'])
-
-        self._db.hazTabPop(
-            createDBdata['perc'],
-            createDBdata['hazards'],
-            createDBdata['models'],
-            createDBdata['dtime'],
-            createDBDetails['haz_path'],
-            createDBdata['npts'],
-            createDBdata['dtimefold'])
         # TODO: add a dialog for successfull creation
 
+    def get_controls_data(self):
+        hazard_models = self.db.hazard_models_get()
+        # [{'id_phenomenon', 'phenomenon_name', 'haz_id', 'haz_name'}]
+        for ind, hazard in enumerate(hazard_models):
+            haz_tmp = hazard
+            haz_tmp['exposure_times'] = \
+                self.db.get_exposure_times_by_haz(haz_tmp['hazard_id'])
+                # [{'id':, 'years': }]
+            if haz_tmp['phenomenon_name'] == 'VOLCANIC':
+                haz_tmp['volcano'] = self.db.volcanos_list(haz_tmp['hazard_id'])
+                # [{'id':, 'name': }]
+            else:
+                haz_tmp['volcano'] = None
+            hazard_models[ind] = haz_tmp
+        print "hazard_models %s:" % hazard_models
+        return hazard_models
+
+
     def getHazMapData(self):
+        # grid_points = self.db.datagrid_points_get(grid_id)
+        # [{'id', 'latitude', 'longitude'}]
+        return {}
         data_tmp ={}
+
         table_rows=self._db.readTable("spatial_data1")
         data_tmp['npts'] = len(table_rows)
         data_tmp['id_area'] = [int(table_rows[i][1])
@@ -178,6 +123,7 @@ class BymurCore():
         data_tmp['lat'] = [float(table_rows[i][3]) / 1000
                        for i in range(data_tmp['npts'])]
         data_tmp['nareas'] = len(data_tmp['id_area'])
+
 
         table_rows=self._db.readTable("hazard_phenomena")
         data_tmp['nhaz'] = len(table_rows)
@@ -256,6 +202,23 @@ class BymurCore():
             return True
         else:
             return False
+
+    def compute_hazard_map(self,hazard_id, exp_time, ret_per,
+                           statistic_name='mean'):
+
+        hazard_model = self._db.get_hazard_model_by_id(hazard_id)
+        int_thresh_list = self._db.get_intensity_threshods_by_haz(hazard_id)
+        imt = self._db.get_intensity_measure_unit_by_haz(hazard_id)
+        exp_time_id = self._db.get_exposure_time_by_value(exp_time)
+        statistic_id = self._db.get_statistic_by_value(statistic_name)
+        curves = self._db.get_curves(hazard_model['phenomenon_id'],
+                                     hazard_id,
+                                     hazard_model['datagrid_id'],
+                                     statistic_id, exp_time_id)
+
+        hazard_threshold = 1 - math.exp(-exp_time/ret_per)
+
+
 
     def updateModel(self, **kwargs):
         self.data['haz_mod'] = kwargs.pop('haz_mod','')
@@ -433,12 +396,12 @@ class BymurCore():
         return self.data
 
     @property
-    def data(self):
-        return self._data
+    def ctrls_data(self):
+        return dict(self._ctrls_defaut.items() + self._ctrls_data.items())
 
-    @data.setter
-    def data(self, value):
-        self._data = value
+    # @ctrls_data.setter
+    # def data(self, value):
+    #     self._ctrls_data = value
 
     @property
     def db(self):

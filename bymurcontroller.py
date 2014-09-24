@@ -10,7 +10,7 @@ class BymurController(object):
                   'db_port': '3306',
                   'db_user': '***REMOVED***',
                   'db_password': '***REMOVED***',
-                  'db_name': 'paoloDB'
+                  'db_name': 'bymurDB-dev'
     }
 
     _createDBDetails = {'db_host': '***REMOVED***',
@@ -32,9 +32,8 @@ class BymurController(object):
     }
 
 
-
-
     def __init__(self, *args, **kwargs):
+        self._ctrls_data = {}
         self._wxframe = kwargs.pop('wxframe', None)
         self._wxapp = kwargs.pop('wxapp', None)
         try:
@@ -50,12 +49,9 @@ class BymurController(object):
         if dialogResult:
             self._dbDetails.update(dialogResult)
             try:
-                self.wxframe.SpawnThread(
-                    gf.showMessage,
-                    {'parent' : self.wxframe,
-                     'message' : "Connection Succeded!",
-                     'kind': "BYMUR_INFO",
-                     'caption': "Info"},
+                gf.SpawnThread(
+                    self.wxframe,
+                    gf.wxBYMUR_DB_CONNECTED,
                     self._core.connectDB,
                     self._dbDetails,
                     wait_msg="Connecting database...")
@@ -74,12 +70,12 @@ class BymurController(object):
             if dialogResult:
                 self._dbDetails.update(dialogResult)
                 try:
-                    self.wxframe.SpawnThread(self.wxframe.updateView,
-                                             self._core.data,
-                                             self._core.connectAndFetch,
-                                             self._dbDetails,
-                                             fetch_args=self._core.GetData,
-                                             wait_msg="Loading database...")
+                    gf.SpawnThread(self.wxframe,
+                        gf.wxBYMUR_UPDATE_CTRLS,
+                        self._core.connectAndFetch,
+                        self._dbDetails,
+                        callback=self.set_ctrls_data,
+                        wait_msg="Loading database...")
                     self.wxframe.dbLoaded = True
                 except Exception as e:
                     gf.showMessage(parent=self.wxframe,
@@ -89,10 +85,12 @@ class BymurController(object):
                                            caption="Error")
         else:
             try:
-                self.wxframe.SpawnThread(self.wxframe.updateView,
-                                         self._core.data,
-                                         self._core.fetchDataFromDB, {},
-                                         wait_msg="Loading database...")
+                gf.SpawnThread(
+                    self.wxframe,
+                    gf.wxBYMUR_UPDATE_CTRLS,
+                    self._core.connectAndFetch, {},
+                    callback=self.set_ctrls_data,
+                    wait_msg="Loading database...")
                 self.wxframe.dbLoaded = True
             except Exception as e:
                 gf.showMessage(parent=self.wxframe,
@@ -119,9 +117,11 @@ class BymurController(object):
             self.wxframe.busymsg = "Creating DB..."
             self.wxframe.busy = True
             try:
-                self.wxframe.SpawnThread(None, {},
+                gf.SpawnThread(self.wxframe,
+                               gf.wxBYMUR_UPDATE_DIALOG,
                                          self._core.createDB,
                                          self._createDBDetails,
+                                         self.set_ctrls_data,
                                          wait_msg="Creating database...")
             except Exception as e:
                 gf.showMessage(parent=self.wxframe,
@@ -210,11 +210,13 @@ class BymurController(object):
         self.wxframe.updateView(**self._core.data)
 
     def updateParameters(self, event):
-        self.wxframe.SpawnThread(self.wxframe.updateView,
-                                 self._core.data,
-                                 self._core.updateModel,
-                                 self.wxframe.ctrlsValues,
-                                 wait_msg="Updating maps...")
+        hazard_options = self.wxframe.hazard_options
+        gf.SpawnThread(self.wxframe,
+                       gf.wxBYMUR_UPDATE_ALL,
+                       self._core.updateModel,
+                       hazard_options,
+                       callback=None,
+                       wait_msg="Updating maps...")
 
 
     def nbTabChanged(self, event):
@@ -229,6 +231,9 @@ class BymurController(object):
             else:
                 print "Problem setting point"
 
+
+    def set_ctrls_data(self):
+        self.wxframe.ctrls_data = self._core.ctrls_data
 
     def refresh(self):
         self._wxframe.refresh()
@@ -250,3 +255,6 @@ class BymurController(object):
         print "in sleep"
         time.sleep(10)
         print "out sleep"
+
+    def get_ctrls_data(self):
+        return self._core.ctrls_data

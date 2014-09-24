@@ -6,7 +6,6 @@ import bymurcontroller
 import globalFunctions as gf
 import time
 
-
 class BymurBusyDlg(wx.BusyInfo):
     """
     """
@@ -768,6 +767,9 @@ class BymurWxLeftPanel(BymurWxPanel):
                                           'Hazard Model')
         self._hazModCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
                                      style=wx.CB_READONLY, size=(200, -1))
+
+        self._hazModCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+
         self._ctrlsSizer.Add(self._hazModLabel, pos=(0, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._hazModCB, pos=(0, 2), span=(1, 2))
@@ -820,20 +822,49 @@ class BymurWxLeftPanel(BymurWxPanel):
         self.SetSizer(self._sizer)
         # self.Enable(False)
 
+    def updateCtrls(self, ev ):
+        if (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED) and\
+                (ev.GetEventObject() == self._hazModCB):
+            _haz_sel = self._hazModCB.GetValue()
+            for haz in wx.GetTopLevelParent(self).ctrls_data['hazard_models']:
+                if haz['hazard_name'] == _haz_sel:
+                    _exp_times = [str(et['years']) for et in haz['exposure_times']]
+                    self._timeWindowCB.Clear()
+                    self._timeWindowCB.AppendItems(_exp_times)
 
     def updateView(self, **kwargs):
         super(BymurWxLeftPanel, self).updateView(**kwargs)
+        # [{'id_phenomenon', 'phenomenon_name', 'haz_id', 'haz_name'}]
         # print "kwargs %s"
         # print "kwargs %s" % kwargs
+        ctrls_data = wx.GetTopLevelParent(self).ctrls_data
+
+        _haz_sel = self._hazModCB.GetSelection()
+        print "_haz_sel %s" % _haz_sel
         self._hazModCB.Clear()
-        self._hazModCB.AppendItems(kwargs['model'])
-        self._hazModCB.SetSelection(kwargs['haz_mod'])
-        self._retPerText.SetValue(str(int(kwargs['ret_per'])))
-        self._intThresText.SetValue(str(kwargs['int_thres']))
+        self._hazModCB.AppendItems([haz['hazard_name'] for haz in ctrls_data[
+            'hazard_models']])
+        try:
+            self._hazModCB.SetSelection(_haz_sel)
+        except:
+            print "Exception _hazModCB.SetSelection"
+            pass
+
+        self._retPerText.SetValue(str(int(ctrls_data['ret_per'])))
+        self._intThresText.SetValue(str(ctrls_data['int_thres']))
+
+        _exp_times = []
+        for haz in ctrls_data['hazard_models']:
+            if haz['hazard_name'] == _haz_sel:
+                _exp_times = [str(et['years']) for et in haz['exposure_times']]
+
+        _exp_sel = self._timeWindowCB.GetSelection()
         self._timeWindowCB.Clear()
-        self._timeWindowCB.AppendItems(kwargs['dtime'][
-            self._hazModCB.GetSelection()])
-        self._timeWindowCB.SetSelection(kwargs['tw'])
+        self._timeWindowCB.AppendItems(_exp_times)
+        try:
+            self._timeWindowCB.SetSelection(_exp_sel)
+        except:
+            pass
         # self.Enable(True)
 
     @property
@@ -847,13 +878,13 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._ctrlsBox.SetLabel(self._ctrlsBoxTitle)
 
     @property
-    def ctrlsValues(self):
+    def hazard_options(self):
         """Get the current ctrlsBox parameters"""
         values = {}
         values['haz_mod'] = self._hazModCB.GetSelection()
         values['ret_per'] = self._retPerText.GetValue()
         values['int_thres'] = self._intThresText.GetValue()
-        values['tw'] = self._timeWindowCB.GetSelection()
+        values['exp_time'] = self._timeWindowCB.GetSelection()
         return values
 
 
@@ -875,6 +906,8 @@ class BymurWxMenu(wx.MenuBar):
         self._menu_actions[menuItemTmp.GetId()] = self._controller.loadDB
         menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
         self._menu_actions[menuItemTmp.GetId()] = self._controller.connectDB
+        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&EVENT')
+        self._menu_actions[menuItemTmp.GetId()] = self.fireEvent
         self.menuFile.AppendSeparator()
         self.menuFile.Append(wx.ID_CLOSE, '&Quit')
         self._menu_actions[wx.ID_CLOSE] = self._controller.quit
@@ -930,6 +963,13 @@ class BymurWxMenu(wx.MenuBar):
         else:
             raise Exception, "Menu action not defined!"
 
+    def fireEvent(self):
+        print "Load..."
+        event = gf.BymurUpdateEvent(gf.BYMUR_UPDATE_ALL,1)
+        print "Aim"
+        wx.PostEvent(self, event)
+        print "Fire!"
+
     @property
     def dbControls(self):
         return self._db_actions
@@ -954,6 +994,17 @@ class BymurWxView(wx.Frame):
         self._controller = kwargs.pop('controller', None)
         self._title = kwargs.pop('title', '')
         super(BymurWxView, self).__init__(*args, **kwargs)
+
+        self._ctrls_data = {}
+
+        # TODO: make a list for events
+        self.Bind(gf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
+        self.Bind(gf.BYMUR_UPDATE_CURVE, self.OnBymurEvent)
+        self.Bind(gf.BYMUR_UPDATE_MAP, self.OnBymurEvent)
+        self.Bind(gf.BYMUR_UPDATE_DIALOG, self.OnBymurEvent)
+        self.Bind(gf.BYMUR_UPDATE_CTRLS, self.OnBymurEvent)
+        self.Bind(gf.BYMUR_THREAD_CLOSED, self.OnBymurEvent)
+        self.Bind(gf.BYMUR_DB_CONNECTED, self.OnBymurEvent)
 
         # Menu
         self.menuBar = BymurWxMenu(controller=self._controller)
@@ -985,9 +1036,9 @@ class BymurWxView(wx.Frame):
 
     def updateView(self, **kwargs):
         print "Main WxFrame"
-        for panel in self.GetChildren():
-            if isinstance(panel, BymurWxPanel):
-                panel.updateView(**kwargs)
+        # for panel in self.GetChildren():
+        #     if isinstance(panel, BymurWxPanel):
+        #         panel.updateView(**kwargs)
 
     def saveFile(self, dfl_dir, get_text):
         ext = '.txt'
@@ -1044,6 +1095,7 @@ class BymurWxView(wx.Frame):
         :param state: Boolean
         """
         self._isbusy = state
+        print "state %s" % state
         wait_msg = kwargs.pop('wait_msg', self._busymsg)
         if self._isbusy:
             # self._old_style = self.GetWindowStyle()
@@ -1067,38 +1119,40 @@ class BymurWxView(wx.Frame):
     def wait(self, **kwargs):
         self.SetBusy(True, **kwargs)
 
-    def back(self, **real_callback):
-        if real_callback and real_callback['function']:
-            if real_callback['fetch_args']:
-                real_callback['function'](**real_callback['fetch_args']())
-            else:
-                real_callback['function'](**real_callback['args'])
+    # def back(self, **real_callback):
+    #     if real_callback and real_callback['function']:
+    #         if real_callback['fetch_args']:
+    #             real_callback['function'](**real_callback['fetch_args']())
+    #         else:
+    #             real_callback['function'](**real_callback['args'])
+    #     self.SetBusy(False)
+
+    # def SpawnThread(self, event_type, function, function_args,
+    #                 wait_msg='Wait please...'):
+    #     """
+    #     """
+    #     threadId = wx.NewId()
+    #     self.wait(wait_msg=wait_msg)
+    #     worker = gf.BymurThread(self, event_type, function, function_args)
+    #     worker.start()
+
+    def OnBymurEvent(self, event):
+        print event.__class__.__name__
+        print "Ricevuto!"
+        if event.GetEventType() == gf.wxBYMUR_UPDATE_CTRLS:
+            print "gf.wxBYMUR_UPDATE_CTRLS"
+            print "ctrls_data: %s " % self.ctrls_data
+            self.leftPanel.updateView()
+        elif event.GetEventType() == gf.wxBYMUR_DB_CONNECTED:
+            print "gf.wxBYMUR_DB_CONNECTED"
         self.SetBusy(False)
 
-    def SpawnThread(self, callback, callback_args,
-                    function, function_args, fetch_args= None,
-                    wait_msg='Wait please...'):
-        """
-        :param function: callable to invoke in a new thread
-        :param args:
-        :param kwargs:
-        :return:
-        """
-
-        # print "callback %s" % callback
-        # print "callback_args %s" % callback_args
-        # print "function %s" % function
-        # print "function_args %s" % function_args
-
-
-        threadId = wx.NewId()
-        self.wait(wait_msg=wait_msg)
-        first_callback = self.back
-        worker = gf.BymurThread(first_callback, {'function': callback,
-                                                 'fetch_args':fetch_args,
-                                                 'args': callback_args},
-                                function, function_args)
-        worker.start()
+# on connect
+# gf.showMessage,
+#                     {'parent' : self.wxframe,
+#                      'message' : "Connection Succeded!",
+#                      'kind': "BYMUR_INFO",
+#                      'caption': "Info"},
 
     @property
     def rightPanel(self):
@@ -1109,8 +1163,8 @@ class BymurWxView(wx.Frame):
         return self._leftPanel
 
     @property
-    def ctrlsValues(self):
-        return self._leftPanel.ctrlsValues
+    def hazard_options(self):
+        return self._leftPanel.hazard_options
 
 
     @property
@@ -1144,6 +1198,13 @@ class BymurWxView(wx.Frame):
         for item in self.menuBar.mapControls:
             self.menuBar.Enable(item.GetId(), value)
 
+    @property
+    def ctrls_data(self):
+        return self._ctrls_data
+
+    @ctrls_data.setter
+    def ctrls_data(self,data):
+        self._ctrls_data = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):
