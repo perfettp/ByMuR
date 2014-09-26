@@ -637,14 +637,16 @@ class BymurWxMapPanel(BymurWxPanel):
         self._title = kwargs.pop('title', "Map")
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        self._map = plotLibs.MapFigure(self, self._controller)
-        self._sizer.Add(self._map.canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map.toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        # self._map = plotLibs.MapFigure(self, self._controller)
+        self._map = gf.HazardMap(self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
         super(BymurWxMapPanel, self).updateView(**kwargs)
-        self._map.hazardMap(**kwargs)
+        self._map.plot(wx.GetTopLevelParent(self).hazard_values)
+        self.Enable(True)
 
     @property
     def title(self):
@@ -881,10 +883,10 @@ class BymurWxLeftPanel(BymurWxPanel):
     def hazard_options(self):
         """Get the current ctrlsBox parameters"""
         values = {}
-        values['haz_mod'] = self._hazModCB.GetSelection()
+        values['haz_mod'] = self._hazModCB.GetStringSelection()
         values['ret_per'] = self._retPerText.GetValue()
         values['int_thres'] = self._intThresText.GetValue()
-        values['exp_time'] = self._timeWindowCB.GetSelection()
+        values['exp_time'] = self._timeWindowCB.GetStringSelection()
         return values
 
 
@@ -996,7 +998,7 @@ class BymurWxView(wx.Frame):
         super(BymurWxView, self).__init__(*args, **kwargs)
 
         self._ctrls_data = {}
-
+        self._hazard_values = None
         # TODO: make a list for events
         self.Bind(gf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
         self.Bind(gf.BYMUR_UPDATE_CURVE, self.OnBymurEvent)
@@ -1119,32 +1121,20 @@ class BymurWxView(wx.Frame):
     def wait(self, **kwargs):
         self.SetBusy(True, **kwargs)
 
-    # def back(self, **real_callback):
-    #     if real_callback and real_callback['function']:
-    #         if real_callback['fetch_args']:
-    #             real_callback['function'](**real_callback['fetch_args']())
-    #         else:
-    #             real_callback['function'](**real_callback['args'])
-    #     self.SetBusy(False)
-
-    # def SpawnThread(self, event_type, function, function_args,
-    #                 wait_msg='Wait please...'):
-    #     """
-    #     """
-    #     threadId = wx.NewId()
-    #     self.wait(wait_msg=wait_msg)
-    #     worker = gf.BymurThread(self, event_type, function, function_args)
-    #     worker.start()
 
     def OnBymurEvent(self, event):
         print event.__class__.__name__
         print "Ricevuto!"
-        if event.GetEventType() == gf.wxBYMUR_UPDATE_CTRLS:
-            print "gf.wxBYMUR_UPDATE_CTRLS"
-            print "ctrls_data: %s " % self.ctrls_data
-            self.leftPanel.updateView()
-        elif event.GetEventType() == gf.wxBYMUR_DB_CONNECTED:
+        if  event.GetEventType() == gf.wxBYMUR_DB_CONNECTED:
             print "gf.wxBYMUR_DB_CONNECTED"
+        elif event.GetEventType() == gf.wxBYMUR_UPDATE_CTRLS:
+            print "gf.wxBYMUR_UPDATE_CTRLS"
+            self.leftPanel.updateView()
+        elif event.GetEventType() == gf.wxBYMUR_UPDATE_ALL:
+            print "gf.wxBYMUR_UPDATE_ALL"
+            self.leftPanel.updateView()
+            self.rightPanel.mapPanel.updateView()
+            self.rightPanel.Enable(True)
         self.SetBusy(False)
 
 # on connect
@@ -1205,6 +1195,14 @@ class BymurWxView(wx.Frame):
     @ctrls_data.setter
     def ctrls_data(self,data):
         self._ctrls_data = data
+
+    @property
+    def hazard_values(self):
+        return self._hazard_values
+
+    @hazard_values.setter
+    def hazard_values(self,data):
+        self._hazard_values = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

@@ -37,6 +37,15 @@ import linecache
 import sys
 import threading
 import utm
+import numpy as np
+
+import matplotlib as mpl
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as pyplot
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
+
+
 
 wxBYMUR_UPDATE_CURVE = wx.NewEventType()
 wxBYMUR_UPDATE_MAP = wx.NewEventType()
@@ -82,6 +91,7 @@ class BymurUpdateEvent(wx.PyCommandEvent):
     def GetCallbackKwargs(self):
         return self._callback_kwargs
 
+
 def fire_event(target_id, event_type):
     wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
 
@@ -106,8 +116,6 @@ class BymurThread(threading.Thread):
             self._callback()
         print "Fire!"
         wx.PostEvent(self._targetid, self._event)
-
-
 
 
 class HazardModel(object):
@@ -261,6 +269,17 @@ def points_to_latlon(points, utm_zone_number=33,
                     'longitude':round(lon, decimals)})
     return res
 
+def points_to_utm(points, decimals=5):
+    res = []
+    for p in points:
+        easting, northing, zone_number, zone_letter = \
+            utm.from_latlon(p['latitude'],
+                            p['longitude'])
+        res.append({'easting': round(easting, decimals),
+                    'northing':round(northing, decimals),
+                    'zone_number': zone_number,
+                    'zone_letter': zone_letter})
+    return res
 
 def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
                              utm_zone_letter='T', decimals=5):
@@ -279,7 +298,6 @@ def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
             return points
         else:
             return False
-
 
 def showMessage(**kwargs):
         debug = kwargs.pop('debug', False)
@@ -315,6 +333,141 @@ def showMessage(**kwargs):
         answer = msgDialog.ShowModal()
         return (answer == wx.ID_OK) or (answer == wx.ID_YES)
 
+
+class HazardMap(object):
+    def __init__(self, parent):
+        self._parent = parent
+        # TODO: imgfile should be a parameter, but maybe in plot
+        self._imgfile = "/hades/dev/bymur/data/naples_gmaps.png"
+        self._figure = pyplot.figure()
+        self._canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
+        self._toolbar = NavigationToolbar2WxAgg(self._canvas)
+        self._cmap = pyplot.cm.RdYlGn_r
+        self._figure.clf()
+        self._figure.subplots_adjust(left=None, bottom=None,
+                                     right=None, top=None,
+                                     wspace=None, hspace=0.3)
+        self._figure.hold(True)
+        self._canvas.SetSize(self._parent.GetSize())
+        self._canvas.draw()
+
+    def levels_boundaries(self, z_array):
+        max_intervals = 10
+        maxz = np.ceil(max(z_array))
+        minz = np.floor(min(z_array))
+        print "maxz %s" %maxz
+        print "minz %s" %minz
+
+        if (maxz - minz) < 4:
+            inter = 0.2
+        elif maxz < 10:
+            inter = 1.
+            maxz = max(maxz, 3.)
+        else:
+            order = np.floor(np.log10(maxz - minz)) - 1
+            inter = 1. * 10 ** (order)
+        print 'range-->', minz, maxz, inter
+
+        chk = len(np.arange(minz, maxz, inter))
+        itmp = 1
+        while chk > max_intervals:
+            itmp = itmp + 1
+            inter = inter * itmp
+            bounds = range(int(minz), int(maxz), int(inter))
+            chk = len(bounds)
+        maxz = minz + chk * inter
+        # bounds = np.linspace(minz, maxz, chk + 1)
+        bounds = np.linspace(min(z_array), max(z_array), max_intervals)
+        return bounds
+
+    def plot(self, points_data):
+
+        # TODO: to transform in a parameter
+        haz_bar_label = "Etichetta barra"
+        print "points_data: %s" % points_data
+        # Prepare matplotlib grid and data
+        grid_points_number = 100
+        points_utm = points_to_utm([p['point'] for p in points_data])
+        x_points = [p['easting'] for p in points_utm]
+
+        # TODO: fix these points
+        x_points = [x/1000 for x in x_points]
+        y_points = [p['northing'] for p in points_utm]
+        y_points = [x/1000 for x in y_points]
+        z_points = [p['value'] for p in points_data]
+        x_vector = np.linspace(min(x_points), max(x_points), grid_points_number)
+        y_vector = np.linspace(min(y_points), max(y_points), grid_points_number)
+        x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
+        # TODO: install natgrid to use natural neighbor interpolation
+        z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
+                               interp='linear')
+
+        # Define colors mapping and levels
+        z_boundaries = self.levels_boundaries(z_points)
+        print "plot> z_boundaries: %s" % z_boundaries
+        cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
+                                                  self._cmap.N)
+
+        self._figure.clf()
+        self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
+                                     top=0.92, wspace=0.35, hspace=0.2)
+        self._figure.hold(True)
+
+        # Add hazard map subfigure
+        haz_subplot = self._figure.add_subplot(1, 2, 1)
+        # TODO: tmp image plot
+        xmap1, xmap2, ymap1, ymap2 = [375.300,
+                                      508.500,
+                                      4449.200,
+                                      4569.800]
+        img = pyplot.imread(self._imgfile)
+
+        haz_subplot.imshow(
+            img,
+            zorder=0,
+            origin="upper",
+            extent=(
+                xmap1,
+                xmap2,
+                ymap1,
+                ymap2))
+
+
+        # Plot hazard map
+        haz_contourf = haz_subplot.contourf(x_mesh, y_mesh, z_mesh,
+                                            z_boundaries,
+                                            origin="lower",
+                                            cmap=self._cmap,
+                                            alpha=0.5,
+                                            zorder=1 )
+        haz_contour = haz_subplot.contour(x_mesh, y_mesh, z_mesh,
+                                          z_boundaries,
+                                          origin="lower",
+                                          aspect="equal",
+                                          cmap=self._cmap,
+                                          linewidths=2,
+                                          alpha=1,
+                                          zorder=2)
+
+        # Plot hazard bar
+        hazard_bar = self._figure.colorbar(
+            haz_contourf,
+            shrink=0.9,
+            norm=cmap_norm_index,
+            ticks=z_boundaries,
+            boundaries=z_boundaries,
+            format='%.3f')
+        hazard_bar.set_alpha(1)
+        hazard_bar.set_label(haz_bar_label)
+        hazard_bar.draw_all()
+
+        haz_subplot.set_title("Hazard Map\n", fontsize=9)
+        haz_subplot.set_xlabel("Easting (km)")
+        haz_subplot.set_ylabel("Northing (km)")
+        haz_subplot.axis([425.000,448.000, 4510.000,
+                                      4533.000])
+
+        self._canvas.draw()
 
 def verifyInternetConn():
     try:

@@ -28,6 +28,8 @@ import os
 import re
 import time
 import dbFunctions as db
+import bymurcore
+
 dbDetails = {'db_host': '***REMOVED***',
                   'db_port': '3306',
                   'db_user': '***REMOVED***',
@@ -36,11 +38,15 @@ dbDetails = {'db_host': '***REMOVED***',
     }
 
 
-database=db.BymurDB(**dbDetails)
-database.populate('/hades/dev/bymur-data/test', '10:100:10',
+
+# database=db.BymurDB(**dbDetails)
+core = bymurcore.BymurCore()
+core.connectDB(**dbDetails)
+core._db.populate('/hades/dev/bymur-data/test', '10:100:10',
                    '/hades/dev/bymur/data/naples-grid.txt')
 
-print database.get_curves(2,3,1,4,1)[1]['curve']
+# curves =  core._db.get_curves(2,3,1,4,1)
+#core.compute_hazard_map(1, 50, 4975)
 
 # a = database.get_intensity_threshods_by_haz(1)
 #
@@ -62,7 +68,7 @@ print database.get_curves(2,3,1,4,1)[1]['curve']
 # except Exception as e:
 #     print "Errore di conformita'"
 
-# HazardModel("/hades/dev/bymur/schema/input1.xml", "volcanic")
+#  HazardModel("/hades/dev/bymur/schema/input1.xml", "volcanic")
 
 #
 # print points_to_latlon(x.points_coords)

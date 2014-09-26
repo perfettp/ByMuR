@@ -215,7 +215,7 @@ class BymurController(object):
                        gf.wxBYMUR_UPDATE_ALL,
                        self._core.updateModel,
                        hazard_options,
-                       callback=None,
+                       callback=self.set_hazard_values,
                        wait_msg="Updating maps...")
 
 
@@ -234,6 +234,9 @@ class BymurController(object):
 
     def set_ctrls_data(self):
         self.wxframe.ctrls_data = self._core.ctrls_data
+
+    def set_hazard_values(self):
+        self.wxframe.hazard_values = self._core.hazard_values
 
     def refresh(self):
         self._wxframe.refresh()

@@ -454,10 +454,6 @@ class BymurDB():
 
     def intensity_thresholds_idlist(self, imt_id, iml_thresholds):
         """
-
-        :param imt_id:
-        :param iml_thresholds:
-        :return:
         """
 
         sqlquery = """
@@ -468,9 +464,9 @@ class BymurDB():
             return -1
        #  print iml_thresholds
         iml_thresh_list = ', '.join([str(y) for y in [float(x)
-                                                      for x in iml_thresholds]])
+                                                      for x in
+                                                      iml_thresholds]])
         sqlquery %= iml_thresh_list
-        # print "intensity_thresholds_idlist %s" % sqlquery
         self._cursor.execute(sqlquery)
         return [item[0] for item in self._cursor.fetchall()]
 
@@ -502,7 +498,7 @@ class BymurDB():
         """
         sqlquery %= str(haz_id)
         self._cursor.execute(sqlquery)
-        return [item[0] for item in self._cursor.fetchall()]
+        return [float(item[0]) for item in self._cursor.fetchall()]
         # return [dict(zip(['id','value','imt'], x))
         #         for x in self._cursor.fetchall()]
 
@@ -551,7 +547,7 @@ class BymurDB():
         """
         sqlquery %= str(haz_id)
         self._cursor.execute(sqlquery)
-        return [dict(zip(['id','years'], x))
+        return [dict(zip(['id','years'], (x[0], int(x[1]))))
                 for x in self._cursor.fetchall()]
 
     def get_exposure_time_by_value(self, exp_time_value):
@@ -648,35 +644,87 @@ class BymurDB():
         return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
                          'hazard_name', 'date'], self._cursor.fetchone()))
 
-    def volcanic_data_insert(self, hazard_model_id, datagrid_id,
+    def get_hazard_model_by_name(self, haz_name):
+        sqlquery = """ SELECT `haz_mod`.`id`,
+                    `haz_mod`.`id_phenomenon`,
+                    `haz_mod`.`id_datagrid`,
+                    `haz_mod`.`name`,
+                    `haz_mod`.`date`
+            FROM `hazard_models` `haz_mod`
+            WHERE `haz_mod`.`name`= '%s'
+        """
+        sqlquery %= str(haz_name.upper())
+        self._cursor.execute(sqlquery)
+        return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
+                         'hazard_name', 'date'], self._cursor.fetchone()))
+
+
+    def hazard_data_insert(self, phenomenon, hazard_model_id, datagrid_id,
                              stat_id, exptime_id, points, curves):
+
+        if phenomenon == 'VOLCANIC':
+            table_name = "volcanic_data"
+        elif phenomenon == 'SEISMIC':
+            table_name = "seismic_data"
+        elif phenomenon == 'TSUNAMIC':
+            table_name = "tsunamic_data"
+
         points_idlist = self.pointsid_list(points)
         point_curve_map = zip(points_idlist,
                               [", ".join(map(str,x)) for x in curves])
 
         sqlquery = """
-                    INSERT IGNORE INTO volcanic_data (id_hazard_model,
+                    INSERT IGNORE INTO `{0}` (id_hazard_model,
                         id_point, id_grid, id_statistic, id_exposure_time,
                         hazard_curve) VALUES ( """ + str(hazard_model_id) + """
                         , %s, """ + str(datagrid_id) + ", " + str(
             stat_id) + ","  + str(exptime_id) + """, %s )"""
+
+        sqlquery = sqlquery.format(table_name)
+        print "point_curve_map %s " % point_curve_map
         return self._cursor.executemany(sqlquery, point_curve_map)
+
+    def volcanic_data_insert(self, hazard_model_id, datagrid_id,
+                             stat_id, exptime_id, points, curves):
+
+        return self.hazard_data_insert('VOLCANIC', hazard_model_id,
+                                       datagrid_id, stat_id, exptime_id,
+                                       points, curves)
+        # points_idlist = self.pointsid_list(points)
+        # print "points_idlist %s " % points_idlist
+        # time.sleep(5)
+        # print "curves %s " % curves
+        # time.sleep(5)
+        # point_curve_map = zip(points_idlist,
+        #                       [", ".join(map(str,x)) for x in curves])
+        #
+        # sqlquery = """
+        #             INSERT IGNORE INTO volcanic_data (id_hazard_model,
+        #                 id_point, id_grid, id_statistic, id_exposure_time,
+        #                 hazard_curve) VALUES ( """ + str(hazard_model_id) + """
+        #                 , %s, """ + str(datagrid_id) + ", " + str(
+        #     stat_id) + ","  + str(exptime_id) + """, %s )"""
+        # print "point_curve_map %s " % point_curve_map
+        # return self._cursor.executemany(sqlquery, point_curve_map)
 
     def seismic_data_insert(self, hazard_model_id, datagrid_id,
                             stat_id, exptime_id, points, curves):
-        points_idlist = self.pointsid_list(points)
-
-        point_curve_map = zip(points_idlist,
-                              [", ".join(map(str,x)) for x in curves])
-
-        sqlquery = """
-                    INSERT IGNORE INTO seismic_data (id_hazard_model,
-                        id_point, id_grid, id_statistic, id_exposure_time,
-                        hazard_curve) VALUES ( """ + str(hazard_model_id) + \
-                   """, %s, """ + str(datagrid_id) + ", " + str(stat_id) + \
-                        ", " + str(exptime_id) + """, %s )
-                   """
-        return self._cursor.executemany(sqlquery, point_curve_map)
+        return self.hazard_data_insert('SEISMIC', hazard_model_id,
+                                       datagrid_id, stat_id, exptime_id,
+                                       points, curves)
+        # points_idlist = self.pointsid_list(points)
+        #
+        # point_curve_map = zip(points_idlist,
+        #                       [", ".join(map(str,x)) for x in curves])
+        #
+        # sqlquery = """
+        #             INSERT IGNORE INTO seismic_data (id_hazard_model,
+        #                 id_point, id_grid, id_statistic, id_exposure_time,
+        #                 hazard_curve) VALUES ( """ + str(hazard_model_id) + \
+        #            """, %s, """ + str(datagrid_id) + ", " + str(stat_id) + \
+        #                 ", " + str(exptime_id) + """, %s )
+        #            """
+        # return self._cursor.executemany(sqlquery, point_curve_map)
 
     def get_curves(self, phenomenon_id, hazard_model_id,
                    datagrid_id, stat_id, exptime_id):
@@ -687,8 +735,10 @@ class BymurDB():
             table_name = "volcanic_data"
         elif phenomenon['name'] == 'SEISMIC':
             table_name = "seismic_data"
-        elif phenomenon['name'] == 'TSUNAMI':
+        elif phenomenon['name'] == 'TSUNAMIC':
             table_name = "tsunamic_data"
+        else:
+            return None
 
         sqlquery = """ SELECT `p`.`latitude`, `p`.`longitude`,
                         `d`.`hazard_curve` FROM
@@ -697,15 +747,19 @@ class BymurDB():
              WHERE `d`.`id_hazard_model`= {1} AND `d`.`id_grid` = {2}
              AND `d`.`id_statistic` = {3} and `d`.`id_exposure_time` = {4}
         """
+        query = sqlquery.format(table_name,
+                                             hazard_model_id,
+                                             datagrid_id,
+                                             stat_id, exptime_id)
+        print "sqlquery %s" % query
         self._cursor.execute(sqlquery.format(table_name,
                                              hazard_model_id,
                                              datagrid_id,
                                              stat_id, exptime_id))
-        print str(self._cursor.fetchone()[2])
         return [dict(zip(['point', 'curve'],
                          (dict(zip(['latitude', 'longitude'],
                                    (x[0],x[1]))),
-                          (x[2]))))
+                          ([float(a) for a in x[2].split(',')]))))
                 for x in self._cursor.fetchall()]
     def create(self):
         # TODO: create DB for real!
@@ -862,67 +916,124 @@ class BymurDB():
                             self.hazard_exposure_time_rel(hazard_model_id,
                                                         exptime_id)
 
-                            # Data in hazmodel_volcanos
-                            if fileXmlModel.phenomenon == "VOLCANIC":
-                                volcano_id = self.volcano_get_insert_id(
-                                fileXmlModel.volcano)
-                                self.hazard_volcano_rel(hazard_model_id,
-                                                        volcano_id)
-                                print "DB > Inserting volcanic hazard data: " \
-                                      "hazard_model id: %s \n" \
-                                      "datagrid_id %s \n" \
-                                      "stat_id %s \n" \
-                                      "exptime id: %s \n" \
-                                      "points_id_len: %s \n" \
-                                      "points_value_len: %s \n" \
-                                      % (
-                                    hazard_model_id,
-                                    datagrid_id,
-                                    stat_id,
-                                    exptime_id,
-                                    len(gf.points_to_latlon(
-                                        fileXmlModel.points_coords)),
-                                    len(fileXmlModel.points_values)
-                                )
 
-                                self.volcanic_data_insert(
-                                    hazard_model_id,
-                                    datagrid_id,
-                                    stat_id,
-                                    exptime_id,
-                                    gf.points_to_latlon(
-                                        fileXmlModel.points_coords),
-                                    fileXmlModel.points_values
-                                )
-                            elif fileXmlModel.phenomenon == "SEISMIC":
-                                print "DB > Inserting seismic hazard data: " \
-                                      "hazard_model id: %s \n" \
-                                      "datagrid_id %s \n" \
-                                      "stat_id %s \n" \
-                                      "exptime id: %s \n" \
-                                      "points_id_len: %s \n" \
-                                      "points_value_len: %s \n" \
+                            print "DB > Inserting hazard data: " \
+                                  "phenomenon: %s \n" \
+                                  "hazard_model id: %s \n" \
+                                  "datagrid_id %s \n" \
+                                  "stat_id %s \n" \
+                                  "exptime id: %s \n" \
+                                  "points_id_len: %s \n" \
+                                  "points_value_len: %s \n" \
                                       % (
-                                    hazard_model_id,
-                                    datagrid_id,
-                                    stat_id,
-                                    exptime_id,
-                                    len(gf.points_to_latlon(
-                                        fileXmlModel.points_coords)),
-                                    len(fileXmlModel.points_values)
-                                )
+                                fileXmlModel.phenomenon,
+                                hazard_model_id,
+                                datagrid_id,
+                                stat_id,
+                                exptime_id,
+                                len(gf.points_to_latlon(
+                                    fileXmlModel.points_coords)),
+                                len(fileXmlModel.points_values)
+                            )
 
-                                self.seismic_data_insert(
-                                    hazard_model_id,
-                                    datagrid_id,
-                                    stat_id,
-                                    exptime_id,
-                                    gf.points_to_latlon(
-                                        fileXmlModel.points_coords),
-                                    fileXmlModel.points_values
-                                )
-                            else:
-                                print "Phenomena not (yet?) implemented"
+                            self.hazard_data_insert(
+                                fileXmlModel.phenomenon,
+                                hazard_model_id,
+                                datagrid_id,
+                                stat_id,
+                                exptime_id,
+                                gf.points_to_latlon(
+                                    fileXmlModel.points_coords),
+                                fileXmlModel.points_values
+                            )
+                            # # Data in hazmodel_volcanos
+                            # if fileXmlModel.phenomenon == "VOLCANIC":
+                            #     volcano_id = self.volcano_get_insert_id(
+                            #     fileXmlModel.volcano)
+                            #     self.hazard_volcano_rel(hazard_model_id,
+                            #                             volcano_id)
+                            #     print "DB > Inserting volcanic hazard data: " \
+                            #           "hazard_model id: %s \n" \
+                            #           "datagrid_id %s \n" \
+                            #           "stat_id %s \n" \
+                            #           "exptime id: %s \n" \
+                            #           "points_id_len: %s \n" \
+                            #           "points_value_len: %s \n" \
+                            #           % (
+                            #         hazard_model_id,
+                            #         datagrid_id,
+                            #         stat_id,
+                            #         exptime_id,
+                            #         len(gf.points_to_latlon(
+                            #             fileXmlModel.points_coords)),
+                            #         len(fileXmlModel.points_values)
+                            #     )
+                            #
+                            #     self.volcanic_data_insert(
+                            #         hazard_model_id,
+                            #         datagrid_id,
+                            #         stat_id,
+                            #         exptime_id,
+                            #         gf.points_to_latlon(
+                            #             fileXmlModel.points_coords),
+                            #         fileXmlModel.points_values
+                            #     )
+                            # elif fileXmlModel.phenomenon == "SEISMIC":
+                            #     print "DB > Inserting seismic hazard data: " \
+                            #           "hazard_model id: %s \n" \
+                            #           "datagrid_id %s \n" \
+                            #           "stat_id %s \n" \
+                            #           "exptime id: %s \n" \
+                            #           "points_id_len: %s \n" \
+                            #           "points_value_len: %s \n" \
+                            #           % (
+                            #         hazard_model_id,
+                            #         datagrid_id,
+                            #         stat_id,
+                            #         exptime_id,
+                            #         len(gf.points_to_latlon(
+                            #             fileXmlModel.points_coords)),
+                            #         len(fileXmlModel.points_values)
+                            #     )
+                            #
+                            #     self.seismic_data_insert(
+                            #         hazard_model_id,
+                            #         datagrid_id,
+                            #         stat_id,
+                            #         exptime_id,
+                            #         gf.points_to_latlon(
+                            #             fileXmlModel.points_coords),
+                            #         fileXmlModel.points_values
+                            #     )
+                            # elif fileXmlModel.phenomenon == "TSUNAMIC":
+                            #     print "DB > Inserting tsunamic hazard data: " \
+                            #           "hazard_model id: %s \n" \
+                            #           "datagrid_id %s \n" \
+                            #           "stat_id %s \n" \
+                            #           "exptime id: %s \n" \
+                            #           "points_id_len: %s \n" \
+                            #           "points_value_len: %s \n" \
+                            #           % (
+                            #         hazard_model_id,
+                            #         datagrid_id,
+                            #         stat_id,
+                            #         exptime_id,
+                            #         len(gf.points_to_latlon(
+                            #             fileXmlModel.points_coords)),
+                            #         len(fileXmlModel.points_values)
+                            #     )
+                            #
+                            #     self.tsunamic_data_insert(
+                            #         hazard_model_id,
+                            #         datagrid_id,
+                            #         stat_id,
+                            #         exptime_id,
+                            #         gf.points_to_latlon(
+                            #             fileXmlModel.points_coords),
+                            #         fileXmlModel.points_values
+                            #     )
+                            # else:
+                            #     print "Phenomena not (yet?) implemented"
                             del fileXmlModel
         return True
 

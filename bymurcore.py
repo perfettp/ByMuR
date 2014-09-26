@@ -29,6 +29,7 @@ class BymurCore():
         self._ctrls_data = {}
         self._db = None
         self._db_details=None
+        self._hazard_values = None
 
     def connectAndFetch(self, **dbDetails):
         if (not self._db) and dbDetails:
@@ -203,57 +204,111 @@ class BymurCore():
         else:
             return False
 
-    def compute_hazard_map(self,hazard_id, exp_time, ret_per,
+    def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
+        # print "get_haz_value"
+        # print " > curve %s" % curve
+        # print " > hazard_threshold %s" % hazard_threshold
+        # print " > curve[0] %s " % curve[0]
+        # print " > curve[len(curve)-1] %s " % curve[len(curve)-1]
+        i_bigger = 0
+        i_smaller = len(curve)-1
+        for i in range(len(curve)):
+            # print curve[i]
+            if curve[i] < hazard_threshold:
+                i_smaller = i
+                i_bigger = i-1
+                break
+        # print "i_smaller %s" % i_smaller
+        # print "i_bigger %s" % i_bigger
+        if i_bigger < 0:
+            return float('NaN')
+        elif i_smaller > len(curve):
+            return int_thresh_list[len(int_thresh_list)-1]
+        else:
+            try:
+                val = int_thresh_list[i_smaller]  + \
+                      (int_thresh_list[i_bigger] - int_thresh_list[i_smaller]) * \
+                      (hazard_threshold - curve[i_smaller]) / \
+                      (curve[i_bigger]-curve[i_smaller])
+            except:
+                val = float('NaN')
+            return val
+
+    def compute_hazard_values(self,hazard_name, exp_time, ret_per,
                            statistic_name='mean'):
 
-        hazard_model = self._db.get_hazard_model_by_id(hazard_id)
-        int_thresh_list = self._db.get_intensity_threshods_by_haz(hazard_id)
-        imt = self._db.get_intensity_measure_unit_by_haz(hazard_id)
+        hazard_model = self._db.get_hazard_model_by_name(hazard_name)
+        print "hazard_model = %s" % hazard_model
+        int_thresh_list = self._db.get_intensity_threshods_by_haz(
+            hazard_model['hazard_id'])
+        print "int_thresh_list = %s" % int_thresh_list
+        imt = self._db.get_intensity_measure_unit_by_haz(
+            hazard_model['hazard_id'])
+        print "imt = %s" % imt
         exp_time_id = self._db.get_exposure_time_by_value(exp_time)
+        print "exp_time_id = %s" % exp_time_id
         statistic_id = self._db.get_statistic_by_value(statistic_name)
+        print "statistic_id = %s" % statistic_id
+
         curves = self._db.get_curves(hazard_model['phenomenon_id'],
-                                     hazard_id,
+                                     hazard_model['hazard_id'],
                                      hazard_model['datagrid_id'],
                                      statistic_id, exp_time_id)
+        print curves
 
         hazard_threshold = 1 - math.exp(-exp_time/ret_per)
 
+        self._hazard_values = map((lambda p: dict(zip(['point','value'],
+                                                (p['point'],
+                                                 self.get_haz_value(
+                                                     int_thresh_list,
+                                                     hazard_threshold,
+                                                     p['curve'])
+                                                )))),
+                                            curves)
 
 
-    def updateModel(self, **kwargs):
-        self.data['haz_mod'] = kwargs.pop('haz_mod','')
-        self.data['dtime'] = []
-        for k in range(self.data['nhaz']):
-            hazmodtb = "hazard" + str(k + 1)
-            tmp = self._db.selecDtime(hazmodtb)
-            dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
-            self.data['dtime'].append(dtlist)
-        self.data['tw'] = 0
 
-        ntry = int(math.floor(self.data['npts'] * 0.5))
-        tmp2 = self.data['hc'][self.data['haz_mod']][
-            self.data['tw']][0][ntry]
-        # print tmp2, type(tmp2)
-        tmp = sum([float(j) for j in tmp2.split()])
-        if (tmp == 0):
-            # busydlg = wx.BusyInfo("...Reading hazard from DB")
-            # wx.Yield()
-            #self._lasta_data['hc']self._db.dbReadHC(self.data['haz_mod'],
-            self._db.readHC(self.data['haz_mod'],
-                              self.data['tw'],
-                              self.data['dtime'],
-                              self.data['hc'],
-                              self.data['hc_perc'])
-            # COSA VUOL DIRE CHE NON FACCIO NULLA?
-            # Dovrei almeno assegnare dbReadHC a last_data['hc']??
-            # busydlg = None
+    def updateModel(self, **hazard_options):
 
-        self.data['int_thres']=float(kwargs.pop('int_thres',0))
-        self.data['ret_per'] = float(kwargs.pop('ret_per',0))
-
-        self.data['th'] = prob_thr(self.data['ret_per'],
-                            self.data['dtime'][self.data['haz_mod']]
-                            [self.data['tw']])
+        print hazard_options
+        self.compute_hazard_values(hazard_options.get('haz_mod', 0),
+                                   int(hazard_options.get('exp_time', 0)),
+                                   float(hazard_options.get('ret_per', 0)))
+        # return
+        # self.data['haz_mod'] = kwargs.pop('haz_mod','')
+        # self.data['dtime'] = []
+        # for k in range(self.data['nhaz']):
+        #     hazmodtb = "hazard" + str(k + 1)
+        #     tmp = self._db.selecDtime(hazmodtb)
+        #     dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
+        #     self.data['dtime'].append(dtlist)
+        # self.data['tw'] = 0
+        #
+        # ntry = int(math.floor(self.data['npts'] * 0.5))
+        # tmp2 = self.data['hc'][self.data['haz_mod']][
+        #     self.data['tw']][0][ntry]
+        # # print tmp2, type(tmp2)
+        # tmp = sum([float(j) for j in tmp2.split()])
+        # if (tmp == 0):
+        #     # busydlg = wx.BusyInfo("...Reading hazard from DB")
+        #     # wx.Yield()
+        #     #self._lasta_data['hc']self._db.dbReadHC(self.data['haz_mod'],
+        #     self._db.readHC(self.data['haz_mod'],
+        #                       self.data['tw'],
+        #                       self.data['dtime'],
+        #                       self.data['hc'],
+        #                       self.data['hc_perc'])
+        #     # COSA VUOL DIRE CHE NON FACCIO NULLA?
+        #     # Dovrei almeno assegnare dbReadHC a last_data['hc']??
+        #     # busydlg = None
+        #
+        # self.data['int_thres']=float(kwargs.pop('int_thres',0))
+        # self.data['ret_per'] = float(kwargs.pop('ret_per',0))
+        #
+        # self.data['th'] = prob_thr(self.data['ret_per'],
+        #                     self.data['dtime'][self.data['haz_mod']]
+        #                     [self.data['tw']])
 
     def exportRawPoints(self, haz_array):
         export_string = ''
@@ -402,6 +457,10 @@ class BymurCore():
     # @ctrls_data.setter
     # def data(self, value):
     #     self._ctrls_data = value
+
+    @property
+    def hazard_values(self):
+        return self._hazard_values
 
     @property
     def db(self):
