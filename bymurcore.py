@@ -234,8 +234,37 @@ class BymurCore():
                 val = float('NaN')
             return val
 
+    # TODO: DA CONTROLLARE ASSOLUTAMENTE
+    def get_prob_value(self, int_thresh_list, intensity_threshold, curve):
+        # print "get_haz_value"
+        # print " > curve %s" % curve
+        # print " > hazard_threshold %s" % hazard_threshold
+        # print " > curve[0] %s " % curve[0]
+        # print " > curve[len(curve)-1] %s " % curve[len(curve)-1]
+        i_bigger = 0
+        i_smaller = len(int_thresh_list)-1
+        for i in range(len(int_thresh_list)):
+            # print curve[i]
+            if int_thresh_list[i] < intensity_threshold:
+                i_smaller = i
+                i_bigger = i-1
+                break
+        if i_bigger <= 0:
+            return max(curve)
+        elif i_smaller > len(int_thresh_list):
+            return float('NaN')
+        else:
+            try:
+                val = curve[i_smaller]  + \
+                      (curve[i_bigger] - curve[i_smaller]) * \
+                      (intensity_threshold - int_thresh_list[i_smaller]) / \
+                      (int_thresh_list[i_bigger]-int_thresh_list[i_smaller])
+            except:
+                val = float('NaN')
+            return val
+
     def compute_hazard_values(self,hazard_name, exp_time, ret_per,
-                           statistic_name='mean'):
+                              intensity_threshold, statistic_name='mean'):
 
         hazard_model = self._db.get_hazard_model_by_name(hazard_name)
         print "hazard_model = %s" % hazard_model
@@ -258,11 +287,16 @@ class BymurCore():
 
         hazard_threshold = 1 - math.exp(-exp_time/ret_per)
 
-        self._hazard_values = map((lambda p: dict(zip(['point','value'],
+        self._hazard_values = map((lambda p: dict(zip(['point','haz_value',
+                                                       'prob_value'],
                                                 (p['point'],
                                                  self.get_haz_value(
                                                      int_thresh_list,
                                                      hazard_threshold,
+                                                     p['curve']),
+                                                 self.get_prob_value(
+                                                     int_thresh_list,
+                                                     intensity_threshold,
                                                      p['curve'])
                                                 )))),
                                             curves)
@@ -274,7 +308,8 @@ class BymurCore():
         print hazard_options
         self.compute_hazard_values(hazard_options.get('haz_mod', 0),
                                    int(hazard_options.get('exp_time', 0)),
-                                   float(hazard_options.get('ret_per', 0)))
+                                   float(hazard_options.get('ret_per', 0)),
+                                   float(hazard_options.get('int_thresh', 0)),)
         # return
         # self.data['haz_mod'] = kwargs.pop('haz_mod','')
         # self.data['dtime'] = []

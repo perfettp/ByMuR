@@ -259,6 +259,7 @@ class MapFigure():
             extent=(
                 xmap1,
                 xmap2,
+
                 ymap1,
                 ymap2))
         self.map3 = self.ax2.contourf(xg, yg, zgp, 10, origin="lower",

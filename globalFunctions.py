@@ -334,7 +334,7 @@ def showMessage(**kwargs):
         return (answer == wx.ID_OK) or (answer == wx.ID_YES)
 
 
-class HazardMap(object):
+class HazardGraph(object):
     def __init__(self, parent):
         self._parent = parent
         # TODO: imgfile should be a parameter, but maybe in plot
@@ -351,39 +351,10 @@ class HazardMap(object):
         self._canvas.SetSize(self._parent.GetSize())
         self._canvas.draw()
 
-    def levels_boundaries(self, z_array):
-        max_intervals = 10
-        maxz = np.ceil(max(z_array))
-        minz = np.floor(min(z_array))
-        print "maxz %s" %maxz
-        print "minz %s" %minz
-
-        if (maxz - minz) < 4:
-            inter = 0.2
-        elif maxz < 10:
-            inter = 1.
-            maxz = max(maxz, 3.)
-        else:
-            order = np.floor(np.log10(maxz - minz)) - 1
-            inter = 1. * 10 ** (order)
-        print 'range-->', minz, maxz, inter
-
-        chk = len(np.arange(minz, maxz, inter))
-        itmp = 1
-        while chk > max_intervals:
-            itmp = itmp + 1
-            inter = inter * itmp
-            bounds = range(int(minz), int(maxz), int(inter))
-            chk = len(bounds)
-        maxz = minz + chk * inter
-        # bounds = np.linspace(minz, maxz, chk + 1)
-        bounds = np.linspace(min(z_array), max(z_array), max_intervals)
-        return bounds
-
     def plot(self, points_data):
 
         # TODO: to transform in a parameter
-        haz_bar_label = "Etichetta barra"
+
         print "points_data: %s" % points_data
         # Prepare matplotlib grid and data
         grid_points_number = 100
@@ -394,10 +365,31 @@ class HazardMap(object):
         x_points = [x/1000 for x in x_points]
         y_points = [p['northing'] for p in points_utm]
         y_points = [x/1000 for x in y_points]
-        z_points = [p['value'] for p in points_data]
         x_vector = np.linspace(min(x_points), max(x_points), grid_points_number)
         y_vector = np.linspace(min(y_points), max(y_points), grid_points_number)
         x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
+
+
+
+        self._figure.clf()
+        self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
+                                     top=0.92, wspace=0.35, hspace=0.2)
+        self._figure.hold(True)
+        map_limits = [375.300, 508.500, 4449.200, 4569.800]
+        self.plot_hazard_map(x_points, y_points, x_mesh, y_mesh,
+                             [p['haz_value'] for p in points_data],
+                             map_limits)
+        
+        self.plot_probability_map(x_points, y_points, x_mesh, y_mesh,
+                                  [p['prob_value'] for p in points_data],
+                                  map_limits)
+
+        self._canvas.draw()
+
+    def plot_hazard_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
+                 map_limits):
+        xmap1, xmap2, ymap1, ymap2 = map_limits
+        haz_bar_label = "Etichetta barra"
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
@@ -407,19 +399,9 @@ class HazardMap(object):
         print "plot> z_boundaries: %s" % z_boundaries
         cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
                                                   self._cmap.N)
-
-        self._figure.clf()
-        self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
-                                     top=0.92, wspace=0.35, hspace=0.2)
-        self._figure.hold(True)
-
         # Add hazard map subfigure
         haz_subplot = self._figure.add_subplot(1, 2, 1)
         # TODO: tmp image plot
-        xmap1, xmap2, ymap1, ymap2 = [375.300,
-                                      508.500,
-                                      4449.200,
-                                      4569.800]
         img = pyplot.imread(self._imgfile)
 
         haz_subplot.imshow(
@@ -464,10 +446,88 @@ class HazardMap(object):
         haz_subplot.set_title("Hazard Map\n", fontsize=9)
         haz_subplot.set_xlabel("Easting (km)")
         haz_subplot.set_ylabel("Northing (km)")
+        # TODO: fix these limits
         haz_subplot.axis([425.000,448.000, 4510.000,
                                       4533.000])
 
-        self._canvas.draw()
+    def plot_probability_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
+                 map_limits):
+
+        xmap1, xmap2, ymap1, ymap2 = map_limits
+        z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
+                               interp='linear')
+
+        # Define colors mapping and levels
+        z_boundaries = self.levels_boundaries(z_points)
+        print "plot> z_boundaries: %s" % z_boundaries
+        cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
+                                                  self._cmap.N)
+
+        prob_subplot = self._figure.add_subplot(1, 2, 2)
+        img = pyplot.imread(self._imgfile)
+        prob_subplot.imshow(
+            img,
+            origin="upper",
+            extent=(
+                xmap1,
+                xmap2,
+                ymap1,
+                ymap2))
+        prob_contourf = prob_subplot.contourf(x_mesh, y_mesh, z_mesh,
+                                          10, origin="lower",
+                                          cmap=self._cmap, alpha=0.5)
+        prob_contour = prob_subplot.contour(x_mesh, y_mesh, z_mesh,
+                                         10,
+                                         origin="lower",
+                                         aspect="equal",
+                                         cmap=self._cmap,
+                                         linewidths=2,
+                                         alpha=1)
+
+        probability_bar = self._figure.colorbar(
+            prob_contourf,
+            shrink=0.9,
+            orientation='vertical')
+
+
+        probability_bar.set_alpha(1)
+        prob_subplot.set_title("Probability Map\n", fontsize=9)
+        prob_subplot.set_xlabel("Easting (km)")
+        probability_bar.draw_all()
+        # TODO: fix these limits
+        prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+
+        
+    def levels_boundaries(self, z_array):
+        max_intervals = 5
+        maxz = np.ceil(max(z_array))
+        minz = np.floor(min(z_array))
+        print "maxz %s" %maxz
+        print "minz %s" %minz
+
+        if (maxz - minz) < 4:
+            inter = 0.2
+        elif maxz < 10:
+            inter = 1.
+            maxz = max(maxz, 3.)
+        else:
+            order = np.floor(np.log10(maxz - minz)) - 1
+            inter = 1. * 10 ** (order)
+        print 'range-->', minz, maxz, inter
+
+        chk = len(np.arange(minz, maxz, inter))
+        itmp = 1
+        while chk > max_intervals:
+            itmp = itmp + 1
+            inter = inter * itmp
+            bounds = range(int(minz), int(maxz), int(inter))
+            chk = len(bounds)
+        maxz = minz + chk * inter
+        # bounds = np.linspace(minz, maxz, chk + 1)
+        bounds = np.linspace(min(z_array), max(z_array), max_intervals)
+        return bounds
+
+
 
 def verifyInternetConn():
     try:
