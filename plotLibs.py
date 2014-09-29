@@ -420,7 +420,6 @@ class HazFigure():
         self.canvas.draw()
 
 
-
 class VulnFigure():
 
     def __init__(self, parent, controller):

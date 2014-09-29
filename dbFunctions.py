@@ -869,7 +869,7 @@ class BymurDB():
                     for filename in os.listdir(dir_tmp):
                         if re.match(perc_re, filename):
                             try:
-                                fileXmlModel =  gf.HazardModel(
+                                fileXmlModel =  gf.HazardXMLModel(
                                     os.path.join(dir_tmp, filename),
                                     phen['phenomenon_name'])
                             except Exception as e:

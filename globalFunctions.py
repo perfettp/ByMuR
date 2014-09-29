@@ -62,6 +62,7 @@ BYMUR_UPDATE_ALL = wx.PyEventBinder(wxBYMUR_UPDATE_ALL)
 BYMUR_THREAD_CLOSED = wx.PyEventBinder(wxBYMUR_THREAD_CLOSED)
 BYMUR_DB_CONNECTED = wx.PyEventBinder(wxBYMUR_DB_CONNECTED)
 
+
 def SpawnThread(target, event_type, function, function_args, callback=None,
                     wait_msg='Wait please...'):
         """
@@ -91,11 +92,6 @@ class BymurUpdateEvent(wx.PyCommandEvent):
     def GetCallbackKwargs(self):
         return self._callback_kwargs
 
-
-def fire_event(target_id, event_type):
-    wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
-
-
 class BymurThread(threading.Thread):
     def __init__(self, targetid, event_type, function, function_args, callback):
         self._targetid = targetid
@@ -118,7 +114,7 @@ class BymurThread(threading.Thread):
         wx.PostEvent(self._targetid, self._event)
 
 
-class HazardModel(object):
+class HazardXMLModel(object):
 
     def __init__(self, filename, phenomenon,
                  xsd="/hades/dev/bymur/schema/bymur_schema.xsd"):
@@ -257,99 +253,43 @@ class HazardModel(object):
         return self._phenomenon
 
 
-def points_to_latlon(points, utm_zone_number=33,
-                     utm_zone_letter='T', decimals=5):
-    res = []
-    for p in points:
-        lat,lon = utm.to_latlon(float(p['easting']),
-                                float(p['northing']),
-                                utm_zone_number,
-                                utm_zone_letter)
-        res.append({'latitude': round(lat, decimals),
-                    'longitude':round(lon, decimals)})
-    return res
-
-def points_to_utm(points, decimals=5):
-    res = []
-    for p in points:
-        easting, northing, zone_number, zone_letter = \
-            utm.from_latlon(p['latitude'],
-                            p['longitude'])
-        res.append({'easting': round(easting, decimals),
-                    'northing':round(northing, decimals),
-                    'zone_number': zone_number,
-                    'zone_letter': zone_letter})
-    return res
-
-def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
-                             utm_zone_letter='T', decimals=5):
-        gridfile = open(filepath, 'r')
-        points = []
-        if utm_coords:
-            for line in gridfile:
-                line_arr = line.strip().split()
-                lat, lon = utm.to_latlon(float(line_arr[0]),
-                                         float(line_arr[1]),
-                                         utm_zone_number,
-                                         utm_zone_letter)
-                points.append({'latitude': round(lat, decimals) ,
-                               'longitude':round(lon, decimals)
-                })
-            return points
-        else:
-            return False
-
-def showMessage(**kwargs):
-        debug = kwargs.pop('debug', False)
-        style = kwargs.pop('style', 0)
-        kind = kwargs.pop('kind', '')
-        style |= wx.CENTRE | wx.STAY_ON_TOP
-        if ( kind == 'BYMUR_ERROR'):
-            style |= wx.ICON_ERROR | wx.OK
-        elif (kind == 'BYMUR_CONFIRM'):
-            style |= wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION
-            print style
-        else:
-            style |= wx.ICON_INFORMATION | wx.OK
-            print style
-
-        if debug:
-            exc_type, exc_obj, tb = sys.exc_info()
-            f = tb.tb_frame
-            lineno = tb.tb_lineno
-            filename = os.path.split(f.f_code.co_filename)[1]
-            linecache.checkcache(filename)
-            line = linecache.getline(filename, lineno, f.f_globals)
-            message = 'Exception in %s\nLine %s : "%s")\n%s' % \
-                    ( filename, str(lineno),
-                      str(line.strip()), str(exc_obj))
-        else:
-            message=kwargs.pop('message', '')
-
-        msgDialog = wx.MessageDialog( parent = kwargs.pop('parent'),
-                                      message = message,
-                                      caption=kwargs.pop('caption', ''),
-                                      style=style)
-        answer = msgDialog.ShowModal()
-        return (answer == wx.ID_OK) or (answer == wx.ID_YES)
-
-
-class HazardGraph(object):
-    def __init__(self, parent):
-        self._parent = parent
-        # TODO: imgfile should be a parameter, but maybe in plot
-        self._imgfile = "/hades/dev/bymur/data/naples_gmaps.png"
+class BymurPlot(object):
+    def __init__(self, *args, **kwargs):
+        self._parent = kwargs.get('parent', None)
         self._figure = pyplot.figure()
         self._canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
         self._toolbar = NavigationToolbar2WxAgg(self._canvas)
-        self._cmap = pyplot.cm.RdYlGn_r
         self._figure.clf()
-        self._figure.subplots_adjust(left=None, bottom=None,
-                                     right=None, top=None,
-                                     wspace=None, hspace=0.3)
+        self._figure.subplots_adjust(left=None, bottom=None, right=None,
+                                    top=None, wspace=None, hspace=0.3)
+        self._cmap = pyplot.cm.RdYlGn_r
         self._figure.hold(True)
         self._canvas.SetSize(self._parent.GetSize())
         self._canvas.draw()
+
+
+class HazardCurve(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(HazardCurve, self).__init__(*args, **kwargs)
+        # self._parent = parent
+        # self._figure = pyplot.figure()
+        # self.canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
+        # self._toolbar = NavigationToolbar2WxAgg(self._canvas)
+        # self._figure.clf()
+        # self._figure.subplots_adjust(left=None, bottom=None, right=None,
+        #                             top=None, wspace=None, hspace=0.3)
+        # self.fig.hold(True)
+        # self.canvas.SetSize(self._parent.GetSize())
+        # self.canvas.draw()
+
+    def plot(self, points_data):
+        pass
+
+class HazardGraph(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(HazardGraph, self).__init__(*args, **kwargs)
+        # TODO: imgfile should be a parameter, but maybe in plot
+        self._imgfile = "/hades/dev/bymur/data/naples_gmaps.png"
 
     def plot(self, points_data):
 
@@ -474,10 +414,10 @@ class HazardGraph(object):
                 ymap1,
                 ymap2))
         prob_contourf = prob_subplot.contourf(x_mesh, y_mesh, z_mesh,
-                                          10, origin="lower",
+                                          z_boundaries, origin="lower",
                                           cmap=self._cmap, alpha=0.5)
         prob_contour = prob_subplot.contour(x_mesh, y_mesh, z_mesh,
-                                         10,
+                                         z_boundaries,
                                          origin="lower",
                                          aspect="equal",
                                          cmap=self._cmap,
@@ -536,3 +476,84 @@ def verifyInternetConn():
     except urllib2.URLError as err:
         pass
     return False
+
+
+def fire_event(target_id, event_type):
+    wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
+
+def points_to_latlon(points, utm_zone_number=33,
+                     utm_zone_letter='T', decimals=5):
+    res = []
+    for p in points:
+        lat,lon = utm.to_latlon(float(p['easting']),
+                                float(p['northing']),
+                                utm_zone_number,
+                                utm_zone_letter)
+        res.append({'latitude': round(lat, decimals),
+                    'longitude':round(lon, decimals)})
+    return res
+
+def points_to_utm(points, decimals=5):
+    res = []
+    for p in points:
+        easting, northing, zone_number, zone_letter = \
+            utm.from_latlon(p['latitude'],
+                            p['longitude'])
+        res.append({'easting': round(easting, decimals),
+                    'northing':round(northing, decimals),
+                    'zone_number': zone_number,
+                    'zone_letter': zone_letter})
+    return res
+
+def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
+                             utm_zone_letter='T', decimals=5):
+        gridfile = open(filepath, 'r')
+        points = []
+        if utm_coords:
+            for line in gridfile:
+                line_arr = line.strip().split()
+                lat, lon = utm.to_latlon(float(line_arr[0]),
+                                         float(line_arr[1]),
+                                         utm_zone_number,
+                                         utm_zone_letter)
+                points.append({'latitude': round(lat, decimals) ,
+                               'longitude':round(lon, decimals)
+                })
+            return points
+        else:
+            return False
+
+def showMessage(**kwargs):
+        debug = kwargs.pop('debug', False)
+        style = kwargs.pop('style', 0)
+        kind = kwargs.pop('kind', '')
+        style |= wx.CENTRE | wx.STAY_ON_TOP
+        if ( kind == 'BYMUR_ERROR'):
+            style |= wx.ICON_ERROR | wx.OK
+        elif (kind == 'BYMUR_CONFIRM'):
+            style |= wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION
+            print style
+        else:
+            style |= wx.ICON_INFORMATION | wx.OK
+            print style
+
+        if debug:
+            exc_type, exc_obj, tb = sys.exc_info()
+            f = tb.tb_frame
+            lineno = tb.tb_lineno
+            filename = os.path.split(f.f_code.co_filename)[1]
+            linecache.checkcache(filename)
+            line = linecache.getline(filename, lineno, f.f_globals)
+            message = 'Exception in %s\nLine %s : "%s")\n%s' % \
+                    ( filename, str(lineno),
+                      str(line.strip()), str(exc_obj))
+        else:
+            message=kwargs.pop('message', '')
+
+        msgDialog = wx.MessageDialog( parent = kwargs.pop('parent'),
+                                      message = message,
+                                      caption=kwargs.pop('caption', ''),
+                                      style=style)
+        answer = msgDialog.ShowModal()
+        return (answer == wx.ID_OK) or (answer == wx.ID_YES)
+
