@@ -528,6 +528,19 @@ class BymurDB():
         self._cursor.execute(sqlquery.format(statistic_name))
         return self._cursor.fetchone()[0]
 
+    def get_statistics_by_haz(self, haz_id):
+        sqlquery = """ SELECT `st`.`id`, `st`.`name`
+            FROM `hazmodel_statistics` `haz_stat` LEFT JOIN
+            `statistics` `st` ON
+            `haz_stat`.`id_statistic`=`st`.`id`
+            WHERE `haz_stat`.`id_hazard_model`= %s
+        """
+        sqlquery %= str(haz_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id','name'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
+
+
     def hazard_statistic_rel(self, hazard_id, statistic_id):
         """
 
@@ -726,6 +739,33 @@ class BymurDB():
         #            """
         # return self._cursor.executemany(sqlquery, point_curve_map)
 
+    def get_point_all_curves(self, phenomenon_id,
+            hazard_id, point_id, exp_time_id):
+        phenomenon = self.get_phenomenon_by_id(phenomenon_id)
+        if phenomenon['name'] == 'VOLCANIC':
+            table_name = "volcanic_data"
+        elif phenomenon['name'] == 'SEISMIC':
+            table_name = "seismic_data"
+        elif phenomenon['name'] == 'TSUNAMIC':
+            table_name = "tsunamic_data"
+        else:
+            return None
+        sqlquery = """
+                    SELECT `st`.`name`,
+                       `dt`.`hazard_curve`
+                    FROM `{0}` `dt` JOIN `statistics` `st` ON
+                        `dt`.`id_statistic` = `st`.`id`
+                    WHERE `dt`.`id_hazard_model`={1} AND
+                     `dt`.`id_point`={2} AND
+                     `dt`.`id_exposure_time`={3}
+        """
+        query = sqlquery.format(table_name, hazard_id, point_id, exp_time_id)
+        self._cursor.execute(query)
+        res = self._cursor.fetchall()
+        return dict(res)
+
+
+
     def get_curves(self, phenomenon_id, hazard_model_id,
                    datagrid_id, stat_id, exptime_id):
 
@@ -740,7 +780,7 @@ class BymurDB():
         else:
             return None
 
-        sqlquery = """ SELECT `p`.`latitude`, `p`.`longitude`,
+        sqlquery = """ SELECT `p`.`id`, `p`.`latitude`, `p`.`longitude`,
                         `d`.`hazard_curve` FROM
             `{0}` `d` LEFT JOIN `points` `p`
              ON `d`.`id_point`=`p`.`id`
@@ -757,10 +797,11 @@ class BymurDB():
                                              datagrid_id,
                                              stat_id, exptime_id))
         return [dict(zip(['point', 'curve'],
-                         (dict(zip(['latitude', 'longitude'],
-                                   (x[0],x[1]))),
-                          ([float(a) for a in x[2].split(',')]))))
+                         (dict(zip(['id', 'latitude', 'longitude'],
+                                   (x[0],x[1], x[2]))),
+                          ([float(a) for a in x[3].split(',')]))))
                 for x in self._cursor.fetchall()]
+
     def create(self):
         # TODO: create DB for real!
         print "create"

@@ -271,39 +271,100 @@ class BymurPlot(object):
 class HazardCurve(BymurPlot):
     def __init__(self, *args, **kwargs):
         super(HazardCurve, self).__init__(*args, **kwargs)
-        # self._parent = parent
-        # self._figure = pyplot.figure()
-        # self.canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
-        # self._toolbar = NavigationToolbar2WxAgg(self._canvas)
-        # self._figure.clf()
-        # self._figure.subplots_adjust(left=None, bottom=None, right=None,
-        #                             top=None, wspace=None, hspace=0.3)
-        # self.fig.hold(True)
-        # self.canvas.SetSize(self._parent.GetSize())
-        # self.canvas.draw()
 
-    def plot(self, points_data):
-        pass
+    def plot(self, hazard_options, hazard_description, selected_point,
+             selected_point_curves):
+        perc_to_plot = ["10", "50", "90"]
+
+        print "hazard_options %s" % hazard_options
+        print "hazard_description %s" % hazard_description
+        print "selected_point %s" % selected_point
+        print "selected_point_curves %s" % selected_point_curves
+        self._figure.clf()
+        self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
+        self._figure.hold(True)
+        self._axes.grid(True)
+
+        for perc in perc_to_plot:
+            perc_key = "percentile"+perc+".0"
+            if selected_point_curves[perc_key] is not None:
+                perc_label =  perc + "th Percentile"
+                print perc
+                print perc_key
+                print hazard_description['int_thresh_list']
+                print selected_point_curves[perc_key]
+                self._axes.plot(hazard_description['int_thresh_list'],
+                                [float(y) for  y in
+                                 selected_point_curves[perc_key].split(',')],
+                                linewidth=1,
+                                alpha=1,
+                                label=perc_label)
+
+        if selected_point_curves["mean"] is not None:
+                print hazard_description['int_thresh_list']
+                print selected_point_curves["mean"]
+                self._axes.plot(hazard_description['int_thresh_list'],
+                                [float(y) for  y in
+                                 selected_point_curves["mean"].split(',')],
+                                 color="#000000",
+                                 linewidth=1,
+                                 alpha=1,
+                                 label="Average")
+
+        self._axes.axhline(
+            y=hazard_options['hazard_threshold'],
+            linestyle='--',
+            color="#000000",
+            linewidth=1,
+            alpha=1,
+            label="Threshold in Probability")
+
+        self._axes.axvline(
+            x=hazard_options['int_thresh'],
+            linestyle='-',
+            color="#000000",
+            linewidth=1,
+            alpha=1,
+            label="Threshold in Intensity")
+
+
+        self._axes.legend()
+        title = ("Point n." + str(selected_point['index']+ 1) +
+               " - Time window = " + str(hazard_options['exp_time']) + " "
+                                                                        "years")
+        self._axes.set_title(title, fontsize=10)
+
+
+        self._axes.set_ylabel("Probability of Exceedance")
+        self._axes.set_yscale("log")
+        # self.axes.axis([0,1,0,1])
+        self._canvas.draw()
 
 class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
+        self._click_callback = kwargs.get('click_callback', None)
         super(HazardGraph, self).__init__(*args, **kwargs)
         # TODO: imgfile should be a parameter, but maybe in plot
         self._imgfile = "/hades/dev/bymur/data/naples_gmaps.png"
+        self._figure.canvas.mpl_connect('button_press_event',
+                                        self._click_callback)
+        self._points_data = None
 
-    def plot(self, points_data):
+
+    def plot(self, hazard_description, points_utm):
 
         # TODO: to transform in a parameter
 
-        print "points_data: %s" % points_data
+        print "points_data: %s" % points_utm
+
         # Prepare matplotlib grid and data
         grid_points_number = 100
-        points_utm = points_to_utm([p['point'] for p in points_data])
-        x_points = [p['easting'] for p in points_utm]
+        self._points_utm = points_utm
+        x_points = [p['point']['easting'] for p in self._points_utm]
 
         # TODO: fix these points
         x_points = [x/1000 for x in x_points]
-        y_points = [p['northing'] for p in points_utm]
+        y_points = [p['point']['northing'] for p in self._points_utm]
         y_points = [x/1000 for x in y_points]
         x_vector = np.linspace(min(x_points), max(x_points), grid_points_number)
         y_vector = np.linspace(min(y_points), max(y_points), grid_points_number)
@@ -316,20 +377,24 @@ class HazardGraph(BymurPlot):
                                      top=0.92, wspace=0.35, hspace=0.2)
         self._figure.hold(True)
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
-        self.plot_hazard_map(x_points, y_points, x_mesh, y_mesh,
-                             [p['haz_value'] for p in points_data],
+        self.haz_map = self.plot_hazard_map(hazard_description,
+                                            x_points, y_points,
+                                            x_mesh, y_mesh,
+                             [p['haz_value'] for p in self._points_utm],
                              map_limits)
-        
-        self.plot_probability_map(x_points, y_points, x_mesh, y_mesh,
-                                  [p['prob_value'] for p in points_data],
+
+        self.prob_map = self.plot_probability_map(x_points, y_points, x_mesh,
+                                              y_mesh,
+                                  [p['prob_value'] for p in self._points_utm],
                                   map_limits)
 
         self._canvas.draw()
 
-    def plot_hazard_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
+    def plot_hazard_map(self, hazard_description, x_points, y_points, x_mesh,
+                        y_mesh, z_points,
                  map_limits):
         xmap1, xmap2, ymap1, ymap2 = map_limits
-        haz_bar_label = "Etichetta barra"
+        haz_bar_label = hazard_description['imt']
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
@@ -389,6 +454,7 @@ class HazardGraph(BymurPlot):
         # TODO: fix these limits
         haz_subplot.axis([425.000,448.000, 4510.000,
                                       4533.000])
+        return haz_subplot
 
     def plot_probability_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
                  map_limits):
@@ -436,6 +502,7 @@ class HazardGraph(BymurPlot):
         probability_bar.draw_all()
         # TODO: fix these limits
         prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        return prob_subplot
 
         
     def levels_boundaries(self, z_array):
@@ -468,7 +535,6 @@ class HazardGraph(BymurPlot):
         return bounds
 
 
-
 def verifyInternetConn():
     try:
         response = urllib2.urlopen('http://maps.google.com/maps', timeout=3)
@@ -480,6 +546,8 @@ def verifyInternetConn():
 
 def fire_event(target_id, event_type):
     wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
+
+
 
 def points_to_latlon(points, utm_zone_number=33,
                      utm_zone_letter='T', decimals=5):
@@ -493,17 +561,27 @@ def points_to_latlon(points, utm_zone_number=33,
                     'longitude':round(lon, decimals)})
     return res
 
-def points_to_utm(points, decimals=5):
-    res = []
+def points_with_utm(points, decimals=5):
     for p in points:
         easting, northing, zone_number, zone_letter = \
-            utm.from_latlon(p['latitude'],
-                            p['longitude'])
-        res.append({'easting': round(easting, decimals),
-                    'northing':round(northing, decimals),
-                    'zone_number': zone_number,
-                    'zone_letter': zone_letter})
-    return res
+            utm.from_latlon(p['point']['latitude'],
+                            p['point']['longitude'])
+        p['point']['easting'] = round(easting, decimals)
+        p['point']['northing'] = round(northing, decimals)
+        p['point']['zone_number'] = zone_number
+        p['point']['zone_letter'] = zone_letter
+    return points
+
+    # res = []
+    # for p in points:
+    #     easting, northing, zone_number, zone_letter = \
+    #         utm.from_latlon(p['latitude'],
+    #                         p['longitude'])
+    #     res.append({'easting': round(easting, decimals),
+    #                 'northing':round(northing, decimals),
+    #                 'zone_number': zone_number,
+    #                 'zone_letter': zone_letter})
+    # return res
 
 def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
                              utm_zone_letter='T', decimals=5):

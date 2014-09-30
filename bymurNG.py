@@ -638,14 +638,17 @@ class BymurWxMapPanel(BymurWxPanel):
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         # self._map = plotLibs.MapFigure(self, self._controller)
-        self._map = gf.HazardGraph(parent=self)
+        self._map = gf.HazardGraph(parent=self,
+                                   click_callback=self._controller.onMapClick)
+        # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
         super(BymurWxMapPanel, self).updateView(**kwargs)
-        self._map.plot(wx.GetTopLevelParent(self).hazard_values)
+        self._map.plot(wx.GetTopLevelParent(self).hazard_description,
+                       wx.GetTopLevelParent(self).hazard_values)
         self.Enable(True)
 
     @property
@@ -664,14 +667,21 @@ class BymurWxNBHazPage(BymurWxPanel):
         self._title = kwargs.pop('title', "Hazard")
         super(BymurWxNBHazPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        self._map = plotLibs.HazFigure(self, self._controller)
-        self._sizer.Add(self._map.canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map.toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        # self._map = plotLibs.HazFigure(self, self._controller)
+        self._map = gf.HazardCurve(parent=self)
+        # TODO: fix these references
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
         super(BymurWxNBHazPage, self).updateView(**kwargs)
-        self._map.hazardCurve(**kwargs)
+        # TODO: fix these references
+        self._map.plot(wx.GetTopLevelParent(self).hazard_options,
+                       wx.GetTopLevelParent(self).hazard_description,
+                       wx.GetTopLevelParent(self).selected_point,
+                       wx.GetTopLevelParent(self).selected_point_curves)
+        self.Enable(True)
 
     @property
     def title(self):
@@ -998,7 +1008,12 @@ class BymurWxView(wx.Frame):
         super(BymurWxView, self).__init__(*args, **kwargs)
 
         self._ctrls_data = {}
+        self._hazard_options = {}
+        self._hazard_description = None
         self._hazard_values = None
+        self._selected_point = None
+        self._selected_point_curves = None
+
         # TODO: make a list for events
         self.Bind(gf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
         self.Bind(gf.BYMUR_UPDATE_CURVE, self.OnBymurEvent)
@@ -1195,14 +1210,46 @@ class BymurWxView(wx.Frame):
     @ctrls_data.setter
     def ctrls_data(self,data):
         self._ctrls_data = data
+        
+    @property
+    def hazard_options(self):
+        return self._hazard_options
+
+    @hazard_options.setter
+    def hazard_options(self, data):
+        self._hazard_options = data
+        
+    @property
+    def hazard_description(self):
+        return self._hazard_description
+
+    @hazard_description.setter
+    def hazard_description(self, data):
+        self._hazard_description = data
 
     @property
     def hazard_values(self):
         return self._hazard_values
 
     @hazard_values.setter
-    def hazard_values(self,data):
+    def hazard_values(self, data):
         self._hazard_values = data
+        
+    @property
+    def selected_point(self):
+        return self._selected_point
+
+    @selected_point.setter
+    def selected_point(self, data):
+        self._selected_point = data
+
+    @property
+    def selected_point_curves(self):
+        return self._selected_point_curves
+
+    @selected_point_curves.setter
+    def selected_point_curves(self, data):
+        self._selected_point_curves = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

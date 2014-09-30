@@ -135,7 +135,7 @@ class BymurController(object):
 
     def updateCurves(self, **kwargs):
         print "update curves"
-        self.wxframe.rightPanel.curvesPanel.updateView(**self._core.data)
+        self.wxframe.rightPanel.curvesPanel.updateView()
 
     def quit(self):
         print "Close"
@@ -210,12 +210,12 @@ class BymurController(object):
         self.wxframe.updateView(**self._core.data)
 
     def updateParameters(self, event):
-        hazard_options = self.wxframe.hazard_options
+        hazard_options = self.wxframe.leftPanel.hazard_options
         gf.SpawnThread(self.wxframe,
                        gf.wxBYMUR_UPDATE_ALL,
                        self._core.updateModel,
                        hazard_options,
-                       callback=self.set_hazard_values,
+                       callback=self.update_hazard_data,
                        wait_msg="Updating maps...")
 
 
@@ -223,20 +223,37 @@ class BymurController(object):
         self.wxframe.rightPanel.curvesPanel.updateView(**self._core.data)
 
     def onMapClick(self, event):
-        if (event.inaxes != self.wxframe.rightPanel.mapPanel.map.ax1):
-            print "Sono fuori asse? "
-        else:
+        if (event.inaxes == self.wxframe.rightPanel.mapPanel.map.haz_map):
             if self._core.setPoint(event.xdata, event.ydata):
+                self.set_selected_point()
+                self.set_selected_point_curves()
                 self.updateCurves()
             else:
                 print "Problem setting point"
 
 
+    def update_hazard_data(self):
+        self.set_hazard_options()
+        self.set_hazard_description()
+        self.set_hazard_values()
+
     def set_ctrls_data(self):
         self.wxframe.ctrls_data = self._core.ctrls_data
 
+    def set_hazard_options(self):
+        self.wxframe.hazard_options = self._core.hazard_options
+
+    def set_hazard_description(self):
+        self.wxframe.hazard_description = self._core.hazard_description
+
     def set_hazard_values(self):
         self.wxframe.hazard_values = self._core.hazard_values
+        
+    def set_selected_point(self):
+        self.wxframe.selected_point = self._core.selected_point
+
+    def set_selected_point_curves(self):
+        self.wxframe.selected_point_curves = self._core.selected_point_curves
 
     def refresh(self):
         self._wxframe.refresh()
@@ -259,5 +276,5 @@ class BymurController(object):
         time.sleep(10)
         print "out sleep"
 
-    def get_ctrls_data(self):
-        return self._core.ctrls_data
+    # def get_ctrls_data(self):
+    #     return self._core.ctrls_data

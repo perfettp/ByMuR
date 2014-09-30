@@ -8,7 +8,7 @@ import random as rnd
 import time
 
 
-class BymurCore():
+class BymurCore(object):
     # Default values regardless of hazard model
     _ctrls_defaut = {'ret_per': 4975,
                      'int_thres': 3.0,
@@ -26,10 +26,17 @@ class BymurCore():
                         'pt_sel': 0
         }
         self._data = {}
-        self._ctrls_data = {}
+
         self._db = None
         self._db_details=None
+        self._ctrls_data = {}
+        self._hazard_options = {}
+        self._hazard_description = None
         self._hazard_values = None
+        self._hazard_curves = None
+        self._hazard_metadata = {}
+        self._selected_point = {}
+        self._selected_point_curves = None
 
     def connectAndFetch(self, **dbDetails):
         if (not self._db) and dbDetails:
@@ -109,100 +116,133 @@ class BymurCore():
         return hazard_models
 
 
-    def getHazMapData(self):
-        # grid_points = self.db.datagrid_points_get(grid_id)
-        # [{'id', 'latitude', 'longitude'}]
-        return {}
-        data_tmp ={}
-
-        table_rows=self._db.readTable("spatial_data1")
-        data_tmp['npts'] = len(table_rows)
-        data_tmp['id_area'] = [int(table_rows[i][1])
-                           for i in range(data_tmp['npts'])]
-        data_tmp['lon'] = [float(table_rows[i][2]) / 1000
-                       for i in range(data_tmp['npts'])]
-        data_tmp['lat'] = [float(table_rows[i][3]) / 1000
-                       for i in range(data_tmp['npts'])]
-        data_tmp['nareas'] = len(data_tmp['id_area'])
-
-
-        table_rows=self._db.readTable("hazard_phenomena")
-        data_tmp['nhaz'] = len(table_rows)
-        data_tmp['hz_name']= [table_rows[i][4] for i in range(data_tmp['nhaz'])]
-        data_tmp['model'] = [table_rows[i][5] for i in range(data_tmp['nhaz'])]
-        data_tmp['imt'] = [table_rows[i][6] for i in range(data_tmp['nhaz'])]
-        data_tmp['iml'] = [[float(j) for j in table_rows[i][7].split()]
-                       for i in range(data_tmp['nhaz'])]
-
-        niml = max([len(data_tmp['iml'][i]) for i in range(data_tmp['nhaz'])])
-
-        data_tmp['dtime'] = []
-        for k in range(data_tmp['nhaz']):
-            hazmodtb = "hazard" + str(k + 1)
-            tmp = self._db.selecDtime(hazmodtb)
-            dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
-            data_tmp['dtime'].append(dtlist)
-        print "dtime = ", data_tmp['dtime']
-        self._nt = max([len(data_tmp['dtime'][i])
-                        for i in range(len(data_tmp['dtime']))])
-
-        for k in range(data_tmp['nhaz']):
-            if (len(data_tmp['iml'][k]) < niml):
-                for i in range(niml - len(data_tmp['iml'][k])):
-                    data_tmp['iml'][k].append(0)
-
-        # self.hc = np.zeros((self.nhaz, self.nt, self.nperc+1, self.npts, niml))
-        data_tmp['hc'] = [[[['0' for i in range(data_tmp['npts'])] for j in range(100)]
-                    for k in range(self._nt)] for h in range(data_tmp['nhaz'])]
-
-        print 'niml=', niml
-        data_tmp['hc_perc'] = list()
-        for k in range(data_tmp['nhaz']):
-            data_tmp['hc_perc'].append(0)
-
-        data_tmp['perc_flag'] = []
-        for i in range(data_tmp['nhaz']):
-            haznametb = "hazard" + str(i + 1)
-            data_tmp['perc_flag'].append(self._db.assignFlagPerc(haznametb))
-
-        print("FLAGS PERCENTILES = {0}".format(data_tmp['perc_flag']))
-
-        if (gf.verifyInternetConn()):
-            srcdir = os.path.dirname(os.path.realpath(__file__))
-            savepath = os.path.join(srcdir, "data", "naples_gmaps.png")
-            utm_zone = "33N"
-            data_tmp['imgpath'] = gmaps.getUrlGMaps(375300, 4449200,
-                                             508500, 4569800,
-                                             utm_zone, savepath)
-
-        print data_tmp['dtime']
-        data_tmp['th'] = prob_thr(self._conf['ret_per'],
-                            data_tmp['dtime'][self._conf['haz_mod']]
-                            [self._conf['tw']])
-        data_tmp['hc'] = self._db.readHC(self._conf['haz_mod'],
-                                 self._conf['tw'],
-                                 data_tmp['dtime'],
-                                 data_tmp['hc'],
-                                 data_tmp['hc_perc'])
-
-        ret_value = {}
-        ret_value.update(self._conf)
-        ret_value.update(data_tmp)
-        self.data = ret_value
-        return ret_value
+    # def getHazMapData(self):
+    #     # grid_points = self.db.datagrid_points_get(grid_id)
+    #     # [{'id', 'latitude', 'longitude'}]
+    #     return {}
+    #     data_tmp ={}
+    #
+    #     table_rows=self._db.readTable("spatial_data1")
+    #     data_tmp['npts'] = len(table_rows)
+    #     data_tmp['id_area'] = [int(table_rows[i][1])
+    #                        for i in range(data_tmp['npts'])]
+    #     data_tmp['lon'] = [float(table_rows[i][2]) / 1000
+    #                    for i in range(data_tmp['npts'])]
+    #     data_tmp['lat'] = [float(table_rows[i][3]) / 1000
+    #                    for i in range(data_tmp['npts'])]
+    #     data_tmp['nareas'] = len(data_tmp['id_area'])
+    #
+    #
+    #     table_rows=self._db.readTable("hazard_phenomena")
+    #     data_tmp['nhaz'] = len(table_rows)
+    #     data_tmp['hz_name']= [table_rows[i][4] for i in range(data_tmp['nhaz'])]
+    #     data_tmp['model'] = [table_rows[i][5] for i in range(data_tmp['nhaz'])]
+    #     data_tmp['imt'] = [table_rows[i][6] for i in range(data_tmp['nhaz'])]
+    #     data_tmp['iml'] = [[float(j) for j in table_rows[i][7].split()]
+    #                    for i in range(data_tmp['nhaz'])]
+    #
+    #     niml = max([len(data_tmp['iml'][i]) for i in range(data_tmp['nhaz'])])
+    #
+    #     data_tmp['dtime'] = []
+    #     for k in range(data_tmp['nhaz']):
+    #         hazmodtb = "hazard" + str(k + 1)
+    #         tmp = self._db.selecDtime(hazmodtb)
+    #         dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
+    #         data_tmp['dtime'].append(dtlist)
+    #     print "dtime = ", data_tmp['dtime']
+    #     self._nt = max([len(data_tmp['dtime'][i])
+    #                     for i in range(len(data_tmp['dtime']))])
+    #
+    #     for k in range(data_tmp['nhaz']):
+    #         if (len(data_tmp['iml'][k]) < niml):
+    #             for i in range(niml - len(data_tmp['iml'][k])):
+    #                 data_tmp['iml'][k].append(0)
+    #
+    #     # self.hc = np.zeros((self.nhaz, self.nt, self.nperc+1, self.npts, niml))
+    #     data_tmp['hc'] = [[[['0' for i in range(data_tmp['npts'])] for j in range(100)]
+    #                 for k in range(self._nt)] for h in range(data_tmp['nhaz'])]
+    #
+    #     print 'niml=', niml
+    #     data_tmp['hc_perc'] = list()
+    #     for k in range(data_tmp['nhaz']):
+    #         data_tmp['hc_perc'].append(0)
+    #
+    #     data_tmp['perc_flag'] = []
+    #     for i in range(data_tmp['nhaz']):
+    #         haznametb = "hazard" + str(i + 1)
+    #         data_tmp['perc_flag'].append(self._db.assignFlagPerc(haznametb))
+    #
+    #     print("FLAGS PERCENTILES = {0}".format(data_tmp['perc_flag']))
+    #
+    #     if (gf.verifyInternetConn()):
+    #         srcdir = os.path.dirname(os.path.realpath(__file__))
+    #         savepath = os.path.join(srcdir, "data", "naples_gmaps.png")
+    #         utm_zone = "33N"
+    #         data_tmp['imgpath'] = gmaps.getUrlGMaps(375300, 4449200,
+    #                                          508500, 4569800,
+    #                                          utm_zone, savepath)
+    #
+    #     print data_tmp['dtime']
+    #     data_tmp['th'] = prob_thr(self._conf['ret_per'],
+    #                         data_tmp['dtime'][self._conf['haz_mod']]
+    #                         [self._conf['tw']])
+    #     data_tmp['hc'] = self._db.readHC(self._conf['haz_mod'],
+    #                              self._conf['tw'],
+    #                              data_tmp['dtime'],
+    #                              data_tmp['hc'],
+    #                              data_tmp['hc_perc'])
+    #
+    #     ret_value = {}
+    #     ret_value.update(self._conf)
+    #     ret_value.update(data_tmp)
+    #     self.data = ret_value
+    #     return ret_value
 
     def setPoint(self, xsel, ysel):
-        lon1 = min(self.data['lon'])
-        lon2 = max(self.data['lon'])
-        lat1 = min(self.data['lat'])
-        lat2 = max(self.data['lat'])
-        if (xsel >= lon1 and xsel <= lon2 and ysel >= lat1 and ysel <= lat2):
-            dist = np.sqrt((self.data['lon'] - xsel) ** 2 +
-                           (self.data['lat'] - ysel) ** 2)
-            self.data['pt_sel'] = np.argmin(dist)
+        xsel *= 1000
+        ysel *= 1000
+        print "xsel %s" % xsel
+        print "ysel %s" % ysel
+        print "self.hazard_metadata ['east_min']   %s" % self.hazard_metadata[
+            'east_min']
+        print "self.hazard_metadata ['east_max']   %s" % self.hazard_metadata[
+            'east_max']
+        print "self.hazard_metadata ['nort_min']  %s" % self.hazard_metadata[
+            'nort_min']
+        print "self.hazard_metadata ['nort_max']  %s" % self.hazard_metadata[
+            'nort_max']
+        if (xsel >= self.hazard_metadata['east_min']
+            and xsel <= self.hazard_metadata['east_max']
+            and ysel >= self.hazard_metadata['nort_min']
+            and ysel <= self.hazard_metadata['nort_max']):
+            dist = np.sqrt(([p['point']['easting']
+                             for p in self.hazard_values] - xsel) ** 2 +
+                           ([p['point']['northing']
+                             for p in self.hazard_values] - ysel) ** 2)
+            print 'np.argmin(dist) %s' % np.argmin(dist)
+            tmp_point = {}
+            tmp_point['index'] = np.argmin(dist)
+            tmp_point.update(self.hazard_values[
+                tmp_point['index']])
+            tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
+            self.selected_point = tmp_point
+            print "selected_point = %s" % self.selected_point
+            self.selected_point_curves = self.get_point_curves()
+            print "selected_point_curves = %s" % self.selected_point_curves
             return True
         else:
             return False
+
+    def get_point_curves(self):
+        exp_time_id = self._db.get_exposure_time_by_value(
+            self.hazard_options['exp_time'])
+        point_data = self._db.get_point_all_curves(
+            self.hazard_description['phenomenon_id'],
+            self.hazard_description['hazard_id'],
+            self.selected_point['point']['id'],
+            exp_time_id
+        )
+        return point_data
 
     def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
         # print "get_haz_value"
@@ -263,53 +303,79 @@ class BymurCore():
                 val = float('NaN')
             return val
 
-    def compute_hazard_values(self,hazard_name, exp_time, ret_per,
-                              intensity_threshold, statistic_name='mean'):
+    def compute_hazard_values(self, hazard_name, exp_time, ret_per,
+                              intensity_threshold, hazard_threshold,
+                              statistic_name='mean'):
 
-        hazard_model = self._db.get_hazard_model_by_name(hazard_name)
-        print "hazard_model = %s" % hazard_model
-        int_thresh_list = self._db.get_intensity_threshods_by_haz(
-            hazard_model['hazard_id'])
-        print "int_thresh_list = %s" % int_thresh_list
-        imt = self._db.get_intensity_measure_unit_by_haz(
-            hazard_model['hazard_id'])
-        print "imt = %s" % imt
+        # TODO: split this method
+        # From here
+        haz_tmp = self._db.get_hazard_model_by_name(hazard_name)
+        haz_tmp['int_thresh_list'] = self._db.get_intensity_threshods_by_haz(
+            haz_tmp['hazard_id'])
+        haz_tmp['imt'] = self._db.get_intensity_measure_unit_by_haz(
+            haz_tmp['hazard_id'])
+        haz_tmp['exposure_times'] = self._db.get_exposure_times_by_haz(
+            haz_tmp['hazard_id'])
+        haz_tmp['statistics'] = self._db.get_statistics_by_haz(
+            haz_tmp['hazard_id'])
+        self.hazard_description = haz_tmp
+        print "hazard_description %s" % self.hazard_description
+        # to here, should be below in updateModel
+
         exp_time_id = self._db.get_exposure_time_by_value(exp_time)
         print "exp_time_id = %s" % exp_time_id
         statistic_id = self._db.get_statistic_by_value(statistic_name)
         print "statistic_id = %s" % statistic_id
 
-        curves = self._db.get_curves(hazard_model['phenomenon_id'],
-                                     hazard_model['hazard_id'],
-                                     hazard_model['datagrid_id'],
-                                     statistic_id, exp_time_id)
-        print curves
 
-        hazard_threshold = 1 - math.exp(-exp_time/ret_per)
 
-        self._hazard_values = map((lambda p: dict(zip(['point','haz_value',
+        self.hazard_curves = self._db.get_curves(haz_tmp['phenomenon_id'],
+                                                 haz_tmp['hazard_id'],
+                                                 haz_tmp['datagrid_id'],
+                                                 statistic_id, exp_time_id)
+        print self.hazard_curves
+
+
+        return map((lambda p: dict(zip(['point','haz_value',
                                                        'prob_value'],
                                                 (p['point'],
                                                  self.get_haz_value(
-                                                     int_thresh_list,
+                                                     haz_tmp['int_thresh_list'],
                                                      hazard_threshold,
                                                      p['curve']),
                                                  self.get_prob_value(
-                                                     int_thresh_list,
+                                                     haz_tmp['int_thresh_list'],
                                                      intensity_threshold,
                                                      p['curve'])
                                                 )))),
-                                            curves)
+                                            self.hazard_curves)
 
 
 
     def updateModel(self, **hazard_options):
 
-        print hazard_options
-        self.compute_hazard_values(hazard_options.get('haz_mod', 0),
-                                   int(hazard_options.get('exp_time', 0)),
-                                   float(hazard_options.get('ret_per', 0)),
-                                   float(hazard_options.get('int_thresh', 0)),)
+        print "hazard_options %s" % hazard_options
+        haz_tmp = {}
+        haz_tmp['hazard_name'] = hazard_options.get('haz_mod', '')
+        haz_tmp['exp_time'] = int(hazard_options.get('exp_time', 0))
+        haz_tmp['ret_per'] = float(hazard_options.get('ret_per', 0))
+        haz_tmp['int_thresh'] = float(hazard_options.get('int_thresh', 0))
+        haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time']/
+                                                   haz_tmp['ret_per'])
+        self.hazard_options = haz_tmp
+
+        print "hazard_options %s " % self.hazard_options
+        self.hazard_values = gf.points_with_utm(
+            self.compute_hazard_values(
+               self.hazard_options['hazard_name'],
+               self.hazard_options['exp_time'],
+               self.hazard_options['ret_per'],
+               self.hazard_options['int_thresh'],
+               self.hazard_options['hazard_threshold']))
+
+
+        print "hazard_values = %s" % self.hazard_values
+
         # return
         # self.data['haz_mod'] = kwargs.pop('haz_mod','')
         # self.data['dtime'] = []
@@ -489,13 +555,73 @@ class BymurCore():
     def ctrls_data(self):
         return dict(self._ctrls_defaut.items() + self._ctrls_data.items())
 
-    # @ctrls_data.setter
-    # def data(self, value):
-    #     self._ctrls_data = value
+    @property
+    def hazard_options(self):
+        return self._hazard_options
+
+    @hazard_options.setter
+    def hazard_options(self, data):
+        self._hazard_options = data
+
+    @property
+    def hazard_description(self):
+        return self._hazard_description
+
+    @hazard_description.setter
+    def hazard_description(self, data):
+        self._hazard_description = data
+
+    @property
+    def hazard_curves(self):
+        return self._hazard_curves
+
+    @hazard_curves.setter
+    def hazard_curves(self, values):
+        self._hazard_curves = values
 
     @property
     def hazard_values(self):
         return self._hazard_values
+
+    @hazard_values.setter
+    def hazard_values(self, array):
+        print "hazard_values setter"
+        self._hazard_values = array
+        self._hazard_metadata['lon_min'] = min([p['point']['longitude']
+                                              for p in self._hazard_values])
+        self._hazard_metadata['lon_max'] = max([p['point']['longitude']
+                                              for p in self._hazard_values])
+        self._hazard_metadata['lat_min'] = min([p['point']['latitude']
+                                              for p in self._hazard_values])
+        self._hazard_metadata['lat_max'] = max([p['point']['latitude']
+                                              for p in self._hazard_values])
+        self._hazard_metadata['east_min'] = min([p['point']['easting']
+                                              for p in self._hazard_values])
+        self._hazard_metadata['east_max'] = max([p['point']['easting']
+                                              for p in self._hazard_values])
+        self._hazard_metadata['nort_min'] = min([p['point']['northing']
+                                              for p in self._hazard_values])
+        self._hazard_metadata['nort_max'] = max([p['point']['northing']
+                                              for p in self._hazard_values])
+    @property
+    def hazard_metadata(self):
+        return self._hazard_metadata
+
+    @property
+    def selected_point(self):
+        return self._selected_point
+
+    @selected_point.setter
+    def selected_point(self, data):
+        self._selected_point = data
+        
+    @property
+    def selected_point_curves(self):
+        return self._selected_point_curves
+
+    @selected_point_curves.setter
+    def selected_point_curves(self, data):
+        self._selected_point_curves = data
 
     @property
     def db(self):
