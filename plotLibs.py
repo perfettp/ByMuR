@@ -30,16 +30,12 @@
 '''
 
 import numpy as np
-from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg as figcv
-from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg as navtb
 
-from matplotlib.patches import Circle, Wedge, Rectangle
-from matplotlib.collections import PatchCollection
-from matplotlib.ticker import MultipleLocator, FormatStrFormatter
-import matplotlib.pyplot as plt
-import matplotlib.mlab as mlab
 import matplotlib as mpl
-import globalFunctions as gf
+import matplotlib.mlab as mlab
+import matplotlib.pyplot as pyplot
+from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
+from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
 
 # some global plotting settings
@@ -53,402 +49,297 @@ mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.sans-serif'] = 'Times'
 
 
-
-# TODO: refactor completely this object.
-# Which fields have to be initialized in
-#  __init__, which in other methods? What is really required? etc
-# class MapFigure():
-#     """
-#     Graphical object containing matplot canvas. This is the main graph where
-#     hazard map is plotted and where is possible to click to select for which
-#     point visualize hazard's curves.
-#     """
-#
-#     _haz_array = []
-#
-#     def __init__(self, parent, controller):
-#
-#         self._parent  = parent
-#         self._controller = controller
-#         self.fig = plt.figure()
-#         self.canvas = figcv(self._parent, -1, self.fig)
-#         self.toolbar = navtb(self.canvas)
-#         self.fig.clf()
-#         self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
-#                                  wspace=None, hspace=0.3)
-#         self.fig.hold(True)
-#         self.canvas.SetSize(self._parent.GetSize())
-#         self.fig.canvas.mpl_connect(
-#             'button_press_event', self._controller.onMapClick)
-#         self.canvas.draw()
-#
-#     def update_map(self, haz_id, int_thres, exp_time):
-#         haz_details = {'haz_id':1, 'grid_id':1, 'exptime_id':1, 'stat_id': 1,
-#                        'iml':[12], 'imt':"unita di misura"}
-#
-#         points_values =  [{ 'point_id':1,
-#                            'latitude':213,
-#                            'longitude':4324,
-#                            'curve':[34, 43,43]}]
-#
-#
-#
-#
-#     def hazardMap(self, **kwargs):
-#         """
-#         Main method to draw updated map.
-#         It accept a dictionary as argument, that must contains following keys
-#             and data:
-#                 hc:
-#                 lon:
-#                 lat:
-#                 ...
-#         """
-#
-#         hc = kwargs.get('hc')            # volcanic hazard
-#         self.xx = kwargs.get('lon')       # x coord of each point
-#         self.yy = kwargs.get('lat')       # y coord of each point
-#         NONaa = kwargs.get('id_area')            # id area for each point
-#         NONna = kwargs.get('nareas')            # nareas
-#         npt = kwargs.get('npts')           # n. point
-#         NONhazard = kwargs.get('hazards')        # hazard phenomena
-#         NONdtime = kwargs.get('dtime')         # time windows
-#         hsel = kwargs.get('haz_mod')          # hazard phenomenon
-#         tw = kwargs.get('tw')            # time window
-#         pth = kwargs.get('th')          # probability threshold
-#         ith = kwargs.get('int_thres')      # intensity threshold
-#         perc = kwargs.get('perc')         # n. percentiles
-#         imgfile = kwargs.get('imgpath')
-#         xmap1, xmap2, ymap1, ymap2 = kwargs.get('limits')
-#         iml = kwargs.get('iml')
-#         imt = kwargs.get('imt')
-#
-#
-#         nperc = len(perc)
-#
-#
-#         nx = 100
-#         ny = 100
-#         self.xmin = min(self.xx)
-#         self.xmax = max(self.xx)
-#         self.ymin = min(self.yy)
-#         self.ymax = max(self.yy)
-#         print iml[hsel]
-#         nperc = len(hc[:][:][:])
-#         self._haz_array = [0] * npt
-#         zp = [0] * npt
-#         for i in range(npt):
-#             tmp = hc[hsel][tw][0][i]
-#             curve = [float(j) for j in tmp.split()]
-#
-#             if (pth < curve[0] and pth > curve[-1]):
-#                 for j in range(len(curve)):
-#                     if (curve[j] < pth):
-#                         interp = - \
-#                             (pth - curve[j]) * (iml[hsel][j] - iml[hsel][j - 1]) / (curve[j - 1] - curve[j])
-#                         self._haz_array[i] = iml[hsel][j] + interp
-#                         break
-#             elif (pth >= curve[0]):
-#                 self._haz_array[i] = iml[hsel][0]
-#             elif (pth <= curve[-1]):
-#                 self._haz_array[i] = iml[hsel][-1]
-#             else:
-#                 pass
-#
-#             if (ith < iml[hsel][-1] and ith > iml[hsel][0]):
-#                 for j in range(len(iml)):
-#                     if (iml[hsel][j] < ith):
-#                         interp = - \
-#                             (ith - iml[hsel][j]) * (curve[j] - curve[j - 1]) / (iml[hsel][j - 1] - iml[hsel][j])
-#                         zp[i] = curve[j] + interp
-#                         break
-#             elif (ith >= iml[hsel][-1]):
-#                 zp[i] = curve[-1]
-#             elif (ith <= iml[hsel][0]):
-#                 zp[i] = curve[0]
-#             else:
-#                 pass
-#
-#
-#         xv = np.linspace(self.xmin, self.xmax, nx)
-#         yv = np.linspace(self.ymin, self.ymax, ny)
-#         xg, yg = np.meshgrid(xv, yv)
-#         zg = mlab.griddata(self.xx, self.yy, self._haz_array, xg, yg)
-#         zgp = mlab.griddata(self.xx, self.yy, zp, xg, yg)
-#
-#         cmap = plt.cm.RdYlGn_r
-#         cmaplist = [cmap(i) for i in range(cmap.N)]
-#         dcmap = cmap.from_list('Custom cmap', cmaplist, cmap.N)
-#
-#         # JACOPO 26/09/13
-#         maxint = 10
-#         maxz = np.ceil(max(self._haz_array)) + 1
-#         minz = 0
-#         print 'maxz-->', maxz
-#         if maxz < 10:
-#             inter = 1.
-#             maxz = max(maxz, 3.)
-#         else:
-#             order = np.floor(np.log10(maxz - minz)) - 1
-#             inter = 1. * 10 ** (order)
-#         print 'range-->', minz, maxz, inter
-#
-#         chk = len(np.arange(minz, maxz, inter))
-#         itmp = 1
-#         while chk > maxint:
-#             itmp = itmp + 1
-#             inter = inter * itmp
-#             bounds = range(int(minz), int(maxz), int(inter))
-#             chk = len(bounds)
-#         maxz = minz + chk * inter
-#         bounds = np.linspace(minz, maxz, chk + 1)
-#
-#
-#         norm = mpl.colors.BoundaryNorm(bounds, cmap.N)
-#
-#         self.fig.clf()
-#         self.fig.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
-#                                  top=0.92, wspace=0.35, hspace=0.2)
-#         self.fig.hold(True)
-#         self.ax1 = self.fig.add_subplot(1, 2, 1)
-#
-#         img = plt.imread(imgfile)
-#         self.ax1.imshow(
-#             img,
-#             origin="upper",
-#             extent=(
-#                 xmap1,
-#                 xmap2,
-#                 ymap1,
-#                 ymap2))
-#
-#
-#         self.map1 = self.ax1.contourf(xg, yg, zg, bounds, origin="lower",
-#                                       cmap=plt.cm.RdYlGn_r, alpha=0.5)
-#         self.map2 = self.ax1.contour(
-#             xg,
-#             yg,
-#             zg,
-#             bounds,
-#             origin="lower",
-#             aspect="equal",
-#             cmap=plt.cm.RdYlGn_r,
-#             linewidths=2,
-#             alpha=1)
-#
-#         self.cb1 = self.fig.colorbar(
-#             self.map1,
-#             shrink=0.9,
-#             norm=norm,
-#             ticks=bounds,
-#             boundaries=bounds,
-#             format='%.3f')
-#         self.cb1.set_alpha(1)
-#         self.cb1.set_label(imt[hsel])
-#         self.cb1.draw_all()
-#
-#         self.ax1.set_title("Hazard Map\n", fontsize=9)
-#         self.ax1.set_xlabel("Easting (km)")
-#         self.ax1.set_ylabel("Northing (km)")
-#         self.ax1.axis([xmap1, xmap2, ymap1, ymap2])
-#
-#         self.ax2 = self.fig.add_subplot(1, 2, 2)
-#         self.ax2.imshow(
-#             img,
-#             origin="upper",
-#             extent=(
-#                 xmap1,
-#                 xmap2,
-#
-#                 ymap1,
-#                 ymap2))
-#         self.map3 = self.ax2.contourf(xg, yg, zgp, 10, origin="lower",
-#                                       cmap=plt.cm.RdYlGn_r, alpha=0.5)
-#         self.map4 = self.ax2.contour(
-#             xg,
-#             yg,
-#             zgp,
-#             10,
-#             origin="lower",
-#             aspect="equal",
-#             cmap=plt.cm.RdYlGn_r,
-#             linewidths=2,
-#             alpha=1)
-#
-#         self.cb2 = self.fig.colorbar(
-#             self.map3,
-#             shrink=0.9,
-#             orientation='vertical')
-#
-#         # self.cb2.set_label("P", rotation=90)
-#         self.cb2.set_alpha(1)
-#         self.cb2.draw_all()
-#         self.ax2.axis([xmap1, xmap2, ymap1, ymap2])
-#
-#         self.ax2.set_title("Probability Map\n", fontsize=9)
-#         self.ax2.set_xlabel("Easting (km)")
-#         # self.ax2.set_ylabel("Northing (km)")
-#         # self.ax2.set_ylabel(ylab)
-#
-#         self.canvas.draw()
-#         self.canvas.mpl_connect('motion_notify_event', self.updateMouseSel)
-#
-#
-#     def updateMouseSel(self, event):
-#
-#         if (event.inaxes != self.ax1):
-#             return
-#         else:
-#             xsel, ysel = event.xdata, event.ydata
-#             if (xsel >= self.xmin and xsel <= self.xmax and
-#                     ysel >= self.ymin and ysel <= self.ymax):
-#                 dist = np.sqrt((self.xx - xsel) ** 2 + (self.yy - ysel) ** 2)
-#                 i = np.argmin(dist) + 1
-#                 x = self.xx[i]
-#                 y = self.yy[i]
-#                 tt = "Hazard Map\nPoint n. %s, Lon = %8.3f km, Lat = %8.3f km" % (
-#                     i, x, y)
-#
-#                 self.canvas.draw()
-#             else:
-#                 tt = "Hazard Map\nOut of data points bounds"
-#                 self.canvas.draw()
-#
-#     @property
-#     def hazArray(self):
-#         return self._haz_array
-#
-
-# class HazFigure():
-#     _perc_lbl = ['10', '50', '90']
-#
-#     def __init__(self, parent, controller):
-#
-#         self._parent = parent
-#         self.fig = plt.figure()
-#         self.canvas = figcv(self._parent, -1, self.fig)
-#         self.toolbar = navtb(self.canvas)
-#         self.fig.clf()
-#         self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
-#                                  wspace=None, hspace=0.3)
-#         self.fig.hold(True)
-#         self.canvas.SetSize(self._parent.GetSize())
-#         self.canvas.draw()
-#
-#     def hazardCurve(self, **kwargs):
-#         """
-#         It plots hazard curves.
-#
-#         """
-#
-#         hc = kwargs.get('hc')            # volcanic hazard
-#         self.xx = kwargs.get('lon')       # x coord of each point
-#         self.yy = kwargs.get('lat')       # y coord of each point
-#         aa = kwargs.get('id_area')            # id area for each point
-#         na = kwargs.get('nareas')            # nareas
-#         npt = kwargs.get('npts')           # n. point
-#         hazard = kwargs.get('hazards')        # hazard phenomena
-#         dtime = kwargs.get('dtime')         # time windows
-#         hsel = kwargs.get('haz_mod')          # hazard phenomenon
-#         tw = kwargs.get('tw')            # time window
-#         pth = kwargs.get('th')          # probability threshold
-#         ith = kwargs.get('int_thres')      # intensity threshold
-#         perc = kwargs.get('perc')         # n. percentiles
-#         imgfile = kwargs.get('imgpath')
-#         xmap1, xmap2, ymap1, ymap2 = kwargs.get('limits')
-#         iml = kwargs.get('iml')
-#         imt = kwargs.get('imt')
-#         pt_sel = kwargs.get('pt_sel')
-#
-#
-#         # hc = kargs[0]             # hazard curves
-#         # hsel = kargs[1]           # selected hazard phenomenon
-#         # tw = kargs[2]             # selected time window
-#         # hazard = kargs[3]         # hazard phenomena
-#         # dtime = kargs[4]          # time windows
-#         # pt_sel = kargs[5]         # selected point
-#         # perc = kargs[6]           # percentiles
-#         # iml = kargs[7]            # intensity
-#         # imt = kargs[8]            # intensity unit
-#         # pth = kargs[9]             # threshold hazard map
-#         # hc_perc = kargs[10]       # percentiles in hc
-#         # ith = kargs[11]          # intensity threshold
-#
-#
-#         self.fig.clf()
-#         self.axes = self.fig.add_axes([0.15, 0.15, 0.75, 0.75])
-#         self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
-#                                  wspace=None, hspace=0.3)
-#         self.fig.hold(True)
-#         self.axes.grid(True)
-#
-#         nperc = len(perc)
-#
-#         index = [10, 50, 90]
-#         print 'index of percentiles--->', index
-#
-#         pmin = 1000
-#         for p in range(3):
-#             ll = self._perc_lbl[p] + "th Percentile"
-#             tmp = hc[hsel][tw][index[p]][pt_sel]
-#             curve = [float(j) for j in tmp.split()]
-#             self.pt, = self.axes.plot(iml[hsel], curve,
-#                                       linewidth=1, alpha=1, label=ll)
-#
-#         tmp = hc[hsel][tw][0][pt_sel][:]
-#         ave = [float(j) for j in tmp.split()]
-#         self.pt, = self.axes.plot(iml[hsel], ave, color="#000000",
-#                                   linewidth=1, alpha=1, label="Average")
-#
-#         self.axes.axhline(
-#             y=pth,
-#             linestyle='--',
-#             color="#000000",
-#             linewidth=1,
-#             alpha=1,
-#             label="Threshold in Probability")
-#
-#         self.axes.legend()
-#         tt = ("Point n." + str(pt_sel + 1) +
-#               " - Time window = " + dtime[hsel][tw] + " years")
-#
-#         self.axes.set_title(tt, fontsize=10)
-#         self.axes.set_xlabel(imt[hsel])
-#         self.axes.set_ylabel("Probability of Exceedance")
-#         self.axes.set_yscale("log")
-#         # self.axes.axis([0,1,0,1])
-#         self.canvas.draw()
+class BymurPlot(object):
+    def __init__(self, *args, **kwargs):
+        self._parent = kwargs.get('parent', None)
+        self._figure = pyplot.figure()
+        self._canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
+        self._toolbar = NavigationToolbar2WxAgg(self._canvas)
+        self._figure.clf()
+        self._figure.subplots_adjust(left=None, bottom=None, right=None,
+                                    top=None, wspace=None, hspace=0.3)
+        self._cmap = pyplot.cm.RdYlGn_r
+        self._figure.hold(True)
+        self._canvas.SetSize(self._parent.GetSize())
+        self._canvas.draw()
 
 
-class VulnFigure():
-
-    def __init__(self, parent, controller):
-
-        self._parent  = parent
-        self.fig = plt.figure()
-        self.canvas = figcv(self._parent, -1, self.fig)
-        self.toolbar = navtb(self.canvas)
-        self.fig.clf()
-        self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
-                                 wspace=None, hspace=0.3)
-        self.fig.hold(True)
-        self.canvas.SetSize(self._parent.GetSize())
-        self.canvas.draw()
 
 
-class RiskFigure():
+class HazardCurve(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(HazardCurve, self).__init__(*args, **kwargs)
 
-    def __init__(self, parent, controller):
+    def plot(self, hazard_options, hazard_description, selected_point,
+             selected_point_curves):
+        perc_to_plot = ["10", "50", "90"]
 
-        self._parent  = parent
-        self.fig = plt.figure()
-        self.canvas = figcv(self._parent, -1, self.fig)
-        self.toolbar = navtb(self.canvas)
-        self.fig.clf()
-        self.fig.subplots_adjust(left=None, bottom=None, right=None, top=None,
-                                 wspace=None, hspace=0.3)
-        self.fig.hold(True)
-        self.canvas.SetSize(self._parent.GetSize())
-        self.canvas.draw()
+        print "hazard_options %s" % hazard_options
+        print "hazard_description %s" % hazard_description
+        print "selected_point %s" % selected_point
+        print "selected_point_curves %s" % selected_point_curves
+        self._figure.clf()
+        self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
+        self._figure.hold(True)
+        self._axes.grid(True)
+
+        for perc in perc_to_plot:
+            perc_key = "percentile"+perc+".0"
+            if selected_point_curves[perc_key] is not None:
+                perc_label =  perc + "th Percentile"
+                print perc
+                print perc_key
+                print hazard_description['int_thresh_list']
+                print selected_point_curves[perc_key]
+                self._axes.plot(hazard_description['int_thresh_list'],
+                                [float(y) for  y in
+                                 selected_point_curves[perc_key].split(',')],
+                                linewidth=1,
+                                alpha=1,
+                                label=perc_label)
+
+        if selected_point_curves["mean"] is not None:
+                print hazard_description['int_thresh_list']
+                print selected_point_curves["mean"]
+                self._axes.plot(hazard_description['int_thresh_list'],
+                                [float(y) for  y in
+                                 selected_point_curves["mean"].split(',')],
+                                 color="#000000",
+                                 linewidth=1,
+                                 alpha=1,
+                                 label="Average")
+
+        self._axes.axhline(
+            y=hazard_options['hazard_threshold'],
+            linestyle='--',
+            color="#000000",
+            linewidth=1,
+            alpha=1,
+            label="Threshold in Probability")
+
+        self._axes.axvline(
+            x=hazard_options['int_thresh'],
+            linestyle='-',
+            color="#000000",
+            linewidth=1,
+            alpha=1,
+            label="Threshold in Intensity")
+
+
+        self._axes.legend()
+        title = ("Point n." + str(selected_point['index']+ 1) +
+               " - Time window = " + str(hazard_options['exp_time']) + " "
+                                                                        "years")
+        self._axes.set_title(title, fontsize=10)
+
+
+        self._axes.set_ylabel("Probability of Exceedance")
+        self._axes.set_yscale("log")
+        # self.axes.axis([0,1,0,1])
+        self._canvas.draw()
+
+class HazardGraph(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        self._click_callback = kwargs.get('click_callback', None)
+        super(HazardGraph, self).__init__(*args, **kwargs)
+        # TODO: imgfile should be a parameter, but maybe in plot
+        self._imgfile = "/hades/dev/bymur/data/naples_gmaps.png"
+        self._figure.canvas.mpl_connect('button_press_event',
+                                        self._click_callback)
+        self._points_data = None
+
+
+    def plot(self, hazard_description, points_utm):
+
+        # TODO: to transform in a parameter
+
+        print "points_data: %s" % points_utm
+
+        # Prepare matplotlib grid and data
+        grid_points_number = 100
+        self._points_utm = points_utm
+        x_points = [p['point']['easting'] for p in self._points_utm]
+
+        # TODO: fix these points
+        x_points = [x/1000 for x in x_points]
+        y_points = [p['point']['northing'] for p in self._points_utm]
+        y_points = [x/1000 for x in y_points]
+        x_vector = np.linspace(min(x_points), max(x_points), grid_points_number)
+        y_vector = np.linspace(min(y_points), max(y_points), grid_points_number)
+        x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
+
+
+
+        self._figure.clf()
+        self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
+                                     top=0.92, wspace=0.35, hspace=0.2)
+        self._figure.hold(True)
+        map_limits = [375.300, 508.500, 4449.200, 4569.800]
+        self.haz_map = self.plot_hazard_map(hazard_description,
+                                            x_points, y_points,
+                                            x_mesh, y_mesh,
+                             [p['haz_value'] for p in self._points_utm],
+                             map_limits)
+
+        self.prob_map = self.plot_probability_map(x_points, y_points, x_mesh,
+                                              y_mesh,
+                                  [p['prob_value'] for p in self._points_utm],
+                                  map_limits)
+
+        self._canvas.draw()
+
+    def plot_hazard_map(self, hazard_description, x_points, y_points, x_mesh,
+                        y_mesh, z_points,
+                 map_limits):
+        xmap1, xmap2, ymap1, ymap2 = map_limits
+        haz_bar_label = hazard_description['imt']
+        # TODO: install natgrid to use natural neighbor interpolation
+        z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
+                               interp='linear')
+
+        # Define colors mapping and levels
+        z_boundaries = self.levels_boundaries(z_points)
+        print "plot> z_boundaries: %s" % z_boundaries
+        cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
+                                                  self._cmap.N)
+        # Add hazard map subfigure
+        haz_subplot = self._figure.add_subplot(1, 2, 1)
+        # TODO: tmp image plot
+        img = pyplot.imread(self._imgfile)
+
+        haz_subplot.imshow(
+            img,
+            zorder=0,
+            origin="upper",
+            extent=(
+                xmap1,
+                xmap2,
+                ymap1,
+                ymap2))
+
+
+        # Plot hazard map
+        haz_contourf = haz_subplot.contourf(x_mesh, y_mesh, z_mesh,
+                                            z_boundaries,
+                                            origin="lower",
+                                            cmap=self._cmap,
+                                            alpha=0.5,
+                                            zorder=1 )
+        haz_contour = haz_subplot.contour(x_mesh, y_mesh, z_mesh,
+                                          z_boundaries,
+                                          origin="lower",
+                                          aspect="equal",
+                                          cmap=self._cmap,
+                                          linewidths=2,
+                                          alpha=1,
+                                          zorder=2)
+
+        # Plot hazard bar
+        hazard_bar = self._figure.colorbar(
+            haz_contourf,
+            shrink=0.9,
+            norm=cmap_norm_index,
+            ticks=z_boundaries,
+            boundaries=z_boundaries,
+            format='%.3f')
+        hazard_bar.set_alpha(1)
+        hazard_bar.set_label(haz_bar_label)
+        hazard_bar.draw_all()
+
+        haz_subplot.set_title("Hazard Map\n", fontsize=9)
+        haz_subplot.set_xlabel("Easting (km)")
+        haz_subplot.set_ylabel("Northing (km)")
+        # TODO: fix these limits
+        haz_subplot.axis([425.000,448.000, 4510.000,
+                                      4533.000])
+        return haz_subplot
+
+    def plot_probability_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
+                 map_limits):
+
+        xmap1, xmap2, ymap1, ymap2 = map_limits
+        z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
+                               interp='linear')
+
+        # Define colors mapping and levels
+        z_boundaries = self.levels_boundaries(z_points)
+        print "plot> z_boundaries: %s" % z_boundaries
+        cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
+                                                  self._cmap.N)
+
+        prob_subplot = self._figure.add_subplot(1, 2, 2)
+        img = pyplot.imread(self._imgfile)
+        prob_subplot.imshow(
+            img,
+            origin="upper",
+            extent=(
+                xmap1,
+                xmap2,
+                ymap1,
+                ymap2))
+        prob_contourf = prob_subplot.contourf(x_mesh, y_mesh, z_mesh,
+                                          z_boundaries, origin="lower",
+                                          cmap=self._cmap, alpha=0.5)
+        prob_contour = prob_subplot.contour(x_mesh, y_mesh, z_mesh,
+                                         z_boundaries,
+                                         origin="lower",
+                                         aspect="equal",
+                                         cmap=self._cmap,
+                                         linewidths=2,
+                                         alpha=1)
+
+        probability_bar = self._figure.colorbar(
+            prob_contourf,
+            shrink=0.9,
+            orientation='vertical')
+
+
+        probability_bar.set_alpha(1)
+        prob_subplot.set_title("Probability Map\n", fontsize=9)
+        prob_subplot.set_xlabel("Easting (km)")
+        probability_bar.draw_all()
+        # TODO: fix these limits
+        prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        return prob_subplot
+
+        
+    def levels_boundaries(self, z_array):
+        max_intervals = 5
+        maxz = np.ceil(max(z_array))
+        minz = np.floor(min(z_array))
+        print "maxz %s" %maxz
+        print "minz %s" %minz
+
+        if (maxz - minz) < 4:
+            inter = 0.2
+        elif maxz < 10:
+            inter = 1.
+            maxz = max(maxz, 3.)
+        else:
+            order = np.floor(np.log10(maxz - minz)) - 1
+            inter = 1. * 10 ** (order)
+        print 'range-->', minz, maxz, inter
+
+        chk = len(np.arange(minz, maxz, inter))
+        itmp = 1
+        while chk > max_intervals:
+            itmp = itmp + 1
+            inter = inter * itmp
+            bounds = range(int(minz), int(maxz), int(inter))
+            chk = len(bounds)
+        maxz = minz + chk * inter
+        # bounds = np.linspace(minz, maxz, chk + 1)
+        bounds = np.linspace(min(z_array), max(z_array), max_intervals)
+        return bounds
+
+
+class VulnCurve(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(VulnCurve, self).__init__(*args, **kwargs)
+
+class RiskCurve(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(RiskCurve, self).__init__(*args, **kwargs)
+
 
 

@@ -11,14 +11,14 @@ import time
 class BymurCore(object):
     # Default values regardless of hazard model
     _ctrls_defaut = {'ret_per': 4975,
-                     'int_thres': 3.0,
+                     'int_thresh': 3.0,
                     'hazard_models' : []
     }
 
     def __init__(self):
         self._conf = { 'haz_mod':0,        # selected hazard phenomenon
                        'ret_per':4975,     # selected Return Period
-                        'int_thres': 3.0,   # selected intensity  threshold
+                        'int_thresh': 3.0,   # selected intensity  threshold
                         'tw': 0,           # selected time window
                         #  Qui sotto non so perche' siano definite queste costanti
                         'limits':[375.300, 508.500, 4449.200, 4569.800],
@@ -547,9 +547,6 @@ class BymurCore(object):
 
 
         # update DB, table hazard#
-
-    def GetData(self):
-        return self.data
 
     @property
     def ctrls_data(self):

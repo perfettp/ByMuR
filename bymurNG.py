@@ -638,7 +638,7 @@ class BymurWxMapPanel(BymurWxPanel):
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         # self._map = plotLibs.MapFigure(self, self._controller)
-        self._map = gf.HazardGraph(parent=self,
+        self._map = plotLibs.HazardGraph(parent=self,
                                    click_callback=self._controller.onMapClick)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
@@ -668,7 +668,7 @@ class BymurWxNBHazPage(BymurWxPanel):
         super(BymurWxNBHazPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         # self._map = plotLibs.HazFigure(self, self._controller)
-        self._map = gf.HazardCurve(parent=self)
+        self._map = plotLibs.HazardCurve(parent=self)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
@@ -694,9 +694,9 @@ class BymurWxNBVulnPage(BymurWxPanel):
         self._title = kwargs.pop('title', "Vulnerability")
         super(BymurWxNBVulnPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        self._map = plotLibs.VulnFigure(self, self._controller)
-        self._sizer.Add(self._map.canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map.toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self._map = plotLibs.VulnCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     @property
@@ -710,9 +710,9 @@ class BymurWxNBRiskPage(BymurWxPanel):
         self._title = kwargs.pop('title', "Risk")
         super(BymurWxNBRiskPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        self._map = plotLibs.RiskFigure(self, self._controller)
-        self._sizer.Add(self._map.canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map.toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self._map = plotLibs.RiskCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     @property
@@ -843,6 +843,8 @@ class BymurWxLeftPanel(BymurWxPanel):
                     _exp_times = [str(et['years']) for et in haz['exposure_times']]
                     self._timeWindowCB.Clear()
                     self._timeWindowCB.AppendItems(_exp_times)
+                    self._timeWindowCB.SetSelection(0)
+                    break
 
     def updateView(self, **kwargs):
         super(BymurWxLeftPanel, self).updateView(**kwargs)
@@ -863,7 +865,7 @@ class BymurWxLeftPanel(BymurWxPanel):
             pass
 
         self._retPerText.SetValue(str(int(ctrls_data['ret_per'])))
-        self._intThresText.SetValue(str(ctrls_data['int_thres']))
+        self._intThresText.SetValue(str(ctrls_data['int_thresh']))
 
         _exp_times = []
         for haz in ctrls_data['hazard_models']:
@@ -876,6 +878,7 @@ class BymurWxLeftPanel(BymurWxPanel):
         try:
             self._timeWindowCB.SetSelection(_exp_sel)
         except:
+            print "Exception settin _exp_sel"
             pass
         # self.Enable(True)
 
@@ -895,7 +898,10 @@ class BymurWxLeftPanel(BymurWxPanel):
         values = {}
         values['haz_mod'] = self._hazModCB.GetStringSelection()
         values['ret_per'] = self._retPerText.GetValue()
-        values['int_thres'] = self._intThresText.GetValue()
+        values['int_thresh'] = self._intThresText.GetValue()
+        print self._timeWindowCB.GetStringSelection()
+        print self._timeWindowCB.GetCurrentSelection()
+        print self._timeWindowCB.GetSelection()
         values['exp_time'] = self._timeWindowCB.GetStringSelection()
         return values
 
