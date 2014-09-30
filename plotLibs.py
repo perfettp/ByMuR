@@ -74,23 +74,26 @@ class HazardCurve(BymurPlot):
              selected_point_curves):
         perc_to_plot = ["10", "50", "90"]
 
-        print "hazard_options %s" % hazard_options
-        print "hazard_description %s" % hazard_description
-        print "selected_point %s" % selected_point
-        print "selected_point_curves %s" % selected_point_curves
+        # print "hazard_options %s" % hazard_options
+        # print "hazard_description %s" % hazard_description
+        # print "selected_point %s" % selected_point
+        # print "selected_point_curves %s" % selected_point_curves
         self._figure.clf()
         self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
         self._figure.hold(True)
         self._axes.grid(True)
 
+        self._axes.set_xticks(hazard_description['int_thresh_list'])
+        self._axes.set_xlim(right=hazard_description['int_thresh_list'][len(
+            hazard_description['int_thresh_list'])-1])
         for perc in perc_to_plot:
             perc_key = "percentile"+perc+".0"
             if selected_point_curves[perc_key] is not None:
                 perc_label =  perc + "th Percentile"
-                print perc
-                print perc_key
-                print hazard_description['int_thresh_list']
-                print selected_point_curves[perc_key]
+                # print perc
+                # print perc_key
+                # print hazard_description['int_thresh_list']
+                # print selected_point_curves[perc_key]
                 self._axes.plot(hazard_description['int_thresh_list'],
                                 [float(y) for  y in
                                  selected_point_curves[perc_key].split(',')],
@@ -98,9 +101,10 @@ class HazardCurve(BymurPlot):
                                 alpha=1,
                                 label=perc_label)
 
+
         if selected_point_curves["mean"] is not None:
-                print hazard_description['int_thresh_list']
-                print selected_point_curves["mean"]
+                # print hazard_description['int_thresh_list']
+                # print selected_point_curves["mean"]
                 self._axes.plot(hazard_description['int_thresh_list'],
                                 [float(y) for  y in
                                  selected_point_curves["mean"].split(',')],

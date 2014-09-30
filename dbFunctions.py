@@ -251,7 +251,6 @@ class BymurDB():
         Connecting to database
         """
         try:
-            print "init"
             self._connection = mdb.connect(host=kwargs.pop('db_host',
                                                            '***REMOVED***'),
                                            port=int(kwargs.pop('db_port',
@@ -694,7 +693,7 @@ class BymurDB():
             stat_id) + ","  + str(exptime_id) + """, %s )"""
 
         sqlquery = sqlquery.format(table_name)
-        print "point_curve_map %s " % point_curve_map
+        # print "point_curve_map %s " % point_curve_map
         return self._cursor.executemany(sqlquery, point_curve_map)
 
     def volcanic_data_insert(self, hazard_model_id, datagrid_id,
@@ -791,7 +790,7 @@ class BymurDB():
                                              hazard_model_id,
                                              datagrid_id,
                                              stat_id, exptime_id)
-        print "sqlquery %s" % query
+        # print "sqlquery %s" % query
         self._cursor.execute(sqlquery.format(table_name,
                                              hazard_model_id,
                                              datagrid_id,
@@ -873,14 +872,20 @@ class BymurDB():
 
         createDBdata['hazard_models'] = []
         for phen in createDBdata['phenomena']:
+            print "phen: %s" % phen
+            if phen == ".git" or phen == ".gitignore":
+                    continue
             item_tmp = {'phenomenon_name': phen,
                         'phenomenon_id': self.phenomenon_get_insert_id(phen)}
             item_tmp['models'] = []
             for model in os.listdir(os.path.join(datadir, phen)):
+                print "model: %s " % model
+
                 model_tmp = {'name': model}
                 model_tmp['dtimes'] = []
                 model_tmp['dtime_dirs'] = []
                 for dtime in os.listdir(os.path.join(datadir, phen, model)):
+                    print "dtime: %s" % dtime
                     model_tmp['dtimes'].append(dtime.replace("dt", "").zfill(3))
                     model_tmp['dtime_dirs'].append(dtime)
                 item_tmp['models'].append(model_tmp)

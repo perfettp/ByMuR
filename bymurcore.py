@@ -244,71 +244,67 @@ class BymurCore(object):
         )
         return point_data
 
-    def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
-        # print "get_haz_value"
-        # print " > curve %s" % curve
-        # print " > hazard_threshold %s" % hazard_threshold
-        # print " > curve[0] %s " % curve[0]
-        # print " > curve[len(curve)-1] %s " % curve[len(curve)-1]
-        i_bigger = 0
-        i_smaller = len(curve)-1
-        for i in range(len(curve)):
-            # print curve[i]
-            if curve[i] < hazard_threshold:
-                i_smaller = i
-                i_bigger = i-1
-                break
-        # print "i_smaller %s" % i_smaller
-        # print "i_bigger %s" % i_bigger
-        if i_bigger < 0:
-            return float('NaN')
-        elif i_smaller > len(curve):
-            return int_thresh_list[len(int_thresh_list)-1]
-        else:
-            try:
-                val = int_thresh_list[i_smaller]  + \
-                      (int_thresh_list[i_bigger] - int_thresh_list[i_smaller]) * \
-                      (hazard_threshold - curve[i_smaller]) / \
-                      (curve[i_bigger]-curve[i_smaller])
-            except:
-                val = float('NaN')
-            return val
 
-    # TODO: DA CONTROLLARE ASSOLUTAMENTE
-    def get_prob_value(self, int_thresh_list, intensity_threshold, curve):
-        # print "get_haz_value"
-        # print " > curve %s" % curve
-        # print " > hazard_threshold %s" % hazard_threshold
-        # print " > curve[0] %s " % curve[0]
-        # print " > curve[len(curve)-1] %s " % curve[len(curve)-1]
-        i_bigger = 0
-        i_smaller = len(int_thresh_list)-1
-        for i in range(len(int_thresh_list)):
-            # print curve[i]
-            if int_thresh_list[i] < intensity_threshold:
-                i_smaller = i
-                i_bigger = i-1
+
+    def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
+        y_th = hazard_threshold
+        y = curve
+        x = int_thresh_list
+        i = 0
+        for i in range(len(curve)):
+            if y[i] < y_th:
+                if i >= 1:
+                    y_1 = y[i-1]
+                    x_1 = x[i-1]
+                else:
+                    y_1 = 1
+                    x_1 = 0
+                y_2 = y[i]
+                x_2 = x[i]
                 break
-        if i_bigger <= 0:
-            return max(curve)
-        elif i_smaller > len(int_thresh_list):
-            return float('NaN')
+            if i == len(y):
+                i += 1
+        if i > len(y):
+            return x[len(x)-1]
         else:
             try:
-                val = curve[i_smaller]  + \
-                      (curve[i_bigger] - curve[i_smaller]) * \
-                      (intensity_threshold - int_thresh_list[i_smaller]) / \
-                      (int_thresh_list[i_bigger]-int_thresh_list[i_smaller])
+                x_th = x_1 + (x_2 - x_1) * (y_th - y_1)/(y_2-y_1)
             except:
-                val = float('NaN')
-            return val
+                x_th = float('NaN')
+            return x_th
+
+    def get_prob_value(self, int_thresh_list, intensity_threshold, curve):
+        x_th = intensity_threshold
+        y = curve
+        x = int_thresh_list
+        i = 0
+        for i in range(len(x)):
+            if x[i] < x_th:
+                if i >= 1:
+                    y_1 = y[i-1]
+                    x_1 = x[i-1]
+                else:
+                    y_1 = 1
+                    x_1 = 0
+                y_2 = y[i]
+                x_2 = x[i]
+                break
+            if i == len(y):
+                i += 1
+        if i > len(y):
+            return x[len(x)-1]
+        else:
+            try:
+                y_th = y_1 + (y_2 - y_1) * (x_th - x_1)/(x_2-x_1)
+            except:
+                y_th = float('NaN')
+            return y_th
+
 
     def compute_hazard_values(self, hazard_name, exp_time, ret_per,
                               intensity_threshold, hazard_threshold,
                               statistic_name='mean'):
 
-        # TODO: split this method
-        # From here
         haz_tmp = self._db.get_hazard_model_by_name(hazard_name)
         haz_tmp['int_thresh_list'] = self._db.get_intensity_threshods_by_haz(
             haz_tmp['hazard_id'])
@@ -352,14 +348,14 @@ class BymurCore(object):
 
 
 
-    def updateModel(self, **hazard_options):
+    def updateModel(self, **ctrls_options):
 
-        print "hazard_options %s" % hazard_options
+        print "ctrls_options %s" % ctrls_options
         haz_tmp = {}
-        haz_tmp['hazard_name'] = hazard_options.get('haz_mod', '')
-        haz_tmp['exp_time'] = int(hazard_options.get('exp_time', 0))
-        haz_tmp['ret_per'] = float(hazard_options.get('ret_per', 0))
-        haz_tmp['int_thresh'] = float(hazard_options.get('int_thresh', 0))
+        haz_tmp['hazard_name'] = ctrls_options.get('haz_mod', '')
+        haz_tmp['exp_time'] = int(ctrls_options.get('exp_time', 0))
+        haz_tmp['ret_per'] = float(ctrls_options.get('ret_per', 0))
+        haz_tmp['int_thresh'] = float(ctrls_options.get('int_thresh', 0))
         haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time']/
                                                    haz_tmp['ret_per'])
         self.hazard_options = haz_tmp
@@ -372,44 +368,7 @@ class BymurCore(object):
                self.hazard_options['ret_per'],
                self.hazard_options['int_thresh'],
                self.hazard_options['hazard_threshold']))
-
-
         print "hazard_values = %s" % self.hazard_values
-
-        # return
-        # self.data['haz_mod'] = kwargs.pop('haz_mod','')
-        # self.data['dtime'] = []
-        # for k in range(self.data['nhaz']):
-        #     hazmodtb = "hazard" + str(k + 1)
-        #     tmp = self._db.selecDtime(hazmodtb)
-        #     dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
-        #     self.data['dtime'].append(dtlist)
-        # self.data['tw'] = 0
-        #
-        # ntry = int(math.floor(self.data['npts'] * 0.5))
-        # tmp2 = self.data['hc'][self.data['haz_mod']][
-        #     self.data['tw']][0][ntry]
-        # # print tmp2, type(tmp2)
-        # tmp = sum([float(j) for j in tmp2.split()])
-        # if (tmp == 0):
-        #     # busydlg = wx.BusyInfo("...Reading hazard from DB")
-        #     # wx.Yield()
-        #     #self._lasta_data['hc']self._db.dbReadHC(self.data['haz_mod'],
-        #     self._db.readHC(self.data['haz_mod'],
-        #                       self.data['tw'],
-        #                       self.data['dtime'],
-        #                       self.data['hc'],
-        #                       self.data['hc_perc'])
-        #     # COSA VUOL DIRE CHE NON FACCIO NULLA?
-        #     # Dovrei almeno assegnare dbReadHC a last_data['hc']??
-        #     # busydlg = None
-        #
-        # self.data['int_thres']=float(kwargs.pop('int_thres',0))
-        # self.data['ret_per'] = float(kwargs.pop('ret_per',0))
-        #
-        # self.data['th'] = prob_thr(self.data['ret_per'],
-        #                     self.data['dtime'][self.data['haz_mod']]
-        #                     [self.data['tw']])
 
     def exportRawPoints(self, haz_array):
         export_string = ''
