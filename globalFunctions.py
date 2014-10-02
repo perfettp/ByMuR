@@ -168,8 +168,8 @@ class HazardXMLModel(object):
                 elif element.tag == 'HCNode':
                     point_pos = {}
                     gml_pos = element.find('.//gmlpos').text.split()
-                    point_pos['northing'] = float(gml_pos[0])
-                    point_pos['easting']  = float(gml_pos[1])
+                    point_pos['northing'] = round(float(gml_pos[0]))
+                    point_pos['easting']  = round(float(gml_pos[1]))
                     point_val = [float(x) for x in
                                  element.find( './/poE').text.split()]
                     # print "point: %s" % point
@@ -255,35 +255,18 @@ def points_to_latlon(points, utm_zone_number=33,
                      utm_zone_letter='T', decimals=5):
     res = []
     for p in points:
-        lat,lon = utm.to_latlon(float(p['easting']),
-                                float(p['northing']),
-                                utm_zone_number,
-                                utm_zone_letter)
-        res.append({'latitude': round(lat, decimals),
-                    'longitude':round(lon, decimals)})
+        lat,lon = p['northing'], p['easting']
+        res.append({'latitude': round(lat),
+                    'longitude':round(lon)})
     return res
 
 def points_with_utm(points, decimals=5):
     for p in points:
-        easting, northing, zone_number, zone_letter = \
-            utm.from_latlon(p['point']['latitude'],
-                            p['point']['longitude'])
-        p['point']['easting'] = round(easting, decimals)
-        p['point']['northing'] = round(northing, decimals)
-        p['point']['zone_number'] = zone_number
-        p['point']['zone_letter'] = zone_letter
+        p['point']['easting'] = p['point']['longitude']
+        p['point']['northing'] = p['point']['latitude']
+        p['point']['zone_number'] = 33
+        p['point']['zone_letter'] = 'T'
     return points
-
-    # res = []
-    # for p in points:
-    #     easting, northing, zone_number, zone_letter = \
-    #         utm.from_latlon(p['latitude'],
-    #                         p['longitude'])
-    #     res.append({'easting': round(easting, decimals),
-    #                 'northing':round(northing, decimals),
-    #                 'zone_number': zone_number,
-    #                 'zone_letter': zone_letter})
-    # return res
 
 def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
                              utm_zone_letter='T', decimals=5):
@@ -292,12 +275,9 @@ def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
         if utm_coords:
             for line in gridfile:
                 line_arr = line.strip().split()
-                lat, lon = utm.to_latlon(float(line_arr[0]),
-                                         float(line_arr[1]),
-                                         utm_zone_number,
-                                         utm_zone_letter)
-                points.append({'latitude': round(lat, decimals) ,
-                               'longitude':round(lon, decimals)
+                lat, lon = float(line_arr[1]), float(line_arr[0])
+                points.append({'latitude': round(lat),
+                               'longitude': round(lon)
                 })
             return points
         else:

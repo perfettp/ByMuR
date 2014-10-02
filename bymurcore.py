@@ -238,30 +238,30 @@ class BymurCore(object):
                                                  haz_tmp['datagrid_id'],
                                                  statistic_id, exp_time_id)
 
-        i = 1
-        values = []
-        for c in self.hazard_curves:
-            values.append(dict(zip(['point','haz_value','prob_value'],
-                                                (c['point'],
-                                                 10*c['point']['latitude'],
-                                                 10*c['point']['longitude']
-                                                 ))))
-            i += 1
-        return values
+        # i = 1
+        # values = []
+        # for c in self.hazard_curves:
+        #     values.append(dict(zip(['point','haz_value','prob_value'],
+        #                                         (c['point'],
+        #                                          10*c['point']['latitude'],
+        #                                          10*c['point']['longitude']
+        #                                          ))))
+        #     i += 1
+        # return values
 
-        # return map((lambda p: dict(zip(['point','haz_value',
-        #                                                'prob_value'],
-        #                                         (p['point'],
-        #                                          self.get_haz_value(
-        #                                              haz_tmp['int_thresh_list'],
-        #                                              hazard_threshold,
-        #                                              p['curve']),
-        #                                          self.get_prob_value(
-        #                                              haz_tmp['int_thresh_list'],
-        #                                              intensity_threshold,
-        #                                              p['curve'])
-        #                                         )))),
-        #                                     self.hazard_curves)
+        return map((lambda p: dict(zip(['point','haz_value',
+                                                       'prob_value'],
+                                                (p['point'],
+                                                 self.get_haz_value(
+                                                     haz_tmp['int_thresh_list'],
+                                                     hazard_threshold,
+                                                     p['curve']),
+                                                 self.get_prob_value(
+                                                     haz_tmp['int_thresh_list'],
+                                                     intensity_threshold,
+                                                     p['curve'])
+                                                )))),
+                                            self.hazard_curves)
 
 
 
@@ -457,9 +457,9 @@ class BymurCore(object):
         return self._hazard_values
 
     @hazard_values.setter
-    def hazard_values(self, array):
+    def hazard_values(self, data):
         print "hazard_values setter"
-        self._hazard_values = array
+        self._hazard_values = data
         self._hazard_metadata['lon_min'] = min([p['point']['longitude']
                                               for p in self._hazard_values])
         self._hazard_metadata['lon_max'] = max([p['point']['longitude']

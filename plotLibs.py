@@ -256,7 +256,7 @@ class HazardGraph(BymurPlot):
         while chk > max_intervals:
             itmp = itmp + 1
             inter = inter * itmp
-            bounds = range(int(minz), int(maxz), 5)
+            bounds = range(int(minz), int(maxz), int(inter))
             chk = len(bounds)
         maxz = minz + chk * inter
         # bounds = np.linspace(minz, maxz, chk + 1)
