@@ -1118,7 +1118,6 @@ class BymurWxView(wx.Frame):
         :param state: Boolean
         """
         self._isbusy = state
-        print "state %s" % state
         wait_msg = kwargs.pop('wait_msg', self._busymsg)
         if self._isbusy:
             # self._old_style = self.GetWindowStyle()
@@ -1144,15 +1143,12 @@ class BymurWxView(wx.Frame):
 
 
     def OnBymurEvent(self, event):
-        print event.__class__.__name__
-        print "Ricevuto!"
         if  event.GetEventType() == gf.wxBYMUR_DB_CONNECTED:
             print "gf.wxBYMUR_DB_CONNECTED"
         elif event.GetEventType() == gf.wxBYMUR_UPDATE_CTRLS:
             print "gf.wxBYMUR_UPDATE_CTRLS"
             self.leftPanel.updateView()
         elif event.GetEventType() == gf.wxBYMUR_UPDATE_ALL:
-            print "gf.wxBYMUR_UPDATE_ALL"
             self.leftPanel.updateView()
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)

@@ -66,81 +66,7 @@ class BymurPlot(object):
 
 
 
-class HazardCurve(BymurPlot):
-    def __init__(self, *args, **kwargs):
-        super(HazardCurve, self).__init__(*args, **kwargs)
 
-    def plot(self, hazard_options, hazard_description, selected_point,
-             selected_point_curves):
-        perc_to_plot = ["10", "50", "90"]
-
-        # print "hazard_options %s" % hazard_options
-        # print "hazard_description %s" % hazard_description
-        # print "selected_point %s" % selected_point
-        # print "selected_point_curves %s" % selected_point_curves
-        self._figure.clf()
-        self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
-        self._figure.hold(True)
-        self._axes.grid(True)
-
-        self._axes.set_xticks(hazard_description['int_thresh_list'])
-        self._axes.set_xlim(right=hazard_description['int_thresh_list'][len(
-            hazard_description['int_thresh_list'])-1])
-        for perc in perc_to_plot:
-            perc_key = "percentile"+perc+".0"
-            if selected_point_curves[perc_key] is not None:
-                perc_label =  perc + "th Percentile"
-                # print perc
-                # print perc_key
-                # print hazard_description['int_thresh_list']
-                # print selected_point_curves[perc_key]
-                self._axes.plot(hazard_description['int_thresh_list'],
-                                [float(y) for  y in
-                                 selected_point_curves[perc_key].split(',')],
-                                linewidth=1,
-                                alpha=1,
-                                label=perc_label)
-
-
-        if selected_point_curves["mean"] is not None:
-                # print hazard_description['int_thresh_list']
-                # print selected_point_curves["mean"]
-                self._axes.plot(hazard_description['int_thresh_list'],
-                                [float(y) for  y in
-                                 selected_point_curves["mean"].split(',')],
-                                 color="#000000",
-                                 linewidth=1,
-                                 alpha=1,
-                                 label="Average")
-
-        self._axes.axhline(
-            y=hazard_options['hazard_threshold'],
-            linestyle='--',
-            color="#000000",
-            linewidth=1,
-            alpha=1,
-            label="Threshold in Probability")
-
-        self._axes.axvline(
-            x=hazard_options['int_thresh'],
-            linestyle='-',
-            color="#000000",
-            linewidth=1,
-            alpha=1,
-            label="Threshold in Intensity")
-
-
-        self._axes.legend()
-        title = ("Point n." + str(selected_point['index']+ 1) +
-               " - Time window = " + str(hazard_options['exp_time']) + " "
-                                                                        "years")
-        self._axes.set_title(title, fontsize=10)
-
-
-        self._axes.set_ylabel("Probability of Exceedance")
-        self._axes.set_yscale("log")
-        # self.axes.axis([0,1,0,1])
-        self._canvas.draw()
 
 class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
@@ -155,9 +81,6 @@ class HazardGraph(BymurPlot):
 
     def plot(self, hazard_description, points_utm):
 
-        # TODO: to transform in a parameter
-
-        print "points_data: %s" % points_utm
 
         # Prepare matplotlib grid and data
         grid_points_number = 100
@@ -166,10 +89,14 @@ class HazardGraph(BymurPlot):
 
         # TODO: fix these points
         x_points = [x/1000 for x in x_points]
+        print "y_points len: %s" % len(x_points)
         y_points = [p['point']['northing'] for p in self._points_utm]
         y_points = [x/1000 for x in y_points]
+        print "y_points len: %s" % len(y_points)
         x_vector = np.linspace(min(x_points), max(x_points), grid_points_number)
         y_vector = np.linspace(min(y_points), max(y_points), grid_points_number)
+        print "x_vector len: %s" % len(x_vector)
+        print "y_vector len: %s" % len(y_vector)
         x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
 
 
@@ -203,7 +130,7 @@ class HazardGraph(BymurPlot):
 
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
-        print "plot> z_boundaries: %s" % z_boundaries
+        print "hazard_map_plot> z_boundaries: %s" % z_boundaries
         cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
                                                   self._cmap.N)
         # Add hazard map subfigure
@@ -254,8 +181,8 @@ class HazardGraph(BymurPlot):
         haz_subplot.set_xlabel("Easting (km)")
         haz_subplot.set_ylabel("Northing (km)")
         # TODO: fix these limits
-        haz_subplot.axis([425.000,448.000, 4510.000,
-                                      4533.000])
+        # haz_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        haz_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return haz_subplot
 
     def plot_probability_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
@@ -267,7 +194,7 @@ class HazardGraph(BymurPlot):
 
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
-        print "plot> z_boundaries: %s" % z_boundaries
+        print "probability_map_plot> z_boundaries: %s" % z_boundaries
         cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
                                                   self._cmap.N)
 
@@ -303,7 +230,8 @@ class HazardGraph(BymurPlot):
         prob_subplot.set_xlabel("Easting (km)")
         probability_bar.draw_all()
         # TODO: fix these limits
-        prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        # prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        prob_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return prob_subplot
 
         
@@ -311,8 +239,8 @@ class HazardGraph(BymurPlot):
         max_intervals = 5
         maxz = np.ceil(max(z_array))
         minz = np.floor(min(z_array))
-        print "maxz %s" %maxz
-        print "minz %s" %minz
+        print "z_array max: %s" %maxz
+        print "z_array min: %s" %minz
 
         if (maxz - minz) < 4:
             inter = 0.2
@@ -322,19 +250,85 @@ class HazardGraph(BymurPlot):
         else:
             order = np.floor(np.log10(maxz - minz)) - 1
             inter = 1. * 10 ** (order)
-        print 'range-->', minz, maxz, inter
 
         chk = len(np.arange(minz, maxz, inter))
         itmp = 1
         while chk > max_intervals:
             itmp = itmp + 1
             inter = inter * itmp
-            bounds = range(int(minz), int(maxz), int(inter))
+            bounds = range(int(minz), int(maxz), 5)
             chk = len(bounds)
         maxz = minz + chk * inter
         # bounds = np.linspace(minz, maxz, chk + 1)
         bounds = np.linspace(min(z_array), max(z_array), max_intervals)
         return bounds
+
+class HazardCurve(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(HazardCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, hazard_options, hazard_description, selected_point,
+             selected_point_curves):
+        perc_to_plot = ["10", "50", "90"]
+
+        self._figure.clf()
+        self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
+        self._figure.hold(True)
+        self._axes.grid(True)
+        xticks = hazard_description['int_thresh_list'] + [0]
+        self._axes.set_xticks(xticks)
+        self._axes.set_xlim(left=0,
+                            right=hazard_description['int_thresh_list'][
+                                len(hazard_description['int_thresh_list'])-1])
+        for perc in perc_to_plot:
+            perc_key = "percentile"+perc+".0"
+            if selected_point_curves[perc_key] is not None:
+                perc_label =  perc + "th Percentile"
+                self._axes.plot(hazard_description['int_thresh_list'],
+                                [float(y) for  y in
+                                 selected_point_curves[perc_key].split(',')],
+                                linewidth=1,
+                                alpha=1,
+                                label=perc_label)
+
+
+        if selected_point_curves["mean"] is not None:
+                self._axes.plot(hazard_description['int_thresh_list'],
+                                [float(y) for  y in
+                                 selected_point_curves["mean"].split(',')],
+                                 color="#000000",
+                                 linewidth=1,
+                                 alpha=1,
+                                 label="Average")
+
+        self._axes.axhline(
+            y=hazard_options['hazard_threshold'],
+            linestyle='--',
+            color="#000000",
+            linewidth=1,
+            alpha=1,
+            label="Threshold in Probability")
+
+        self._axes.axvline(
+            x=hazard_options['int_thresh'],
+            linestyle='-',
+            color="#000000",
+            linewidth=1,
+            alpha=1,
+            label="Threshold in Intensity")
+
+
+        self._axes.legend()
+        title = ("Point n." + str(selected_point['index']+ 1) +
+               " - Time window = " + str(hazard_options['exp_time']) + " "
+                                                                        "years")
+        self._axes.set_title(title, fontsize=10)
+
+
+        self._axes.set_ylabel("Probability of Exceedance")
+        self._axes.set_yscale("log")
+        # self.axes.axis([0,1,0,1])
+        self._canvas.draw()
 
 
 class VulnCurve(BymurPlot):

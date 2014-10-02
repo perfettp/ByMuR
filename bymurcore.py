@@ -12,7 +12,7 @@ class BymurCore(object):
     # Default values regardless of hazard model
     _ctrls_defaut = {'ret_per': 4975,
                      'int_thresh': 3.0,
-                    'hazard_models' : []
+                     'hazard_models' : []
     }
 
     def __init__(self):
@@ -46,7 +46,6 @@ class BymurCore(object):
         print "connectandfetchdata %s" % self._ctrls_data
 
     def connectDB(self, **dbDetails):
-        print "Connect"
         self._db_details=dbDetails
         try:
             self._db = db.BymurDB(**self._db_details)
@@ -116,101 +115,19 @@ class BymurCore(object):
         return hazard_models
 
 
-    # def getHazMapData(self):
-    #     # grid_points = self.db.datagrid_points_get(grid_id)
-    #     # [{'id', 'latitude', 'longitude'}]
-    #     return {}
-    #     data_tmp ={}
-    #
-    #     table_rows=self._db.readTable("spatial_data1")
-    #     data_tmp['npts'] = len(table_rows)
-    #     data_tmp['id_area'] = [int(table_rows[i][1])
-    #                        for i in range(data_tmp['npts'])]
-    #     data_tmp['lon'] = [float(table_rows[i][2]) / 1000
-    #                    for i in range(data_tmp['npts'])]
-    #     data_tmp['lat'] = [float(table_rows[i][3]) / 1000
-    #                    for i in range(data_tmp['npts'])]
-    #     data_tmp['nareas'] = len(data_tmp['id_area'])
-    #
-    #
-    #     table_rows=self._db.readTable("hazard_phenomena")
-    #     data_tmp['nhaz'] = len(table_rows)
-    #     data_tmp['hz_name']= [table_rows[i][4] for i in range(data_tmp['nhaz'])]
-    #     data_tmp['model'] = [table_rows[i][5] for i in range(data_tmp['nhaz'])]
-    #     data_tmp['imt'] = [table_rows[i][6] for i in range(data_tmp['nhaz'])]
-    #     data_tmp['iml'] = [[float(j) for j in table_rows[i][7].split()]
-    #                    for i in range(data_tmp['nhaz'])]
-    #
-    #     niml = max([len(data_tmp['iml'][i]) for i in range(data_tmp['nhaz'])])
-    #
-    #     data_tmp['dtime'] = []
-    #     for k in range(data_tmp['nhaz']):
-    #         hazmodtb = "hazard" + str(k + 1)
-    #         tmp = self._db.selecDtime(hazmodtb)
-    #         dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
-    #         data_tmp['dtime'].append(dtlist)
-    #     print "dtime = ", data_tmp['dtime']
-    #     self._nt = max([len(data_tmp['dtime'][i])
-    #                     for i in range(len(data_tmp['dtime']))])
-    #
-    #     for k in range(data_tmp['nhaz']):
-    #         if (len(data_tmp['iml'][k]) < niml):
-    #             for i in range(niml - len(data_tmp['iml'][k])):
-    #                 data_tmp['iml'][k].append(0)
-    #
-    #     # self.hc = np.zeros((self.nhaz, self.nt, self.nperc+1, self.npts, niml))
-    #     data_tmp['hc'] = [[[['0' for i in range(data_tmp['npts'])] for j in range(100)]
-    #                 for k in range(self._nt)] for h in range(data_tmp['nhaz'])]
-    #
-    #     print 'niml=', niml
-    #     data_tmp['hc_perc'] = list()
-    #     for k in range(data_tmp['nhaz']):
-    #         data_tmp['hc_perc'].append(0)
-    #
-    #     data_tmp['perc_flag'] = []
-    #     for i in range(data_tmp['nhaz']):
-    #         haznametb = "hazard" + str(i + 1)
-    #         data_tmp['perc_flag'].append(self._db.assignFlagPerc(haznametb))
-    #
-    #     print("FLAGS PERCENTILES = {0}".format(data_tmp['perc_flag']))
-    #
-    #     if (gf.verifyInternetConn()):
-    #         srcdir = os.path.dirname(os.path.realpath(__file__))
-    #         savepath = os.path.join(srcdir, "data", "naples_gmaps.png")
-    #         utm_zone = "33N"
-    #         data_tmp['imgpath'] = gmaps.getUrlGMaps(375300, 4449200,
-    #                                          508500, 4569800,
-    #                                          utm_zone, savepath)
-    #
-    #     print data_tmp['dtime']
-    #     data_tmp['th'] = prob_thr(self._conf['ret_per'],
-    #                         data_tmp['dtime'][self._conf['haz_mod']]
-    #                         [self._conf['tw']])
-    #     data_tmp['hc'] = self._db.readHC(self._conf['haz_mod'],
-    #                              self._conf['tw'],
-    #                              data_tmp['dtime'],
-    #                              data_tmp['hc'],
-    #                              data_tmp['hc_perc'])
-    #
-    #     ret_value = {}
-    #     ret_value.update(self._conf)
-    #     ret_value.update(data_tmp)
-    #     self.data = ret_value
-    #     return ret_value
-
     def setPoint(self, xsel, ysel):
         xsel *= 1000
         ysel *= 1000
-        print "xsel %s" % xsel
-        print "ysel %s" % ysel
-        print "self.hazard_metadata ['east_min']   %s" % self.hazard_metadata[
-            'east_min']
-        print "self.hazard_metadata ['east_max']   %s" % self.hazard_metadata[
-            'east_max']
-        print "self.hazard_metadata ['nort_min']  %s" % self.hazard_metadata[
-            'nort_min']
-        print "self.hazard_metadata ['nort_max']  %s" % self.hazard_metadata[
-            'nort_max']
+        # print "xsel %s" % xsel
+        # print "ysel %s" % ysel
+        # print "self.hazard_metadata ['east_min']   %s" % self.hazard_metadata[
+        #     'east_min']
+        # print "self.hazard_metadata ['east_max']   %s" % self.hazard_metadata[
+        #     'east_max']
+        # print "self.hazard_metadata ['nort_min']  %s" % self.hazard_metadata[
+        #     'nort_min']
+        # print "self.hazard_metadata ['nort_max']  %s" % self.hazard_metadata[
+        #     'nort_max']
         if (xsel >= self.hazard_metadata['east_min']
             and xsel <= self.hazard_metadata['east_max']
             and ysel >= self.hazard_metadata['nort_min']
@@ -219,16 +136,16 @@ class BymurCore(object):
                              for p in self.hazard_values] - xsel) ** 2 +
                            ([p['point']['northing']
                              for p in self.hazard_values] - ysel) ** 2)
-            print 'np.argmin(dist) %s' % np.argmin(dist)
+            # print 'np.argmin(dist) %s' % np.argmin(dist)
             tmp_point = {}
             tmp_point['index'] = np.argmin(dist)
             tmp_point.update(self.hazard_values[
                 tmp_point['index']])
             tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
             self.selected_point = tmp_point
-            print "selected_point = %s" % self.selected_point
+            # print "selected_point = %s" % self.selected_point
             self.selected_point_curves = self.get_point_curves()
-            print "selected_point_curves = %s" % self.selected_point_curves
+            # print "selected_point_curves = %s" % self.selected_point_curves
             return True
         else:
             return False
@@ -244,16 +161,14 @@ class BymurCore(object):
         )
         return point_data
 
-
-
     def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
         y_th = hazard_threshold
         y = curve
         x = int_thresh_list
-        i = 0
+        x_1 = x_2 = float('NaN')
         for i in range(len(curve)):
             if y[i] < y_th:
-                if i >= 1:
+                if i > 0:
                     y_1 = y[i-1]
                     x_1 = x[i-1]
                 else:
@@ -261,26 +176,22 @@ class BymurCore(object):
                     x_1 = 0
                 y_2 = y[i]
                 x_2 = x[i]
-                break
-            if i == len(y):
-                i += 1
-        if i > len(y):
-            return x[len(x)-1]
-        else:
-            try:
-                x_th = x_1 + (x_2 - x_1) * (y_th - y_1)/(y_2-y_1)
-            except:
-                x_th = float('NaN')
-            return x_th
+                try:
+                    x_th = x_1 + (x_2 - x_1) * (y_th - y_1)/(y_2-y_1)
+                except:
+                    x_th = float('NaN')
+                finally:
+                    return x_th
+        return x[len(x)-1]
 
     def get_prob_value(self, int_thresh_list, intensity_threshold, curve):
         x_th = intensity_threshold
         y = curve
         x = int_thresh_list
-        i = 0
+        y_1 = y_2 = float('NaN')
         for i in range(len(x)):
-            if x[i] < x_th:
-                if i >= 1:
+            if x[i] > x_th:
+                if i > 0:
                     y_1 = y[i-1]
                     x_1 = x[i-1]
                 else:
@@ -288,17 +199,14 @@ class BymurCore(object):
                     x_1 = 0
                 y_2 = y[i]
                 x_2 = x[i]
-                break
-            if i == len(y):
-                i += 1
-        if i > len(y):
-            return x[len(x)-1]
-        else:
-            try:
-                y_th = y_1 + (y_2 - y_1) * (x_th - x_1)/(x_2-x_1)
-            except:
-                y_th = float('NaN')
-            return y_th
+                try:
+                    y_th = y_1 + (y_2 - y_1) * (x_th - x_1)/(x_2-x_1)
+                except:
+                    y_th = float('NaN')
+                finally:
+                    return y_th
+        return y[len(x)-1]
+
 
 
     def compute_hazard_values(self, hazard_name, exp_time, ret_per,
@@ -329,22 +237,31 @@ class BymurCore(object):
                                                  haz_tmp['hazard_id'],
                                                  haz_tmp['datagrid_id'],
                                                  statistic_id, exp_time_id)
-        print self.hazard_curves
 
+        i = 1
+        values = []
+        for c in self.hazard_curves:
+            values.append(dict(zip(['point','haz_value','prob_value'],
+                                                (c['point'],
+                                                 10*c['point']['latitude'],
+                                                 10*c['point']['longitude']
+                                                 ))))
+            i += 1
+        return values
 
-        return map((lambda p: dict(zip(['point','haz_value',
-                                                       'prob_value'],
-                                                (p['point'],
-                                                 self.get_haz_value(
-                                                     haz_tmp['int_thresh_list'],
-                                                     hazard_threshold,
-                                                     p['curve']),
-                                                 self.get_prob_value(
-                                                     haz_tmp['int_thresh_list'],
-                                                     intensity_threshold,
-                                                     p['curve'])
-                                                )))),
-                                            self.hazard_curves)
+        # return map((lambda p: dict(zip(['point','haz_value',
+        #                                                'prob_value'],
+        #                                         (p['point'],
+        #                                          self.get_haz_value(
+        #                                              haz_tmp['int_thresh_list'],
+        #                                              hazard_threshold,
+        #                                              p['curve']),
+        #                                          self.get_prob_value(
+        #                                              haz_tmp['int_thresh_list'],
+        #                                              intensity_threshold,
+        #                                              p['curve'])
+        #                                         )))),
+        #                                     self.hazard_curves)
 
 
 
@@ -368,7 +285,7 @@ class BymurCore(object):
                self.hazard_options['ret_per'],
                self.hazard_options['int_thresh'],
                self.hazard_options['hazard_threshold']))
-        print "hazard_values = %s" % self.hazard_values
+        #print "hazard_values = %s" % self.hazard_values
 
     def exportRawPoints(self, haz_array):
         export_string = ''

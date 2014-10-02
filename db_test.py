@@ -43,7 +43,8 @@ dbDetails = {'db_host': '***REMOVED***',
 core = bymurcore.BymurCore()
 core.connectDB(**dbDetails)
 core._db.populate('/hades/dev/bymur-data/test_git', '10:100:10',
-                   '/hades/dev/bymur/data/naples-grid.txt')
+                   '/hades/dev/bymur-data/V1_bymurgrid.txt')
+# '/hades/dev/bymur-data/naples_100m_UTM.txt')
 
 # curves =  core._db.get_curves(2,3,1,4,1)
 #core.compute_hazard_map(1, 50, 4975)

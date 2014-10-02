@@ -61,7 +61,6 @@ class BymurUpdateEvent(wx.PyCommandEvent):
         self._callback_fun = None
         self._callback_args = None
         super(BymurUpdateEvent, self).__init__(eventType, id)
-        print "id = %s " % id
 
     def SetCallback(self, callback, **kwargs):
         self._callback_fun = callback
@@ -83,15 +82,11 @@ class BymurThread(threading.Thread):
         super(BymurThread, self).__init__()
 
     def run(self):
-        print "Load..."
         self._function(**self._function_args)
-        print "target: %s " % self._targetid
         evt_id = self._event.GetEventType()
         print evt_id
         if self._callback:
-            print "callback"
             self._callback()
-        print "Fire!"
         wx.PostEvent(self._targetid, self._event)
 
 
