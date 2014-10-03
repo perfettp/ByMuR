@@ -278,13 +278,12 @@ class BymurCore(object):
         self.hazard_options = haz_tmp
 
         print "hazard_options %s " % self.hazard_options
-        self.hazard_values = gf.points_with_utm(
-            self.compute_hazard_values(
+        self.hazard_values = self.compute_hazard_values(
                self.hazard_options['hazard_name'],
                self.hazard_options['exp_time'],
                self.hazard_options['ret_per'],
                self.hazard_options['int_thresh'],
-               self.hazard_options['hazard_threshold']))
+               self.hazard_options['hazard_threshold'])
         #print "hazard_values = %s" % self.hazard_values
 
     def exportRawPoints(self, haz_array):
@@ -460,14 +459,14 @@ class BymurCore(object):
     def hazard_values(self, data):
         print "hazard_values setter"
         self._hazard_values = data
-        self._hazard_metadata['lon_min'] = min([p['point']['longitude']
-                                              for p in self._hazard_values])
-        self._hazard_metadata['lon_max'] = max([p['point']['longitude']
-                                              for p in self._hazard_values])
-        self._hazard_metadata['lat_min'] = min([p['point']['latitude']
-                                              for p in self._hazard_values])
-        self._hazard_metadata['lat_max'] = max([p['point']['latitude']
-                                              for p in self._hazard_values])
+        # self._hazard_metadata['lon_min'] = min([p['point']['longitude']
+        #                                       for p in self._hazard_values])
+        # self._hazard_metadata['lon_max'] = max([p['point']['longitude']
+        #                                       for p in self._hazard_values])
+        # self._hazard_metadata['lat_min'] = min([p['point']['latitude']
+        #                                       for p in self._hazard_values])
+        # self._hazard_metadata['lat_max'] = max([p['point']['latitude']
+        #                                       for p in self._hazard_values])
         self._hazard_metadata['east_min'] = min([p['point']['easting']
                                               for p in self._hazard_values])
         self._hazard_metadata['east_max'] = max([p['point']['easting']

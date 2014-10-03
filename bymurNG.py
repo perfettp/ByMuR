@@ -225,10 +225,10 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
 
 class BymurMapBoxSizer(BymurStaticBoxSizer):
     def __init__(self, *args, **kwargs):
-        self._latMin = kwargs.pop('lat_min', '')
-        self._latMax = kwargs.pop('lat_max', '')
-        self._lonMin = kwargs.pop('lon_min', '')
-        self._lonMax = kwargs.pop('lon_max', '')
+        self._latMin = kwargs.pop('northing_min', '')
+        self._latMax = kwargs.pop('northing_max', '')
+        self._lonMin = kwargs.pop('easting_min', '')
+        self._lonMax = kwargs.pop('easting_max', '')
         self._mapPath = kwargs.pop('map_path', '')
         super(BymurMapBoxSizer, self).__init__(*args, **kwargs)
 
@@ -407,10 +407,10 @@ class BymurDBCreateDlg(wx.Dialog):
                            'db_password': kwargs.pop('db_password', ''),
                            'db_name': kwargs.pop('db_name', '')}
         self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
-        self._localMapDefaults = {'lat_min': kwargs.pop('lat_min', 0),
-                                  'lat_max': kwargs.pop('lat_max', 0),
-                                  'lon_min': kwargs.pop('lon_min', 0),
-                                  'lon_max': kwargs.pop('lon_max', 0),
+        self._localMapDefaults = {'northing_min': kwargs.pop('northing_min', 0),
+                                  'northing_max': kwargs.pop('northing_max', 0),
+                                  'easting_min': kwargs.pop('easting_min', 0),
+                                  'easting_max': kwargs.pop('easting_max', 0),
                                   'map_path': kwargs.pop('map_path', '')}
         self._localHazDefaults = {'haz_path': kwargs.pop('haz_path', ''),
                                   'haz_perc': kwargs.pop('haz_perc', '')}
@@ -462,10 +462,10 @@ class BymurDBCreateDlg(wx.Dialog):
             self._localData['db_password'] = self._dbBoxSizer.dbPassword
             self._localData['db_name'] = self._dbBoxSizer.dbName
             self._localData['grid_path'] = self._geoBoxSizer.gridPath
-            self._localData['lat_min'] = self._mapBoxSizer.latMin
-            self._localData['lat_max'] = self._mapBoxSizer.latMax
-            self._localData['lon_min'] = self._mapBoxSizer.lonMin
-            self._localData['lon_max'] = self._mapBoxSizer.lonMax
+            self._localData['northing_min'] = self._mapBoxSizer.latMin
+            self._localData['northing_max'] = self._mapBoxSizer.latMax
+            self._localData['easting_min'] = self._mapBoxSizer.lonMin
+            self._localData['easting_max'] = self._mapBoxSizer.lonMax
             self._localData['map_path'] = self._mapBoxSizer.mapPath
             self._localData['haz_path'] = self._hazBoxSizer.hazPath
             self._localData['haz_perc'] = self._hazBoxSizer.hazPerc

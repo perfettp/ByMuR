@@ -307,13 +307,15 @@ class BymurDB():
 
 
     def datagrid_points_get(self, datagrid_id):
-        sqlquery = """ SELECT `p`.`id`, `p`.`latitude`, `p`.`longitude`
+        sqlquery = """ SELECT `p`.`id`, `p`.`easting`, `p`.`northing`,
+            `p`.`zone_number`,  `p`.`zone_letter`
             FROM `points` p LEFT JOIN `grid_points` gp ON  p.`id`=gp.`id_point`
             WHERE gp.`id_datagrid`= %s
         """
         sqlquery %= str(datagrid_id)
         self._cursor.execute(sqlquery)
-        return [dict(zip(['id','latitude','longitude'], x))
+        return [dict(zip(['id','easting','northing',
+                          'zone_number', 'zone_letter'], x))
                 for x in self._cursor.fetchall()]
 
 
@@ -347,16 +349,17 @@ class BymurDB():
         return self.datagrid_points_rel(datagrid_id, pointsid_list)
 
 
-    def points_insert(self, points):
+    def insert_utm_points(self, points):
         """
         Insert multiple point in table 'points' if they don't already exist
         :param points: list of point dictionaries
         :return: number of new points inserted
         """
         sqlquery = """
-                    INSERT IGNORE INTO points (latitude,
-                                        longitude)
-                        VALUES(%(latitude)s, %(longitude)s)
+                    INSERT IGNORE INTO points (easting,
+                                        northing, zone_number, zone_letter)
+                        VALUES(%(easting)s, %(northing)s,
+                        %(zone_number)s, %(zone_letter)s)
                     """
         return self._cursor.executemany(sqlquery, points)
 
@@ -369,12 +372,14 @@ class BymurDB():
 
         # print points
         sqlquery = """
-                    SELECT id FROM points WHERE (latitude, longitude)
+                    SELECT id FROM points WHERE (easting, northing,
+                                zone_number, zone_letter)
                         IN (%s)
                     """
         if len(points) < 1:
             return -1
-        points_list = ', '.join([str((x['latitude'], x['longitude'])) for
+        points_list = ', '.join([str((x['easting'], x['northing'],
+        x['zone_number'], x['zone_letter'])) for
                                 x in
                                 points])
         sqlquery %= points_list
@@ -732,7 +737,8 @@ class BymurDB():
         else:
             return None
 
-        sqlquery = """ SELECT `p`.`id`, `p`.`latitude`, `p`.`longitude`,
+        sqlquery = """ SELECT `p`.`id`, `p`.`easting`, `p`.`northing`,
+                        `p`.`zone_number`, `p`.`zone_letter`,
                         `d`.`hazard_curve` FROM
             `{0}` `d` LEFT JOIN `points` `p`
              ON `d`.`id_point`=`p`.`id`
@@ -748,9 +754,10 @@ class BymurDB():
                                              datagrid_id,
                                              stat_id, exptime_id))
         return [dict(zip(['point', 'curve'],
-                         (dict(zip(['id', 'latitude', 'longitude'],
-                                   (x[0],x[1], x[2]))),
-                          ([float(a) for a in x[3].split(',')]))))
+                         (dict(zip(['id', 'easting', 'northing',
+                                    'zone_number', 'zone_letter'],
+                                   (x[0],x[1], x[2], x[3], x[4]))),
+                          ([float(a) for a in x[5].split(',')]))))
                 for x in self._cursor.fetchall()]
 
     def create(self):
@@ -789,7 +796,7 @@ class BymurDB():
         datagrid_name, datagrid_ext = os.path.splitext(os.path.basename(
             datagridfile_path))
         datagrid_points = gf.get_gridpoints_from_file(datagridfile_path)
-        newpoints = self.points_insert(datagrid_points)
+        newpoints = self.insert_utm_points(datagrid_points)
         pointsid_list = self.pointsid_list(datagrid_points)
         datagrid_id = self.datagrid_get_insert_id(datagrid_name)
         rel_tmp = self.datagrid_points_insert(datagrid_id, datagrid_points)
@@ -929,8 +936,7 @@ class BymurDB():
                                 datagrid_id,
                                 stat_id,
                                 exptime_id,
-                                len(gf.points_to_latlon(
-                                    fileXmlModel.points_coords)),
+                                len(fileXmlModel.points_coords),
                                 len(fileXmlModel.points_values)
                             )
 
@@ -940,8 +946,7 @@ class BymurDB():
                                 datagrid_id,
                                 stat_id,
                                 exptime_id,
-                                gf.points_to_latlon(
-                                    fileXmlModel.points_coords),
+                                fileXmlModel.points_coords,
                                 fileXmlModel.points_values
                             )
                             del fileXmlModel

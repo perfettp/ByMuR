@@ -181,8 +181,8 @@ class HazardGraph(BymurPlot):
         haz_subplot.set_xlabel("Easting (km)")
         haz_subplot.set_ylabel("Northing (km)")
         # TODO: fix these limits
-        # haz_subplot.axis([425.000,448.000, 4510.000, 4533.000])
-        haz_subplot.axis([350.000,500.000, 4400.000, 4600.000])
+        haz_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        # haz_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return haz_subplot
 
     def plot_probability_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
@@ -230,8 +230,8 @@ class HazardGraph(BymurPlot):
         prob_subplot.set_xlabel("Easting (km)")
         probability_bar.draw_all()
         # TODO: fix these limits
-        # prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
-        prob_subplot.axis([350.000,500.000, 4400.000, 4600.000])
+        prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        # prob_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return prob_subplot
 
         
