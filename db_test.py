@@ -34,7 +34,7 @@ dbDetails = {'db_host': '***REMOVED***',
                   'db_port': '3306',
                   'db_user': '***REMOVED***',
                   'db_password': '***REMOVED***',
-                  'db_name': 'bymurDB-dev'
+                  'db_name': 'bymurDB-dev-utm'
     }
 
 
