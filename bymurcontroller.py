@@ -26,7 +26,7 @@ class BymurController(object):
                         'easting_min': 375300,
                         'easting_max': 508500,
                         'map_path': os.path.join(_basedir, "data",
-                                                 "naples.png"),
+                                                 "naples_gmaps.png"),
                         'haz_path': os.path.join(_basedir, "hazards"),
                         'haz_perc': "10:90:10"
     }
