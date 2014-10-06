@@ -29,145 +29,216 @@
 
 '''
 
-import math
 import os
 import urllib2
-import xml.etree.ElementTree as xml
+from lxml import etree
 import wx
+import linecache
+import sys
+import threading
 
 
-def show_message(self, *kargs):
-    """
-    It opens a pop-up dialog showing a text message.
-    """
-
-    dlg = wx.MessageDialog(
-        self,
-        kargs[0],
-        kargs[1],
-        wx.OK | wx.ICON_INFORMATION)
-    dlg.ShowModal()
-    dlg.Destroy()
-
-
-def showWarningMessage(self, *kargs):
-    """
-    It opens a pop-up dialog showing a warning message.
-    """
-
-    dlg = wx.MessageDialog(self, kargs[0], kargs[1], wx.OK | wx.ICON_WARNING)
-    dlg.ShowModal()
-    dlg.Destroy()
+wxBYMUR_UPDATE_CURVE = wx.NewEventType()
+wxBYMUR_UPDATE_MAP = wx.NewEventType()
+wxBYMUR_UPDATE_DIALOG = wx.NewEventType()
+wxBYMUR_UPDATE_CTRLS = wx.NewEventType()
+wxBYMUR_UPDATE_ALL = wx.NewEventType()
+wxBYMUR_THREAD_CLOSED = wx.NewEventType()
+wxBYMUR_DB_CONNECTED = wx.NewEventType()
+BYMUR_UPDATE_CURVE = wx.PyEventBinder(wxBYMUR_UPDATE_CURVE)
+BYMUR_UPDATE_MAP = wx.PyEventBinder(wxBYMUR_UPDATE_MAP)
+BYMUR_UPDATE_DIALOG = wx.PyEventBinder(wxBYMUR_UPDATE_DIALOG)
+BYMUR_UPDATE_CTRLS = wx.PyEventBinder(wxBYMUR_UPDATE_CTRLS)
+BYMUR_UPDATE_ALL = wx.PyEventBinder(wxBYMUR_UPDATE_ALL)
+BYMUR_THREAD_CLOSED = wx.PyEventBinder(wxBYMUR_THREAD_CLOSED)
+BYMUR_DB_CONNECTED = wx.PyEventBinder(wxBYMUR_DB_CONNECTED)
 
 
-def showErrorMessage(self, *kargs):
-    """
-    It opens a pop-up dialog showing an error message.
-    """
+class BymurUpdateEvent(wx.PyCommandEvent):
 
-    dlg = wx.MessageDialog(self, kargs[0], kargs[1], wx.OK | wx.ICON_ERROR)
-    dlg.ShowModal()
-    dlg.Destroy()
+    def __init__(self, eventType, id):
+        self._callback_fun = None
+        self._callback_args = None
+        super(BymurUpdateEvent, self).__init__(eventType, id)
 
+    def SetCallback(self, callback, **kwargs):
+        self._callback_fun = callback
+        self._callback_kwargs = kwargs
 
-def showYesnoDialog(self, *kargs):
-    """
-    It opens a pop-up dialog showing a Yes/No message.
-    """
+    def GetCallbackFun(self):
+        return self._callback_fun
 
-    dlg = wx.MessageDialog(self, kargs[0], kargs[1],
-                           wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION)
-    answer = dlg.ShowModal()
-    dlg.Destroy()
-    return answer
+    def GetCallbackKwargs(self):
+        return self._callback_kwargs
 
+class BymurThread(threading.Thread):
+    def __init__(self, targetid, event_type, function, function_args, callback):
+        self._targetid = targetid
+        self._function = function
+        self._function_args = function_args
+        self._callback = callback
+        self._event = BymurUpdateEvent(event_type, 1)
+        super(BymurThread, self).__init__()
 
-def xmlParsing(*kargs):
-    """
-    Reading of hazard curves.
-    It opens and reads xml files formatted on the basis of the standard
-    semantic proposed by the OpenQuake/GEM projects.
-
-    """
-
-    path = kargs[0]
-
-    if os.path.isfile(path):
-
-        tree = xml.parse(path)
-        root = tree.getroot()
-
-        pos = []
-        poe = []
-
-        for node in tree.iter():
-            if ("model" in node.tag):
-                mod = node.attrib.get("Model")
-            if ("timeterm" in node.tag):
-                dtime = node.attrib.get("deltaT")
-            if ("IML" in node.tag):
-                iml = [float(x) for x in node.text.split()]
-                imt = node.attrib.get("IMT")
-            if ("gmlpos" in node.tag):
-                pos.append([float(x) for x in node.text.split()])
-            if ("poE" in node.tag):
-                poe.append([float(x) for x in node.text.split()])
-
-        np = len(pos)
-        lat = [pos[i][0] for i in range(np)]
-        lon = [pos[i][1] for i in range(np)]
-
-        return mod, dtime, imt, iml, lat, lon, poe
-
-    else:
-        msg = ("ERROR:\nUploaded file path is wrong")
-        showErrorMessage(None, msg, "ERROR")
-        return
+    def run(self):
+        self._function(**self._function_args)
+        evt_id = self._event.GetEventType()
+        print evt_id
+        if self._callback:
+            self._callback()
+        wx.PostEvent(self._targetid, self._event)
 
 
-def selDir(self, event):
-    """
-    Open a dialog to select a directory path
-    """
-    dfl_dir = os.path.expanduser("~")
-    dlg = wx.DirDialog(self, "Select a directory:", defaultPath=dfl_dir,
-                       style=wx.DD_DEFAULT_STYLE
-                       # | wx.DD_DIR_MUST_EXIST
-                       # | wx.DD_CHANGE_DIR
-                       )
-    if dlg.ShowModal() == wx.ID_OK:
-        path = dlg.GetPath()
-    else:
-        msg = "WARNING\nYou have NOT selected any directory"
-        showWarningMessage(self, msg, "WARNING")
-        path = ""
+class HazardXMLModel(object):
 
-    dlg.Destroy()
-    return path
+    def __init__(self, filename, phenomenon,
+                 xsd="/hades/dev/bymur/schema/bymur_schema.xsd"):
+        self._xsd_file = xsd
+        print "%s > itializing file: %s " % (self.__class__.__name__,
+                                             filename)
+        try:
+            xml_schema = etree.XMLSchema(file = self._xsd_file)
+            # xmlparser = etree.XMLParser(schema=xml_schema)
+            print "Loaded schema: %s " % self._xsd_file
+        except Exception as e:
+            print "%s is not a valid XSD file" % self._xsd_file
+            raise Exception(str(e))
+
+        try:
+            xml_schema.assertValid(etree.parse(filename))
+            print "%s is a valid XML file" % filename
+        except Exception as e:
+            print "%s is not a valid XML file" % filename
+            raise Exception(str(e))
+
+        self._filename = filename
+        self._volcano = ''
+        self._model_name = ''
+        self._iml_thresholds = []
+        self._iml_imt = ''
+        self._dtime = ''
+        self._statistic = ''
+        self._percentile_value = 0
+        self._points_values= []
+        self._points_coords = []
+        self._phenomenon = phenomenon.upper()
+
+        print "Parsing %s" % self._filename
+        try:
+            self.parse()
+        except Exception as e:
+            print self.__class__.__name__ + ", error parsing file " + \
+                  self._filename +  " : " + str(e)
+            raise Exception(str(e))
+
+    def parse(self, utm_zone_number=33, utm_zone_letter='T'):
+        context = etree.iterparse(self._filename, events=("start", "end"))
+        for event, element in context:
+            if event == "start":
+                if element.tag == 'hazardCurveField':
+                    self._statistic = element.get('statistics')
+                    if self.statistic == 'percentile':
+                        self._percentile_value = float(element.get(
+                            'percentileValue', '0'))
+                    else:
+                        self._percentile_value = 0
+                    # print "statistic: %s" % self._statistic
+                    # print "percentile: %s" % self._percentile_value
+
+            else:
+                if element.tag == 'volcano':
+                    self._volcano = element.get('volcanoName')
+                    element.clear()
+                    # print "volcano: %s" % self._volcano
+                elif element.tag == 'model':
+                    self._model_name = element.get('Model')
+                    # print "model: %s" % self._model_name
+                    element.clear()
+                elif element.tag == 'timeterm':
+                    self._dtime = float(element.get('deltaT').strip('yr'))
+                    # print "dtime: %s" % self._dtime
+                    element.clear()
+                elif element.tag == 'IML':
+                    self._iml_imt = element.get('IMT')
+                    # print "imt: %s" % self._iml_imt
+                    self._iml_thresholds = list(element.text.strip().split())
+                    # print "iml_thresholds: %s" % self._iml_thresholds
+                    element.clear()
+                elif element.tag == 'HCNode':
+                    point_pos = {}
+                    gml_pos = element.find('.//gmlpos').text.split()
+                    point_pos['northing'] = int(round(float(gml_pos[0])))
+                    point_pos['easting']  = int(round(float(gml_pos[1])))
+                    point_pos['zone_number'] = utm_zone_number
+                    point_pos['zone_letter'] = utm_zone_letter
+                    point_val = [float(x) for x in
+                                 element.find( './/poE').text.split()]
+                    # print "point: %s" % point
+                    self._points_coords.append(point_pos)
+                    self._points_values.append(point_val)
+                    element.clear()
+                elif element.tag == 'hazardCurveField':
+                    element.clear()
+        return True
+
+    @property
+    def hazard_schema(self):
+        return self.hazard_schema
+
+    @property
+    def filename(self):
+        return self._filename
+
+    @property
+    def volcano(self):
+        return self._volcano
+
+    @property
+    def model_name(self):
+        return self._model_name
+
+    @property
+    def iml_thresholds(self):
+        return self._iml_thresholds
+
+    @property
+    def iml_imt(self):
+        return self._iml_imt
+
+    @property
+    def dtime(self):
+        return self._dtime
+
+    @property
+    def statistic(self):
+        return self._statistic
+
+    @property
+    def percentile_value(self):
+        return self._percentile_value
+
+    @property
+    def points_values(self):
+        return self._points_values
+
+    @property
+    def points_coords(self):
+        return self._points_coords
+
+    @property
+    def phenomenon(self):
+        return self._phenomenon
 
 
-def selFile(self, event, *kargs):
-    """
-    upload_file
-    It opens a file dialog, it opens the selected file and
-    it returns the corresponding path
-    """
-
-    dfl_dir = os.path.expanduser("~")
-    dlg = wx.FileDialog(self, message="Upload File", defaultDir=dfl_dir,
-                        defaultFile="", wildcard="*.*",
-                        style=wx.FD_OPEN | wx.FD_CHANGE_DIR)
-
-    if (dlg.ShowModal() == wx.ID_OK):
-        path = dlg.GetPath()
-    else:
-        msg = "WARNING\nYou have NOT selected any file"
-        showWarningMessage(self, msg, "WARNING")
-        path = ""
-
-    dlg.Destroy()
-    return path
-
+def SpawnThread(target, event_type, function, function_args, callback=None,
+                    wait_msg='Wait please...'):
+        """
+        """
+        threadId = wx.NewId()
+        target.wait(wait_msg=wait_msg)
+        worker = BymurThread(target, event_type, function, function_args,
+                             callback)
+        worker.start()
 
 def verifyInternetConn():
     try:
@@ -178,31 +249,56 @@ def verifyInternetConn():
     return False
 
 
-def floatCeil(*kargs):
+def fire_event(target_id, event_type):
+    wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
 
-    x = kargs[0]
-    if (x < 1):
-        y = math.ceil(x * 10.) / 10.
-    elif (x < 0.1):
-        y = math.ceil(x * 100.) / 100.
-    elif (x < 0.01):
-        y = math.ceil(x * 1000.) / 1000.
-    else:
-        y = math.ceil(x)
+def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
+                             utm_zone_letter='T', decimals=5):
+        gridfile = open(filepath, 'r')
+        points = []
+        if utm_coords:
+            for line in gridfile:
+                line_arr = line.strip().split()
+                points.append({'easting': int(round(float(line_arr[0]))),
+                               'northing':  int(round(float(line_arr[1]))),
+                               'zone_number': utm_zone_number,
+                               'zone_letter': utm_zone_letter}
+                )
+            return points
+        else:
+            return False
 
-    return y
+def showMessage(**kwargs):
+        debug = kwargs.pop('debug', False)
+        style = kwargs.pop('style', 0)
+        kind = kwargs.pop('kind', '')
+        style |= wx.CENTRE | wx.STAY_ON_TOP
+        if ( kind == 'BYMUR_ERROR'):
+            style |= wx.ICON_ERROR | wx.OK
+        elif (kind == 'BYMUR_CONFIRM'):
+            style |= wx.YES_NO | wx.NO_DEFAULT | wx.ICON_QUESTION
+            print style
+        else:
+            style |= wx.ICON_INFORMATION | wx.OK
+            print style
 
+        if debug:
+            exc_type, exc_obj, tb = sys.exc_info()
+            f = tb.tb_frame
+            lineno = tb.tb_lineno
+            filename = os.path.split(f.f_code.co_filename)[1]
+            linecache.checkcache(filename)
+            line = linecache.getline(filename, lineno, f.f_globals)
+            message = 'Exception in %s\nLine %s : "%s")\n%s' % \
+                    ( filename, str(lineno),
+                      str(line.strip()), str(exc_obj))
+        else:
+            message=kwargs.pop('message', '')
 
-def floatFloor(*kargs):
+        msgDialog = wx.MessageDialog( parent = kwargs.pop('parent'),
+                                      message = message,
+                                      caption=kwargs.pop('caption', ''),
+                                      style=style)
+        answer = msgDialog.ShowModal()
+        return (answer == wx.ID_OK) or (answer == wx.ID_YES)
 
-    x = kargs[0]
-    if (x < 1):
-        y = math.floor(x * 10.) / 10.
-    elif (x < 0.1):
-        y = math.floor(x * 100.) / 100.
-    elif (x < 0.01):
-        y = math.floor(x * 1000.) / 1000.
-    else:
-        y = math.floor(x)
-
-    return y

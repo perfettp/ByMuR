@@ -1,4 +1,4 @@
-#!/usr/bin/env python1
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
 '''
@@ -77,6 +77,8 @@ class BymurFrame(wx.Frame):
     nperc = len(perc)
 
     def __init__(self, parent, id, title):
+        """
+        """
         wx.Frame.__init__(self, parent, id, title, wx.DefaultPosition)
 
         # menubar
@@ -142,6 +144,10 @@ class BymurFrame(wx.Frame):
         self.ensemble_item.Enable(False)
 
         self.SetMenuBar(self.menuBar)
+
+
+
+
 
         # main sizer
         hbox = wx.BoxSizer(orient=wx.HORIZONTAL)
@@ -221,6 +227,9 @@ class BymurFrame(wx.Frame):
         self.pnl_lt.SetSizer(vbox_lt)
         self.pnl_lt.Enable(False)
         hbox.Add(self.pnl_lt, 0, wx.EXPAND | wx.ALL, 5)
+
+
+
 
         # right panel
         vbox_rt = wx.BoxSizer(orient=wx.VERTICAL)
@@ -1158,7 +1167,7 @@ class BymurFrame(wx.Frame):
         print self.vh
 
     def on_quit(self, event):
-
+         # db.dbClose(self.cur)
         self.Destroy()
 
     def openEnsembleFr(self, event):
