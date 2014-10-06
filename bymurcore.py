@@ -1,11 +1,8 @@
-import os
 import dbFunctions as db
-import globalFunctions as gf
-import getGMapsImg as gmaps
 import numpy as np # ma lo uso solo per sqrt?
 import math
 import random as rnd
-import time
+
 
 
 class BymurCore(object):
@@ -238,16 +235,6 @@ class BymurCore(object):
                                                  haz_tmp['datagrid_id'],
                                                  statistic_id, exp_time_id)
 
-        # i = 1
-        # values = []
-        # for c in self.hazard_curves:
-        #     values.append(dict(zip(['point','haz_value','prob_value'],
-        #                                         (c['point'],
-        #                                          10*c['point']['latitude'],
-        #                                          10*c['point']['longitude']
-        #                                          ))))
-        #     i += 1
-        # return values
 
         return map((lambda p: dict(zip(['point','haz_value',
                                                        'prob_value'],
@@ -459,14 +446,6 @@ class BymurCore(object):
     def hazard_values(self, data):
         print "hazard_values setter"
         self._hazard_values = data
-        # self._hazard_metadata['lon_min'] = min([p['point']['longitude']
-        #                                       for p in self._hazard_values])
-        # self._hazard_metadata['lon_max'] = max([p['point']['longitude']
-        #                                       for p in self._hazard_values])
-        # self._hazard_metadata['lat_min'] = min([p['point']['latitude']
-        #                                       for p in self._hazard_values])
-        # self._hazard_metadata['lat_max'] = max([p['point']['latitude']
-        #                                       for p in self._hazard_values])
         self._hazard_metadata['east_min'] = min([p['point']['easting']
                                               for p in self._hazard_values])
         self._hazard_metadata['east_max'] = max([p['point']['easting']

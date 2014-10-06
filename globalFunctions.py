@@ -36,7 +36,6 @@ import wx
 import linecache
 import sys
 import threading
-import utm
 
 
 wxBYMUR_UPDATE_CURVE = wx.NewEventType()
@@ -252,23 +251,6 @@ def verifyInternetConn():
 
 def fire_event(target_id, event_type):
     wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
-
-# def points_to_latlon(points, utm_zone_number=33,
-#                      utm_zone_letter='T', decimals=5):
-#     res = []
-#     for p in points:
-#         lat,lon = p['northing'], p['easting']
-#         res.append({'latitude': round(lat),
-#                     'longitude':round(lon)})
-#     return res
-
-# def points_with_utm(points, decimals=5):
-#     for p in points:
-#         p['point']['easting'] = p['point']['longitude']
-#         p['point']['northing'] = p['point']['latitude']
-#         p['point']['zone_number'] = 33
-#         p['point']['zone_letter'] = 'T'
-#     return points
 
 def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
                              utm_zone_letter='T', decimals=5):

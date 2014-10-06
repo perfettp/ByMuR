@@ -36,213 +36,361 @@ import globalFunctions as gf
 
 class BymurDB():
     _sql_schema = """
-        SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+        --
+-- Database: `bymurDB-dev-utm`
+--
 
-        -- Table structure for table `datagrids`
-        CREATE TABLE IF NOT EXISTS `datagrids` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `name` varchar(45) COLLATE utf8_bin NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `name_UNIQUE` (`name`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
 
-        -- Table structure for table `exposure_times`
-        CREATE TABLE IF NOT EXISTS `exposure_times` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `years` float NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `years_UNIQUE` (`years`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+--
+-- Table structure for table `datagrids`
+--
 
-        -- Table structure for table `grid_points`
-        CREATE TABLE IF NOT EXISTS `grid_points` (
-          `id_datagrid` int(11) NOT NULL,
-          `id_point` bigint(20) NOT NULL,
-          PRIMARY KEY (`id_datagrid`,`id_point`),
-          KEY `fk_grid_points_1` (`id_datagrid`),
-          KEY `fk_grid_points_2` (`id_point`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+CREATE TABLE IF NOT EXISTS `datagrids` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
 
-        -- Table structure for table `hazard_models`
-        CREATE TABLE IF NOT EXISTS `hazard_models` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `id_phenomenon` int(11) NOT NULL,
-          `id_datagrid` int(11) NOT NULL,
-          `name` varchar(45) COLLATE utf8_bin NOT NULL,
-          `date` date DEFAULT NULL,
-          PRIMARY KEY (`id`),
-          KEY `fk_hazard_models_1` (`id_phenomenon`),
-          KEY `fk_hazard_models_2` (`id_datagrid`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
 
-        -- Table structure for table `hazmodel_exptimes`
-        CREATE TABLE IF NOT EXISTS `hazmodel_exptimes` (
-          `id_hazard_model` int(11) NOT NULL,
-          `id_exposure_time` int(11) NOT NULL,
-          PRIMARY KEY (`id_hazard_model`,`id_exposure_time`),
-          KEY `fk_hazmodels_exptimes_1` (`id_hazard_model`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+--
+-- Table structure for table `exposure_times`
+--
 
-        -- Table structure for table `hazmodel_intensities`
-        CREATE TABLE IF NOT EXISTS `hazmodel_intensities` (
-          `id_hazard_model` int(11) NOT NULL,
-          `id_intensity_threshold` int(11) NOT NULL,
-          PRIMARY KEY (`id_hazard_model`,`id_intensity_threshold`),
-          KEY `fk_hazmodel_intensities_1` (`id_hazard_model`),
-          KEY `fk_hazmodel_intensities_2` (`id_intensity_threshold`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+CREATE TABLE IF NOT EXISTS `exposure_times` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `years` float NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `years_UNIQUE` (`years`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
 
-        -- Table structure for table `hazmodel_statistics`
-        CREATE TABLE IF NOT EXISTS `hazmodel_statistics` (
-          `id_hazard_model` int(11) NOT NULL,
-          `id_statistic` int(11) NOT NULL,
-          PRIMARY KEY (`id_hazard_model`,`id_statistic`),
-          KEY `fk_hazmodels_statistics_1` (`id_hazard_model`),
-          KEY `fk_hazmodels_statistics_2` (`id_statistic`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
 
-        -- Table structure for table `hazmodel_volcanos`
-        CREATE TABLE IF NOT EXISTS `hazmodel_volcanos` (
-          `id_hazard_model` int(11) NOT NULL,
-          `id_volcano` int(11) NOT NULL,
-          PRIMARY KEY (`id_hazard_model`,`id_volcano`),
-          KEY `fk_hazmodel_volcanos_1` (`id_hazard_model`),
-          KEY `fk_hazmodel_volcanos_2` (`id_volcano`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+--
+-- Table structure for table `grid_points`
+--
 
-        -- Table structure for table `intensity_measure_unit`
-        CREATE TABLE IF NOT EXISTS `intensity_measure_unit` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `measure_unit_text` varchar(45) COLLATE utf8_bin NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `measure_unit_text_UNIQUE` (`measure_unit_text`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+CREATE TABLE IF NOT EXISTS `grid_points` (
+  `id_datagrid` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  PRIMARY KEY (`id_datagrid`,`id_point`),
+  KEY `fk_grid_points_1` (`id_datagrid`),
+  KEY `fk_grid_points_2` (`id_point`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-        -- Table structure for table `intensity_thresholds`
-        CREATE TABLE IF NOT EXISTS `intensity_thresholds` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `value` float NOT NULL,
-          `id_unit` int(11) NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `value` (`value`,`id_unit`),
-          KEY `fk_intensity_thresholds_1` (`id_unit`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
 
-        -- Table structure for table `phenomena`
-        CREATE TABLE IF NOT EXISTS `phenomena` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `name` varchar(45) COLLATE utf8_bin NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `name_UNIQUE` (`name`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+--
+-- Table structure for table `hazard_models`
+--
 
-        -- Table structure for table `points`
-        CREATE TABLE IF NOT EXISTS `points` (
-          `id` bigint(20) NOT NULL AUTO_INCREMENT,
-          `latitude` double NOT NULL,
-          `longitude` double NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `coords` (`latitude`,`longitude`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+CREATE TABLE IF NOT EXISTS `hazard_models` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_phenomenon` int(11) NOT NULL,
+  `id_datagrid` int(11) NOT NULL,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  `date` date DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_hazard_models_2` (`id_datagrid`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
 
-        -- Table structure for table `seismic_data`
-        CREATE TABLE IF NOT EXISTS `seismic_data` (
-          `id_hazard_model` int(11) NOT NULL,
-          `id_point` bigint(20) NOT NULL,
-          `id_grid` int(11) NOT NULL,
-          `id_statistic` int(11) NOT NULL,
-          `id_exposure_time` int(11) NOT NULL,
-          `hazard_curve` mediumblob NOT NULL,
-          PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
-          KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
-          KEY `fk_seismic_data_1` (`id_hazard_model`),
-          KEY `fk_seismic_data_2` (`id_point`),
-          KEY `fk_seismic_data_3` (`id_grid`),
-          KEY `fk_seismic_data_4` (`id_statistic`),
-          KEY `fk_seismic_data_5` (`id_exposure_time`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
 
-        -- Table structure for table `statistics`
-        CREATE TABLE IF NOT EXISTS `statistics` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `name` varchar(45) COLLATE utf8_bin NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `name_UNIQUE` (`name`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+--
+-- Table structure for table `hazmodel_exptimes`
+--
 
-        -- Table structure for table `volcanic_data`
-        CREATE TABLE IF NOT EXISTS `volcanic_data` (
-          `id_hazard_model` int(11) NOT NULL,
-          `id_point` bigint(20) NOT NULL,
-          `id_grid` int(11) NOT NULL,
-          `id_statistic` int(11) NOT NULL,
-          `id_exposure_time` int(11) NOT NULL,
-          `hazard_curve` mediumblob NOT NULL,
-          PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
-          KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
-          KEY `fk_volcanic_data_1` (`id_hazard_model`),
-          KEY `fk_volcanic_data_2` (`id_point`),
-          KEY `fk_volcanic_data_3` (`id_grid`),
-          KEY `fk_volcanic_data_4` (`id_statistic`),
-          KEY `fk_volcanic_data_5` (`id_exposure_time`)
-        ) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+CREATE TABLE IF NOT EXISTS `hazmodel_exptimes` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_exposure_time` int(11) NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_exposure_time`),
+  KEY `fk_hazmodels_exptimes_1` (`id_hazard_model`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-        -- Table structure for table `volcanos`
-        CREATE TABLE IF NOT EXISTS `volcanos` (
-          `id` int(11) NOT NULL AUTO_INCREMENT,
-          `name` varchar(45) COLLATE utf8_bin NOT NULL,
-          PRIMARY KEY (`id`),
-          UNIQUE KEY `name_UNIQUE` (`name`)
-        ) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+-- --------------------------------------------------------
 
-        -- Constraints for table `grid_points`
-        ALTER TABLE `grid_points`
-          ADD CONSTRAINT `fk_grid_points_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_grid_points_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+--
+-- Table structure for table `hazmodel_intensities`
+--
 
-        -- Constraints for table `hazard_models`
-        ALTER TABLE `hazard_models`
-          ADD CONSTRAINT `fk_hazard_models_1` FOREIGN KEY (`id_phenomenon`) REFERENCES `phenomena` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_hazard_models_2` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+CREATE TABLE IF NOT EXISTS `hazmodel_intensities` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_intensity_threshold` int(11) NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_intensity_threshold`),
+  KEY `fk_hazmodel_intensities_1` (`id_hazard_model`),
+  KEY `fk_hazmodel_intensities_2` (`id_intensity_threshold`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-        -- Constraints for table `hazmodel_exptimes`
-        ALTER TABLE `hazmodel_exptimes`
-          ADD CONSTRAINT `fk_hazmodels_exptimes_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+-- --------------------------------------------------------
 
-        -- Constraints for table `hazmodel_intensities`
-        ALTER TABLE `hazmodel_intensities`
-          ADD CONSTRAINT `fk_hazmodel_intensities_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_hazmodel_intensities_2` FOREIGN KEY (`id_intensity_threshold`) REFERENCES `intensity_thresholds` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+--
+-- Table structure for table `hazmodel_statistics`
+--
 
-        -- Constraints for table `hazmodel_statistics`
-        ALTER TABLE `hazmodel_statistics`
-          ADD CONSTRAINT `fk_hazmodels_statistics_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_hazmodels_statistics_2` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+CREATE TABLE IF NOT EXISTS `hazmodel_statistics` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_statistic`),
+  KEY `fk_hazmodels_statistics_1` (`id_hazard_model`),
+  KEY `fk_hazmodels_statistics_2` (`id_statistic`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-        -- Constraints for table `hazmodel_volcanos`
-        ALTER TABLE `hazmodel_volcanos`
-          ADD CONSTRAINT `fk_hazmodel_volcanos_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_hazmodel_volcanos_2` FOREIGN KEY (`id_volcano`) REFERENCES `volcanos` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+-- --------------------------------------------------------
 
-        -- Constraints for table `intensity_thresholds`
-        ALTER TABLE `intensity_thresholds`
-          ADD CONSTRAINT `fk_intensity_thresholds_1` FOREIGN KEY (`id_unit`) REFERENCES `intensity_measure_unit` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+--
+-- Table structure for table `hazmodel_volcanos`
+--
 
-        -- Constraints for table `seismic_data`
-        ALTER TABLE `seismic_data`
-          ADD CONSTRAINT `fk_seismic_data_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_seismic_data_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_seismic_data_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_seismic_data_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_seismic_data_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+CREATE TABLE IF NOT EXISTS `hazmodel_volcanos` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_volcano` int(11) NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_volcano`),
+  KEY `fk_hazmodel_volcano_1` (`id_hazard_model`),
+  KEY `fk_hazmodel_volcano_2` (`id_volcano`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
 
-        -- Constraints for table `volcanic_data`
-        ALTER TABLE `volcanic_data`
-          ADD CONSTRAINT `fk_volcanic_data_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_volcanic_data_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_volcanic_data_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_volcanic_data_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-          ADD CONSTRAINT `fk_volcanic_data_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `intensity_measure_unit`
+--
+
+CREATE TABLE IF NOT EXISTS `intensity_measure_unit` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `measure_unit_text` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `measure_unit_text_UNIQUE` (`measure_unit_text`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `intensity_thresholds`
+--
+
+CREATE TABLE IF NOT EXISTS `intensity_thresholds` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `value` decimal(8,3) NOT NULL,
+  `id_unit` int(11) NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `value` (`value`,`id_unit`),
+  KEY `fk_intensity_thresholds_1` (`id_unit`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=443 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `phenomena`
+--
+
+CREATE TABLE IF NOT EXISTS `phenomena` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `points`
+--
+
+CREATE TABLE IF NOT EXISTS `points` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `easting` bigint(20) NOT NULL,
+  `northing` bigint(20) NOT NULL,
+  `zone_number` tinyint(4) DEFAULT NULL,
+  `zone_letter` char(1) COLLATE utf8_bin DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `coords` (`easting`,`northing`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=79025 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `seismic_data`
+--
+
+CREATE TABLE IF NOT EXISTS `seismic_data` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  `id_grid` int(11) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  `id_exposure_time` int(11) NOT NULL,
+  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
+  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
+  KEY `fk_seismic_data_1` (`id_hazard_model`),
+  KEY `fk_seismic_data_2` (`id_point`),
+  KEY `fk_seismic_data_3` (`id_grid`),
+  KEY `fk_seismic_data_4` (`id_statistic`),
+  KEY `fk_seismic_data_5` (`id_exposure_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `statistics`
+--
+
+CREATE TABLE IF NOT EXISTS `statistics` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=11 ;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `tsunamic_data`
+--
+
+CREATE TABLE IF NOT EXISTS `tsunamic_data` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  `id_grid` int(11) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  `id_exposure_time` int(11) NOT NULL,
+  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
+  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
+  KEY `fk_tsunamic_data_1` (`id_hazard_model`),
+  KEY `fk_tsunamic_data_2` (`id_point`),
+  KEY `fk_tsunamic_data_3` (`id_grid`),
+  KEY `fk_tsunamic_data_4` (`id_statistic`),
+  KEY `fk_tsunamic_data_5` (`id_exposure_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `volcanic_data`
+--
+
+CREATE TABLE IF NOT EXISTS `volcanic_data` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  `id_grid` int(11) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  `id_exposure_time` int(11) NOT NULL,
+  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
+  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
+  KEY `fk_volcanic_data_1` (`id_hazard_model`),
+  KEY `fk_volcanic_data_2` (`id_point`),
+  KEY `fk_volcanic_data_3` (`id_grid`),
+  KEY `fk_volcanic_data_4` (`id_statistic`),
+  KEY `fk_volcanic_data_5` (`id_exposure_time`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `volcanos`
+--
+
+CREATE TABLE IF NOT EXISTS `volcanos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
+--
+-- Constraints for dumped tables
+--
+
+--
+-- Constraints for table `grid_points`
+--
+ALTER TABLE `grid_points`
+  ADD CONSTRAINT `grid_points_ibfk_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `grid_points_ibfk_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_grid_points_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_grid_points_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `hazard_models`
+--
+ALTER TABLE `hazard_models`
+  ADD CONSTRAINT `hazard_models_ibfk_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazard_models_2` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `hazmodel_exptimes`
+--
+ALTER TABLE `hazmodel_exptimes`
+  ADD CONSTRAINT `hazmodel_exptimes_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodels_exptimes_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `hazmodel_intensities`
+--
+ALTER TABLE `hazmodel_intensities`
+  ADD CONSTRAINT `hazmodel_intensities_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `hazmodel_intensities_ibfk_2` FOREIGN KEY (`id_intensity_threshold`) REFERENCES `intensity_thresholds` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodel_intensities_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodel_intensities_2` FOREIGN KEY (`id_intensity_threshold`) REFERENCES `intensity_thresholds` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `hazmodel_statistics`
+--
+ALTER TABLE `hazmodel_statistics`
+  ADD CONSTRAINT `hazmodel_statistics_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `hazmodel_statistics_ibfk_2` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodels_statistics_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodels_statistics_2` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `hazmodel_volcanos`
+--
+ALTER TABLE `hazmodel_volcanos`
+  ADD CONSTRAINT `hazmodel_volcanos_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `hazmodel_volcanos_ibfk_2` FOREIGN KEY (`id_volcano`) REFERENCES `volcanos` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodel_volcano_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodel_volcano_2` FOREIGN KEY (`id_volcano`) REFERENCES `volcanos` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `intensity_thresholds`
+--
+ALTER TABLE `intensity_thresholds`
+  ADD CONSTRAINT `intensity_thresholds_ibfk_1` FOREIGN KEY (`id_unit`) REFERENCES `intensity_measure_unit` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_intensity_thresholds_1` FOREIGN KEY (`id_unit`) REFERENCES `intensity_measure_unit` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `tsunamic_data`
+--
+ALTER TABLE `tsunamic_data`
+  ADD CONSTRAINT `tsunamic_data_ibfk_6` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_7` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_8` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_9` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_10` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `tsunamic_data_ibfk_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+--
+-- Constraints for table `volcanic_data`
+--
+ALTER TABLE `volcanic_data`
+  ADD CONSTRAINT `volcanic_data_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `volcanic_data_ibfk_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `volcanic_data_ibfk_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `volcanic_data_ibfk_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `volcanic_data_ibfk_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_volcanic_data_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_volcanic_data_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_volcanic_data_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_volcanic_data_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_volcanic_data_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
     """
 
     def __init__(self, **kwargs):
