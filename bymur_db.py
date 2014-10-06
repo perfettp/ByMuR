@@ -34,7 +34,7 @@ import re
 import MySQLdb as mdb
 import bymur_functions as bf
 
-class BymurDB():
+class BymurDB(object):
     _sql_schema = """
         --
 -- Database: `bymurDB-dev-utm`
