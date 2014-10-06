@@ -1,9 +1,9 @@
 import wx
-import plotLibs
+import bymur_plots
 import os
-import bymurcore
-import bymurcontroller
-import globalFunctions as gf
+import bymur_core
+import bymur_controller
+import bymur_functions as bf
 import time
 
 class BymurBusyDlg(wx.BusyInfo):
@@ -296,7 +296,7 @@ class BymurMapBoxSizer(BymurStaticBoxSizer):
                 if (ext != "png"):
                     msg = ("ERROR:\nYou can upload .png file "
                            "format only.")
-                    gf.showMessage(parent=self._parent,
+                    bf.showMessage(parent=self._parent,
                                    kind="BYMUR_ERROR", caption="Error!",
                                    message="You can upload .png file format only")
                     dlg.Destroy()
@@ -306,7 +306,7 @@ class BymurMapBoxSizer(BymurStaticBoxSizer):
                 # self.confAct(self.conf_map)
                 #self.Layout()
             else:
-                gf.showMessage(parent=self._parent, kind="BYMUR_ERROR",
+                bf.showMessage(parent=self._parent, kind="BYMUR_ERROR",
                                caption="Error!",
                                message="Image path is wrong.")
         dlg.Destroy()
@@ -565,7 +565,7 @@ class BymurEnsembleDlg(wx.Dialog):
                     }
                     ensLocalDetails['components'].append(ens_item)
             if len(ensLocalDetails['components']) < 2:
-                gf.showMessage(parent=self, kind="BYMUR_ERROR",
+                bf.showMessage(parent=self, kind="BYMUR_ERROR",
                                caption="Error defining ensemble hazard",
                                message="Attention: at least 2 hazard should be "
                                        "selected!")
@@ -575,7 +575,7 @@ class BymurEnsembleDlg(wx.Dialog):
                     ensLocalDetails['dtime'] = self._ensBoxSizer.dtimeShared
                     self._ensembleDetails = ensLocalDetails
                 except Exception as e:
-                    gf.showMessage(parent=self, kind="BYMUR_ERROR",
+                    bf.showMessage(parent=self, kind="BYMUR_ERROR",
                                    caption="Error defining ensemble hazard",
                                    message=str(e))
                     result = -1
@@ -638,7 +638,7 @@ class BymurWxMapPanel(BymurWxPanel):
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         # self._map = plotLibs.MapFigure(self, self._controller)
-        self._map = plotLibs.HazardGraph(parent=self,
+        self._map = bymur_plots.HazardGraph(parent=self,
                                    click_callback=self._controller.onMapClick)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
@@ -668,7 +668,7 @@ class BymurWxNBHazPage(BymurWxPanel):
         super(BymurWxNBHazPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         # self._map = plotLibs.HazFigure(self, self._controller)
-        self._map = plotLibs.HazardCurve(parent=self)
+        self._map = bymur_plots.HazardCurve(parent=self)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
@@ -694,7 +694,7 @@ class BymurWxNBVulnPage(BymurWxPanel):
         self._title = kwargs.pop('title', "Vulnerability")
         super(BymurWxNBVulnPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        self._map = plotLibs.VulnCurve(parent=self)
+        self._map = bymur_plots.VulnCurve(parent=self)
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
@@ -710,7 +710,7 @@ class BymurWxNBRiskPage(BymurWxPanel):
         self._title = kwargs.pop('title', "Risk")
         super(BymurWxNBRiskPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        self._map = plotLibs.RiskCurve(parent=self)
+        self._map = bymur_plots.RiskCurve(parent=self)
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
@@ -983,7 +983,7 @@ class BymurWxMenu(wx.MenuBar):
 
     def fireEvent(self):
         print "Load..."
-        event = gf.BymurUpdateEvent(gf.BYMUR_UPDATE_ALL,1)
+        event = bf.BymurUpdateEvent(bf.BYMUR_UPDATE_ALL,1)
         print "Aim"
         wx.PostEvent(self, event)
         print "Fire!"
@@ -1021,13 +1021,13 @@ class BymurWxView(wx.Frame):
         self._selected_point_curves = None
 
         # TODO: make a list for events
-        self.Bind(gf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
-        self.Bind(gf.BYMUR_UPDATE_CURVE, self.OnBymurEvent)
-        self.Bind(gf.BYMUR_UPDATE_MAP, self.OnBymurEvent)
-        self.Bind(gf.BYMUR_UPDATE_DIALOG, self.OnBymurEvent)
-        self.Bind(gf.BYMUR_UPDATE_CTRLS, self.OnBymurEvent)
-        self.Bind(gf.BYMUR_THREAD_CLOSED, self.OnBymurEvent)
-        self.Bind(gf.BYMUR_DB_CONNECTED, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_CURVE, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_MAP, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_DIALOG, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_CTRLS, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_THREAD_CLOSED, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_DB_CONNECTED, self.OnBymurEvent)
 
         # Menu
         self.menuBar = BymurWxMenu(controller=self._controller)
@@ -1084,7 +1084,7 @@ class BymurWxView(wx.Frame):
                 fp.writelines(get_text(self.rightPanel.mapPanel.map.hazArray))
                 fp.close()
             except Exception as e:
-                gf.showMessage(parent=self,
+                bf.showMessage(parent=self,
                                message=str(e),
                                kind="BYMUR_ERROR",
                                caption="Error")
@@ -1143,19 +1143,19 @@ class BymurWxView(wx.Frame):
 
 
     def OnBymurEvent(self, event):
-        if  event.GetEventType() == gf.wxBYMUR_DB_CONNECTED:
-            print "gf.wxBYMUR_DB_CONNECTED"
-        elif event.GetEventType() == gf.wxBYMUR_UPDATE_CTRLS:
-            print "gf.wxBYMUR_UPDATE_CTRLS"
+        if  event.GetEventType() == bf.wxBYMUR_DB_CONNECTED:
+            print "bf.wxBYMUR_DB_CONNECTED"
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
+            print "bf.wxBYMUR_UPDATE_CTRLS"
             self.leftPanel.updateView()
-        elif event.GetEventType() == gf.wxBYMUR_UPDATE_ALL:
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
             self.leftPanel.updateView()
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
         self.SetBusy(False)
 
 # on connect
-# gf.showMessage,
+# bf.showMessage,
 #                     {'parent' : self.wxframe,
 #                      'message' : "Connection Succeded!",
 #                      'kind': "BYMUR_INFO",
@@ -1272,7 +1272,7 @@ class BymurWxApp(wx.App):
 
 
 if __name__ == "__main__":
-    core = bymurcore.BymurCore()
-    control = bymurcontroller.BymurController(core=core)
+    core = bymur_core.BymurCore()
+    control = bymur_controller.BymurController(core=core)
     app = BymurWxApp(redirect=False, controller=control)
     app.MainLoop()

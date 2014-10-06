@@ -1,6 +1,6 @@
 import os
 import time
-import globalFunctions as gf
+import bymur_functions as bf
 
 
 class BymurController(object):
@@ -49,15 +49,15 @@ class BymurController(object):
         if dialogResult:
             self._dbDetails.update(dialogResult)
             try:
-                gf.SpawnThread(
+                bf.SpawnThread(
                     self.wxframe,
-                    gf.wxBYMUR_DB_CONNECTED,
+                    bf.wxBYMUR_DB_CONNECTED,
                     self._core.connectDB,
                     self._dbDetails,
                     wait_msg="Connecting database...")
 
             except Exception as e:
-                gf.showMessage(parent=self.wxframe,
+                bf.showMessage(parent=self.wxframe,
                                        message=str(e),
                                        debug=self._exception_debug,
                                        kind="BYMUR_ERROR",
@@ -70,30 +70,30 @@ class BymurController(object):
             if dialogResult:
                 self._dbDetails.update(dialogResult)
                 try:
-                    gf.SpawnThread(self.wxframe,
-                        gf.wxBYMUR_UPDATE_CTRLS,
+                    bf.SpawnThread(self.wxframe,
+                        bf.wxBYMUR_UPDATE_CTRLS,
                         self._core.connectAndFetch,
                         self._dbDetails,
                         callback=self.set_ctrls_data,
                         wait_msg="Loading database...")
                     self.wxframe.dbLoaded = True
                 except Exception as e:
-                    gf.showMessage(parent=self.wxframe,
+                    bf.showMessage(parent=self.wxframe,
                                            debug=self._exception_debug,
                                            message=str(e),
                                            kind="BYMUR_ERROR",
                                            caption="Error")
         else:
             try:
-                gf.SpawnThread(
+                bf.SpawnThread(
                     self.wxframe,
-                    gf.wxBYMUR_UPDATE_CTRLS,
+                    bf.wxBYMUR_UPDATE_CTRLS,
                     self._core.connectAndFetch, {},
                     callback=self.set_ctrls_data,
                     wait_msg="Loading database...")
                 self.wxframe.dbLoaded = True
             except Exception as e:
-                gf.showMessage(parent=self.wxframe,
+                bf.showMessage(parent=self.wxframe,
                                        debug=self._exception_debug,
                                        message=str(e),
                                        kind="BYMUR_ERROR",
@@ -102,7 +102,7 @@ class BymurController(object):
     def createDB(self):
         if self._core.db:
             msg = "Close connected database?"
-            confirmation = gf.showMessage(parent=self.wxframe,
+            confirmation = bf.showMessage(parent=self.wxframe,
                                              message=msg,
                                              kind="BYMUR_CONFIRM",
                                              caption="Please confirm this action")
@@ -117,14 +117,14 @@ class BymurController(object):
             self.wxframe.busymsg = "Creating DB..."
             self.wxframe.busy = True
             try:
-                gf.SpawnThread(self.wxframe,
-                               gf.wxBYMUR_UPDATE_DIALOG,
+                bf.SpawnThread(self.wxframe,
+                               bf.wxBYMUR_UPDATE_DIALOG,
                                          self._core.createDB,
                                          self._createDBDetails,
                                          self.set_ctrls_data,
                                          wait_msg="Creating database...")
             except Exception as e:
-                gf.showMessage(parent=self.wxframe,
+                bf.showMessage(parent=self.wxframe,
                                        message=str(e),
                                        debug=self._exception_debug,
                                        kind="BYMUR_ERROR",
@@ -150,7 +150,7 @@ class BymurController(object):
         print "dropDBTables"
         msg = "Are you really sure you want to delete all tables in the " \
              "database?"
-        confirmation = gf.showMessage(parent=self.wxframe,
+        confirmation = bf.showMessage(parent=self.wxframe,
                                              message=msg,
                                              kind="BYMUR_CONFIRM",
                                              caption="Please confirm this action")
@@ -160,12 +160,12 @@ class BymurController(object):
                 self.wxframe.busy = True
                 self._core.dropDBTables()
                 txt = "Tables deleted"
-                gf.showMessage(parent=self.wxframe,
+                bf.showMessage(parent=self.wxframe,
                                        message=txt,
                                        kind="BYMUR_INFO",
                                        caption="Info")
             except Exception as e:
-                gf.showMessage(parent=self.wxframe,
+                bf.showMessage(parent=self.wxframe,
                                        message=str(e),
                                        debug=self._exception_debug,
                                        kind="BYMUR_ERROR",
@@ -188,14 +188,14 @@ class BymurController(object):
             self.wxframe.busy = True
             try:
                 #self._core.defEnsembleHaz(**dialogResult)
-                gf.showMessage(parent=self.wxframe,
+                bf.showMessage(parent=self.wxframe,
                                        message="This is function is not "
                                                "implemented yet",
                                        kind="BYMUR_INFO",
                                        caption="Ensemble hazard definition")
                 self.wxframe.leftPanel.updateView(**self._core.data)
             except Exception as e:
-                gf.showMessage(parent=self.wxframe,
+                bf.showMessage(parent=self.wxframe,
                                        message=str(e),
                                        debug=self._exception_debug,
                                        kind="BYMUR_ERROR",
@@ -211,8 +211,8 @@ class BymurController(object):
 
     def updateParameters(self, event):
         hazard_options = self.wxframe.leftPanel.hazard_options
-        gf.SpawnThread(self.wxframe,
-                       gf.wxBYMUR_UPDATE_ALL,
+        bf.SpawnThread(self.wxframe,
+                       bf.wxBYMUR_UPDATE_ALL,
                        self._core.updateModel,
                        hazard_options,
                        callback=self.update_hazard_data,

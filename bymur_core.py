@@ -1,4 +1,4 @@
-import dbFunctions as db
+import bymur_db as db
 import numpy as np # ma lo uso solo per sqrt?
 import math
 import random as rnd

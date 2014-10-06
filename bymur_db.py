@@ -32,7 +32,7 @@
 import os
 import re
 import MySQLdb as mdb
-import globalFunctions as gf
+import bymur_functions as bf
 
 class BymurDB():
     _sql_schema = """
@@ -943,7 +943,7 @@ ALTER TABLE `volcanic_data`
         # Read, build and insert datagrid in  the db
         datagrid_name, datagrid_ext = os.path.splitext(os.path.basename(
             datagridfile_path))
-        datagrid_points = gf.get_gridpoints_from_file(datagridfile_path)
+        datagrid_points = bf.get_gridpoints_from_file(datagridfile_path)
         newpoints = self.insert_utm_points(datagrid_points)
         pointsid_list = self.pointsid_list(datagrid_points)
         datagrid_id = self.datagrid_get_insert_id(datagrid_name)
@@ -1022,7 +1022,7 @@ ALTER TABLE `volcanic_data`
                     for filename in os.listdir(dir_tmp):
                         if re.match(perc_re, filename):
                             try:
-                                fileXmlModel =  gf.HazardXMLModel(
+                                fileXmlModel =  bf.HazardXMLModel(
                                     os.path.join(dir_tmp, filename),
                                     phen['phenomenon_name'])
                             except Exception as e:
