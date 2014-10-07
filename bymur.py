@@ -924,8 +924,6 @@ class BymurWxMenu(wx.MenuBar):
         self._menu_actions[menuItemTmp.GetId()] = self._controller.loadDB
         menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
         self._menu_actions[menuItemTmp.GetId()] = self._controller.connectDB
-        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&EVENT')
-        self._menu_actions[menuItemTmp.GetId()] = self.fireEvent
         self.menuFile.AppendSeparator()
         self.menuFile.Append(wx.ID_CLOSE, '&Quit')
         self._menu_actions[wx.ID_CLOSE] = self._controller.quit

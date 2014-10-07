@@ -248,10 +248,6 @@ def verifyInternetConn():
         pass
     return False
 
-
-def fire_event(target_id, event_type):
-    wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
-
 def get_gridpoints_from_file(filepath, utm_coords=True, utm_zone_number=33,
                              utm_zone_letter='T', decimals=5):
         gridfile = open(filepath, 'r')
