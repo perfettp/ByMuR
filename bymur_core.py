@@ -38,9 +38,7 @@ class BymurCore(object):
     def connectAndFetch(self, **dbDetails):
         if (not self._db) and dbDetails:
             self.connectDB(**dbDetails)
-        self._ctrls_data = {'hazard_models' : []}
-        self._ctrls_data['hazard_models'] = self.get_controls_data()
-        print "connectandfetchdata %s" % self._ctrls_data
+        self._ctrls_data = self.get_controls_data()
 
     def connectDB(self, **dbDetails):
         self._db_details=dbDetails
@@ -95,6 +93,7 @@ class BymurCore(object):
         # TODO: add a dialog for successfull creation
 
     def get_controls_data(self):
+        ret = {}
         hazard_models = self.db.hazard_models_get()
         # [{'id_phenomenon', 'phenomenon_name', 'haz_id', 'haz_name'}]
         for ind, hazard in enumerate(hazard_models):
@@ -108,8 +107,12 @@ class BymurCore(object):
             else:
                 haz_tmp['volcano'] = None
             hazard_models[ind] = haz_tmp
-        print "hazard_models %s:" % hazard_models
-        return hazard_models
+
+        ret['hazard_models'] = hazard_models
+        ret['phenomena'] = self.db.phenomena_list()
+        print "hazard_models %s:" % ret['hazard_models']
+        print "phenomena %s " % ret['phenomena']
+        return ret
 
 
     def setPoint(self, xsel, ysel):

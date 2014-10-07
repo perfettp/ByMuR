@@ -417,11 +417,6 @@ ALTER TABLE `volcanic_data`
     def commit(self):
         self._connection.commit()
 
-    def phenomena_list(self):
-        sql_query = "SELECT * from phenomena"
-        self._cursor.execute(sql_query.format())
-        return self._cursor.fetchall()
-
     def datagrid_id(self, name):
         sqlquery = "SELECT id FROM datagrids WHERE name = '{0}'"
         self._cursor.execute(sqlquery.format(name.upper()))
@@ -545,6 +540,12 @@ ALTER TABLE `volcanic_data`
             sqlquery = "INSERT INTO phenomena (name) VALUES('{0}')"
             self._cursor.execute(sqlquery.format(phenomenon_name.upper()))
             return self._cursor.lastrowid
+
+    def phenomena_list(self):
+        sqlquery = "SELECT id, name FROM phenomena"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('phen_id','phen_name'), phen))
+                     for phen in self._cursor.fetchall()]
 
     def get_phenomenon_by_id(self, phenomeon_id):
         sqlquery = """ SELECT `ph`.`id`, `ph`.`name`

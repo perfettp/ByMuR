@@ -775,67 +775,109 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._ctrlsSizer = wx.GridBagSizer(hgap=5, vgap=5)
         self._ctrlsBoxSizer.Add(self._ctrlsSizer)
 
+        vpos=0
+        self._phenLabel = wx.StaticText(self, wx.ID_ANY,
+                                          'Phenomeon type')
+        self._phenCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                     style=wx.CB_READONLY, size=(200, -1))
+
+        self._phenCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+
+        self._ctrlsSizer.Add(self._phenLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._phenCB, pos=(vpos, 2), span=(1, 2))
+
+        vpos += 1
+        self._gridLabel = wx.StaticText(self, wx.ID_ANY, 'Reference grid')
+        self._gridCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                     style=wx.CB_READONLY, size=(200, -1))
+        self._gridCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._gridLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._gridCB, pos=(vpos, 2), span=(1, 2))
+
         self._hazModLabel = wx.StaticText(self, wx.ID_ANY,
                                           'Hazard Model')
         self._hazModCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
                                      style=wx.CB_READONLY, size=(200, -1))
-
         self._hazModCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
 
-        self._ctrlsSizer.Add(self._hazModLabel, pos=(0, 0), span=(1, 2),
+        vpos += 1
+        self._ctrlsSizer.Add(self._hazModLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._hazModCB, pos=(0, 2), span=(1, 2))
+        self._ctrlsSizer.Add(self._hazModCB, pos=(vpos, 2), span=(1, 2))
 
+        vpos += 1
         self._retPerLabel = wx.StaticText(self, wx.ID_ANY, 'Return Period')
         self._retPerText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
                                        style=wx.TE_PROCESS_ENTER)
+        self._retPerText.Enable(False)
         self.Bind(wx.EVT_TEXT_ENTER, self._controller.updateParameters,
                   self._retPerText)
         self._retPerLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
-        self._ctrlsSizer.Add(self._retPerLabel, pos=(1, 0), span=(1, 2),
+        self._ctrlsSizer.Add(self._retPerLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._retPerText, pos=(1, 2), span=(1, 1))
-        self._ctrlsSizer.Add(self._retPerLabelBis, pos=(1, 3), span=(1, 2),
+        self._ctrlsSizer.Add(self._retPerText, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._retPerLabelBis, pos=(vpos, 3), span=(1, 2),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
+        vpos += 1
         self._intThresLabel = wx.StaticText(self, wx.ID_ANY, 'Intensity '
                                                              'Threshold')
         self._intThresText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
                                          style=wx.TE_PROCESS_ENTER)
+        self._intThresText.Enable(False)
         self.Bind(wx.EVT_TEXT_ENTER, self._controller.updateParameters,
                   self._intThresText)
         self._intThresLabelBis = wx.StaticText(self, wx.ID_ANY, '[0-1]')
-        self._ctrlsSizer.Add(self._intThresLabel, pos=(2, 0), span=(1, 2),
+        self._ctrlsSizer.Add(self._intThresLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._intThresText, pos=(2, 2), span=(1, 1))
-        self._ctrlsSizer.Add(self._intThresLabelBis, pos=(2, 3), span=(1, 1),
+        self._ctrlsSizer.Add(self._intThresText, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._intThresLabelBis, pos=(vpos, 3), span=(1, 1),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
         # timeWindow
+        vpos += 1
         self._timeWindowLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
         self._timeWindowCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
                                          style=wx.CB_READONLY, size=(120, -1))
         self._timeWindowLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
-        self._ctrlsSizer.Add(self._timeWindowLabel, pos=(3, 0), span=(1, 2),
+        self._ctrlsSizer.Add(self._timeWindowLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._timeWindowCB, pos=(3, 2), span=(1, 1))
-        self._ctrlsSizer.Add(self._timeWindowLabelBis, pos=(3, 3), span=(1, 1),
+        self._ctrlsSizer.Add(self._timeWindowCB, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._timeWindowLabelBis, pos=(vpos, 3), span=(1, 1),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
+        vpos += 1
         self._updateButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
                                        'Update Map',
                                        size=(-1, -1))
         self.Bind(wx.EVT_BUTTON, self._controller.updateParameters,
                   self._updateButton)
-        self._ctrlsSizer.Add(self._updateButton, flag=wx.EXPAND, pos=(4, 0),
+        self._ctrlsSizer.Add(self._updateButton, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(3, 4))
 
         self._sizer.Add(self._ctrlsBoxSizer)
         self.SetSizer(self._sizer)
         # self.Enable(False)
 
-    def updateCtrls(self, ev ):
-        if (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED) and\
+    def updateCtrls(self, ev=None):
+        if (ev is None): # First data load
+            print "First data load"
+            ctrls_data = wx.GetTopLevelParent(self).ctrls_data
+            print  [haz['phen_name']
+                                      for haz in ctrls_data['phenomena']]
+            self._phenCB.AppendItems([haz['phen_name']
+                                      for haz in ctrls_data['phenomena']])
+            self._hazModCB.AppendItems([haz['hazard_name']
+                                        for haz in ctrls_data['hazard_models']])
+            self._retPerText.SetValue(str(int(ctrls_data['ret_per'])))
+            self._intThresText.SetValue(str(ctrls_data['int_thresh']))
+            _exp_times = []
+            self._timeWindowCB.AppendItems(_exp_times)
+            self.Enable(True)
+        elif (ev.GetEventType() ==
+                wx.wxEVT_COMMAND_COMBOBOX_SELECTED) and\
                 (ev.GetEventObject() == self._hazModCB):
             _haz_sel = self._hazModCB.GetValue()
             for haz in wx.GetTopLevelParent(self).ctrls_data['hazard_models']:
@@ -848,9 +890,6 @@ class BymurWxLeftPanel(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxLeftPanel, self).updateView(**kwargs)
-        # [{'id_phenomenon', 'phenomenon_name', 'haz_id', 'haz_name'}]
-        # print "kwargs %s"
-        # print "kwargs %s" % kwargs
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
 
         _haz_sel = self._hazModCB.GetSelection()
@@ -1145,7 +1184,7 @@ class BymurWxView(wx.Frame):
             print "bf.wxBYMUR_DB_CONNECTED"
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
             print "bf.wxBYMUR_UPDATE_CTRLS"
-            self.leftPanel.updateView()
+            self.leftPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
             self.leftPanel.updateView()
             self.rightPanel.mapPanel.updateView()
