@@ -4,7 +4,6 @@ import os
 import bymur_core
 import bymur_controller
 import bymur_functions as bf
-import time
 
 class BymurBusyDlg(wx.BusyInfo):
     """
@@ -304,7 +303,7 @@ class BymurMapBoxSizer(BymurStaticBoxSizer):
                 print "Map uploaded"
                 # TODO: what should I do here?
                 # self.confAct(self.conf_map)
-                #self.Layout()
+                # self.Layout()
             else:
                 bf.showMessage(parent=self._parent, kind="BYMUR_ERROR",
                                caption="Error!",
@@ -639,7 +638,7 @@ class BymurWxMapPanel(BymurWxPanel):
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         # self._map = plotLibs.MapFigure(self, self._controller)
         self._map = bymur_plots.HazardGraph(parent=self,
-                                   click_callback=self._controller.onMapClick)
+                                            click_callback=self._controller.onMapClick)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
@@ -775,37 +774,35 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._ctrlsSizer = wx.GridBagSizer(hgap=5, vgap=5)
         self._ctrlsBoxSizer.Add(self._ctrlsSizer)
 
-        vpos=0
+        vpos = 0
         self._phenLabel = wx.StaticText(self, wx.ID_ANY,
-                                          'Phenomeon type')
+                                        'Phenomeon type')
         self._phenCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
-                                     style=wx.CB_READONLY, size=(200, -1))
+                                   style=wx.CB_READONLY, size=(200, -1))
 
         self._phenCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
-
         self._ctrlsSizer.Add(self._phenLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._phenCB, pos=(vpos, 2), span=(1, 2))
 
         vpos += 1
-        self._gridLabel = wx.StaticText(self, wx.ID_ANY, 'Reference grid')
-        self._gridCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
-                                     style=wx.CB_READONLY, size=(200, -1))
-        self._gridCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
-        self._ctrlsSizer.Add(self._gridLabel, pos=(vpos, 0), span=(1, 2),
-                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._gridCB, pos=(vpos, 2), span=(1, 2))
-
         self._hazModLabel = wx.StaticText(self, wx.ID_ANY,
                                           'Hazard Model')
         self._hazModCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
                                      style=wx.CB_READONLY, size=(200, -1))
         self._hazModCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
-
-        vpos += 1
         self._ctrlsSizer.Add(self._hazModLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._hazModCB, pos=(vpos, 2), span=(1, 2))
+
+        vpos += 1
+        self._gridLabel = wx.StaticText(self, wx.ID_ANY, 'Reference grid')
+        self._gridCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                   style=wx.CB_READONLY, size=(200, -1))
+        self._gridCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._gridLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._gridCB, pos=(vpos, 2), span=(1, 2))
 
         vpos += 1
         self._retPerLabel = wx.StaticText(self, wx.ID_ANY, 'Return Period')
@@ -836,16 +833,16 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._ctrlsSizer.Add(self._intThresLabelBis, pos=(vpos, 3), span=(1, 1),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
-        # timeWindow
+        # expTime
         vpos += 1
-        self._timeWindowLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
-        self._timeWindowCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
-                                         style=wx.CB_READONLY, size=(120, -1))
-        self._timeWindowLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
-        self._ctrlsSizer.Add(self._timeWindowLabel, pos=(vpos, 0), span=(1, 2),
+        self._expTimeLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
+        self._expTimeCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                      style=wx.CB_READONLY, size=(120, -1))
+        self._expTimeLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
+        self._ctrlsSizer.Add(self._expTimeLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._timeWindowCB, pos=(vpos, 2), span=(1, 1))
-        self._ctrlsSizer.Add(self._timeWindowLabelBis, pos=(vpos, 3), span=(1, 1),
+        self._ctrlsSizer.Add(self._expTimeCB, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._expTimeLabelBis, pos=(vpos, 3), span=(1, 1),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
         vpos += 1
@@ -862,64 +859,67 @@ class BymurWxLeftPanel(BymurWxPanel):
         # self.Enable(False)
 
     def updateCtrls(self, ev=None):
-        if (ev is None): # First data load
+        ctrls_data = wx.GetTopLevelParent(self).ctrls_data
+        if (ev is None):  # First data load
             print "First data load"
-            ctrls_data = wx.GetTopLevelParent(self).ctrls_data
-            print  [haz['phen_name']
-                                      for haz in ctrls_data['phenomena']]
-            self._phenCB.AppendItems([haz['phen_name']
+            self._phenCB.AppendItems([haz['phenomenon_name']
                                       for haz in ctrls_data['phenomena']])
-            self._hazModCB.AppendItems([haz['hazard_name']
-                                        for haz in ctrls_data['hazard_models']])
-            self._retPerText.SetValue(str(int(ctrls_data['ret_per'])))
-            self._intThresText.SetValue(str(ctrls_data['int_thresh']))
-            _exp_times = []
-            self._timeWindowCB.AppendItems(_exp_times)
+            self._phenCB.Enable(True)
             self.Enable(True)
-        elif (ev.GetEventType() ==
-                wx.wxEVT_COMMAND_COMBOBOX_SELECTED) and\
-                (ev.GetEventObject() == self._hazModCB):
+        elif (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED):
+            _phen_name = self._phenCB.GetStringSelection()
             _haz_sel = self._hazModCB.GetValue()
-            for haz in wx.GetTopLevelParent(self).ctrls_data['hazard_models']:
-                if haz['hazard_name'] == _haz_sel:
-                    _exp_times = [str(et['years']) for et in haz['exposure_times']]
-                    self._timeWindowCB.Clear()
-                    self._timeWindowCB.AppendItems(_exp_times)
-                    self._timeWindowCB.SetSelection(0)
-                    break
+            _grid_sel = self._gridCB.GetValue()
+            if ev.GetEventObject() == self._phenCB:
+                _hlist = [haz for haz in ctrls_data['hazard_models']
+                          if haz['phenomenon_name'] == _phen_name]
+                self._hazModCB.Clear()
+                self._hazModCB.SetValue('')
+                self._hazModCB.AppendItems([haz['hazard_name']
+                                            for haz in _hlist])
+                self._hazModCB.Enable(True)
+                self._gridCB.Clear()
+                self._gridCB.SetValue('')
+                self._expTimeCB.Clear()
+                self._expTimeCB.SetValue('')
+                self._retPerText.SetValue(
+                    str(ctrls_data[_phen_name]['ret_per']))
+                self._intThresText.SetValue(
+                    str(ctrls_data[_phen_name]['int_thresh']))
+                self._retPerText.Enable(True)
+                self._intThresText.Enable(True)
+            elif ev.GetEventObject() == self._hazModCB:
+                _glist = [haz for haz in ctrls_data['hazard_models']
+                          if haz['hazard_name'] == _haz_sel]
+                self._gridCB.Clear()
+                self._gridCB.SetValue('')
+                self._gridCB.AppendItems([haz['grid_name']
+                                          for haz in _glist])
+                self._gridCB.Enable(True)
+                self._expTimeCB.Clear()
+                self._expTimeCB.SetValue('')
+            elif ev.GetEventObject() == self._gridCB:
+                _exptimelist = []
+                print _haz_sel
+                print _phen_name
+                for haz in ctrls_data['hazard_models']:
+                    print haz
+                    if (haz['hazard_name'] == _haz_sel and
+                                haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel):
+                        _haz_id = haz['hazard_id']
+                        _exptimelist = haz['exposure_times']
+                        break
+                self._expTimeCB.Clear()
+                self._expTimeCB.SetValue('')
+                self._expTimeCB.AppendItems([str(et['years'])
+                                             for et in _exptimelist])
+                self._expTimeCB.Enable(True)
+            elif ev.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
+                pass
 
     def updateView(self, **kwargs):
         super(BymurWxLeftPanel, self).updateView(**kwargs)
-        ctrls_data = wx.GetTopLevelParent(self).ctrls_data
-
-        _haz_sel = self._hazModCB.GetSelection()
-        print "_haz_sel %s" % _haz_sel
-        self._hazModCB.Clear()
-        self._hazModCB.AppendItems([haz['hazard_name'] for haz in ctrls_data[
-            'hazard_models']])
-        try:
-            self._hazModCB.SetSelection(_haz_sel)
-        except:
-            print "Exception _hazModCB.SetSelection"
-            pass
-
-        self._retPerText.SetValue(str(int(ctrls_data['ret_per'])))
-        self._intThresText.SetValue(str(ctrls_data['int_thresh']))
-
-        _exp_times = []
-        for haz in ctrls_data['hazard_models']:
-            if haz['hazard_name'] == _haz_sel:
-                _exp_times = [str(et['years']) for et in haz['exposure_times']]
-
-        _exp_sel = self._timeWindowCB.GetSelection()
-        self._timeWindowCB.Clear()
-        self._timeWindowCB.AppendItems(_exp_times)
-        try:
-            self._timeWindowCB.SetSelection(_exp_sel)
-        except:
-            print "Exception settin _exp_sel"
-            pass
-        # self.Enable(True)
 
     @property
     def ctrlsBoxTitle(self):
@@ -938,10 +938,10 @@ class BymurWxLeftPanel(BymurWxPanel):
         values['haz_mod'] = self._hazModCB.GetStringSelection()
         values['ret_per'] = self._retPerText.GetValue()
         values['int_thresh'] = self._intThresText.GetValue()
-        print self._timeWindowCB.GetStringSelection()
-        print self._timeWindowCB.GetCurrentSelection()
-        print self._timeWindowCB.GetSelection()
-        values['exp_time'] = self._timeWindowCB.GetStringSelection()
+        print self._expTimeCB.GetStringSelection()
+        print self._expTimeCB.GetCurrentSelection()
+        print self._expTimeCB.GetSelection()
+        values['exp_time'] = self._expTimeCB.GetStringSelection()
         return values
 
 
@@ -1020,7 +1020,7 @@ class BymurWxMenu(wx.MenuBar):
 
     def fireEvent(self):
         print "Load..."
-        event = bf.BymurUpdateEvent(bf.BYMUR_UPDATE_ALL,1)
+        event = bf.BymurUpdateEvent(bf.BYMUR_UPDATE_ALL, 1)
         print "Aim"
         wx.PostEvent(self, event)
         print "Fire!"
@@ -1097,8 +1097,8 @@ class BymurWxView(wx.Frame):
     def updateView(self, **kwargs):
         print "Main WxFrame"
         # for panel in self.GetChildren():
-        #     if isinstance(panel, BymurWxPanel):
-        #         panel.updateView(**kwargs)
+        # if isinstance(panel, BymurWxPanel):
+        # panel.updateView(**kwargs)
 
     def saveFile(self, dfl_dir, get_text):
         ext = '.txt'
@@ -1180,23 +1180,23 @@ class BymurWxView(wx.Frame):
 
 
     def OnBymurEvent(self, event):
-        if  event.GetEventType() == bf.wxBYMUR_DB_CONNECTED:
+        if event.GetEventType() == bf.wxBYMUR_DB_CONNECTED:
             print "bf.wxBYMUR_DB_CONNECTED"
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
             print "bf.wxBYMUR_UPDATE_CTRLS"
             self.leftPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
-            self.leftPanel.updateView()
+            self.leftPanel.updateCtrls(event)
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
         self.SetBusy(False)
 
-# on connect
-# bf.showMessage,
-#                     {'parent' : self.wxframe,
-#                      'message' : "Connection Succeded!",
-#                      'kind': "BYMUR_INFO",
-#                      'caption': "Info"},
+    # on connect
+    # bf.showMessage,
+    # {'parent' : self.wxframe,
+    # 'message' : "Connection Succeded!",
+    # 'kind': "BYMUR_INFO",
+    #                      'caption': "Info"},
 
     @property
     def rightPanel(self):
@@ -1247,9 +1247,9 @@ class BymurWxView(wx.Frame):
         return self._ctrls_data
 
     @ctrls_data.setter
-    def ctrls_data(self,data):
+    def ctrls_data(self, data):
         self._ctrls_data = data
-        
+
     @property
     def hazard_options(self):
         return self._hazard_options
@@ -1257,7 +1257,7 @@ class BymurWxView(wx.Frame):
     @hazard_options.setter
     def hazard_options(self, data):
         self._hazard_options = data
-        
+
     @property
     def hazard_description(self):
         return self._hazard_description
@@ -1273,7 +1273,7 @@ class BymurWxView(wx.Frame):
     @hazard_values.setter
     def hazard_values(self, data):
         self._hazard_values = data
-        
+
     @property
     def selected_point(self):
         return self._selected_point
@@ -1289,6 +1289,7 @@ class BymurWxView(wx.Frame):
     @selected_point_curves.setter
     def selected_point_curves(self, data):
         self._selected_point_curves = data
+
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

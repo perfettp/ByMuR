@@ -7,22 +7,32 @@ import random as rnd
 
 class BymurCore(object):
     # Default values regardless of hazard model
-    _ctrls_defaut = {'ret_per': 4975,
-                     'int_thresh': 3.0,
-                     'hazard_models' : []
+    _ctrls_defaut = {
+        'SEISMIC': {
+            'ret_per': 4975,
+            'int_thresh': 3.0
+        },
+        'TSUNAMIC': {
+            'ret_per': 4975,
+            'int_thresh': 3.0
+        },
+        'VOLCANIC': {
+            'ret_per': 4975,
+            'int_thresh': 3.0
+        }
     }
 
     def __init__(self):
-        self._conf = { 'haz_mod':0,        # selected hazard phenomenon
-                       'ret_per':4975,     # selected Return Period
-                        'int_thresh': 3.0,   # selected intensity  threshold
-                        'tw': 0,           # selected time window
-                        #  Qui sotto non so perche' siano definite queste costanti
-                        'limits':[375.300, 508.500, 4449.200, 4569.800],
-                        'perc': range(1, 100),
-                        'pt_sel': 0
-        }
-        self._data = {}
+        # self._conf = { 'haz_mod':0,        # selected hazard phenomenon
+        #                'ret_per':4975,     # selected Return Period
+        #                 'int_thresh': 3.0,   # selected intensity  threshold
+        #                 'tw': 0,           # selected time window
+        #                 #  Qui sotto non so perche' siano definite queste costanti
+        #                 'limits':[375.300, 508.500, 4449.200, 4569.800],
+        #                 'perc': range(1, 100),
+        #                 'pt_sel': 0
+        # }
+        # self._data = {}
 
         self._db = None
         self._db_details=None

@@ -467,13 +467,17 @@ ALTER TABLE `volcanic_data`
                     SELECT `haz`.`id` as `haz_id`,
                             `haz`.`name` as `haz_name`,
                             `phen`.`id` as `id_phenomenon`,
-                            `phen`.`name` as `phenomenon_name`
-                    FROM `hazard_models` haz LEFT JOIN `phenomena` phen
-                    ON `haz`.`id_phenomenon`=`phen`.`id`
+                            `phen`.`name` as `phenomenon_name`,
+                            `haz`.`id_datagrid` as `grid_id`,
+                            `grid`.`name` as `grid_name`
+                    FROM (`hazard_models` haz LEFT JOIN `phenomena` phen
+                    ON `haz`.`id_phenomenon`=`phen`.`id`)
+                        JOIN `datagrids` grid WHERE
+                        `haz`.`id_datagrid`=`grid`.`id`
                 """
         self._cursor.execute(sqlquery)
         return [dict(zip(['hazard_id','hazard_name','phenomenon_id',
-                          'phenomenon_name'], x))
+                          'phenomenon_name', 'grid_id', 'grid_name'], x))
                 for x in self._cursor.fetchall()]
 
 
@@ -544,7 +548,7 @@ ALTER TABLE `volcanic_data`
     def phenomena_list(self):
         sqlquery = "SELECT id, name FROM phenomena"
         self._cursor.execute(sqlquery)
-        return [dict(zip(('phen_id','phen_name'), phen))
+        return [dict(zip(('phenomenon_id','phenomenon_name'), phen))
                      for phen in self._cursor.fetchall()]
 
     def get_phenomenon_by_id(self, phenomeon_id):
