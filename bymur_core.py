@@ -2,6 +2,7 @@ import bymur_db as db
 import numpy as np # ma lo uso solo per sqrt?
 import math
 import random as rnd
+import os
 
 
 
@@ -19,7 +20,8 @@ class BymurCore(object):
         'VOLCANIC': {
             'ret_per': 4975,
             'int_thresh': 3.0
-        }
+        },
+        'basedir': os.getcwd(), # TODO: da eliminare quando scarichero' le mappe
     }
 
     def __init__(self):
@@ -96,11 +98,17 @@ class BymurCore(object):
 
         self.db.create()
 
-        self.db.populate(createDBDetails['haz_path'],
+        self.db.add_data(createDBDetails['haz_path'],
                          createDBDetails['haz_perc'],
                          createDBDetails['grid_path'])
 
         # TODO: add a dialog for successfull creation
+
+    def addDBData(self, **addDBData):
+        self.db.add_data(addDBData['haz_path'],
+                         addDBData['haz_perc'],
+                         addDBData['grid_path'])
+        self._ctrls_data = self.get_controls_data()
 
     def get_controls_data(self):
         ret = {}

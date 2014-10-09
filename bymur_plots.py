@@ -70,10 +70,9 @@ class BymurPlot(object):
 
 class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
+        self._imgfile = kwargs.get('imgfile',"naples_gmaps.png")
         self._click_callback = kwargs.get('click_callback', None)
         super(HazardGraph, self).__init__(*args, **kwargs)
-        # TODO: imgfile should be a parameter, but maybe in plot
-        self._imgfile = "./data/naples_gmaps.png"
         self._figure.canvas.mpl_connect('button_press_event',
                                         self._click_callback)
         self._points_data = None

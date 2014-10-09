@@ -917,7 +917,8 @@ ALTER TABLE `volcanic_data`
         # TODO: create DB for real!
         print "create"
 
-    def populate(self, datadir, percpattern, datagridfile_path):
+
+    def add_data(self, datadir, percpattern, datagridfile_path):
         """
         Using data provided by the input form (see openCreateDB function)
         to create Tables in Bymur DB and populate them.

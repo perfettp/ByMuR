@@ -13,6 +13,12 @@ class BymurController(object):
                   'db_name': 'bymurDB-dev-utm'
     }
 
+    _addDBDataDetails = {
+        'haz_path': os.path.join(_basedir, "hazards"),
+        'haz_perc': "10:90:10",
+        'grid_path': os.path.join(_basedir, "data", "naples-grid.txt"),
+    }
+
     _createDBDetails = {'db_host': '***REMOVED***',
                         'db_port': '3306',
                         'db_user': '***REMOVED***',
@@ -41,28 +47,6 @@ class BymurController(object):
         except Exception as e:
             raise
 
-
-    def connectDB(self):
-        dialogResult = self._wxframe.showDlg("BymurDBLoadDlg",
-                                             **self._dbDetails)
-
-        if dialogResult:
-            self._dbDetails.update(dialogResult)
-            try:
-                bf.SpawnThread(
-                    self.wxframe,
-                    bf.wxBYMUR_DB_CONNECTED,
-                    self._core.connectDB,
-                    self._dbDetails,
-                    wait_msg="Connecting database...")
-
-            except Exception as e:
-                bf.showMessage(parent=self.wxframe,
-                                       message=str(e),
-                                       debug=self._exception_debug,
-                                       kind="BYMUR_ERROR",
-                                       caption="Error")
-
     def loadDB(self):
         if (not self._core.db):
             dialogResult = self._wxframe.showDlg("BymurDBLoadDlg",
@@ -71,12 +55,11 @@ class BymurController(object):
                 self._dbDetails.update(dialogResult)
                 try:
                     bf.SpawnThread(self.wxframe,
-                        bf.wxBYMUR_UPDATE_CTRLS,
+                        bf.wxBYMUR_DB_CONNECTED,
                         self._core.connectAndFetch,
                         self._dbDetails,
                         callback=self.set_ctrls_data,
                         wait_msg="Loading database...")
-                    self.wxframe.dbLoaded = True
                 except Exception as e:
                     bf.showMessage(parent=self.wxframe,
                                            debug=self._exception_debug,
@@ -145,6 +128,24 @@ class BymurController(object):
 
     def addDBData(self):
         print "addDBData"
+        dialogResult = self._wxframe.showDlg("BymurAddDBDataDlg",
+                                                       **self._addDBDataDetails)
+        if dialogResult:
+            self._addDBDataDetails.update(dialogResult)
+            try:
+                bf.SpawnThread(self.wxframe,
+                               bf.wxBYMUR_UPDATE_DIALOG,
+                               self._core.addDBData,
+                               self._addDBDataDetails,
+                               self.set_ctrls_data,
+                               wait_msg="Adding data to database...")
+            except Exception as e:
+                bf.showMessage(parent=self.wxframe,
+                               message=str(e),
+                               debug=self._exception_debug,
+                               kind="BYMUR_ERROR",
+                               caption="Error")
+
 
     def dropDBTables(self):
         print "dropDBTables"
@@ -270,6 +271,9 @@ class BymurController(object):
     def wxframe(self):
         return self._wxframe
 
+    @property
+    def basedir(self):
+        return self._basedir
 
     def sleep_fun(self):
         print "in sleep"

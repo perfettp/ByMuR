@@ -474,9 +474,53 @@ class BymurDBCreateDlg(wx.Dialog):
             result = -1
         return (result, self._localData)
 
+class BymurAddDBDataDlg(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        self._title = 'Add data to database'
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
+                              'haz_perc': kwargs.pop('haz_perc', '')}
+        self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
+        super(BymurAddDBDataDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+        self.SetTitle(self._title)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
+        self._sizer.Add(self._gridSizer)
+
+        self._geoBoxSizer = BymurGeoBoxSizer(parent=self,
+                                             label="Geographical grid "
+                                                   "data",
+                                             **self._localGeoDefaults)
+        self._gridSizer.Add(self._geoBoxSizer, flag=wx.EXPAND,
+                            pos=(0, 0), span=(1, 1))
+
+        self._hazBoxSizer = BymurHazBoxSizer(parent=self,
+                                             label="Hazard",
+                                             **self._localHazData)
+        self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
+                            pos=(0, 1), span=(1, 1))
+        self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                        flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+        self.SetSizerAndFit(self._sizer)
+
+    def ShowModal(self, *args, **kwargs):
+        result = super(BymurAddDBDataDlg, self).ShowModal(*args, **kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localHazData['grid_path'] = self._geoBoxSizer.gridPath
+            self._localHazData['haz_path'] = self._hazBoxSizer.hazPath
+            self._localHazData['haz_perc'] = self._hazBoxSizer.hazPerc
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localHazData)
 
 class BymurDBLoadDlg(wx.Dialog):
     _textSize = (300, -1)
+
 
     def __init__(self, *args, **kwargs):
         self._title = 'Load ByMuR database'
@@ -637,8 +681,13 @@ class BymurWxMapPanel(BymurWxPanel):
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         # self._map = plotLibs.MapFigure(self, self._controller)
+        print "basedir %s" %  wx.GetTopLevelParent(self).basedir
+        print "file %s" %  os.path.join(wx.GetTopLevelParent(self).basedir,
+                                     "./data/naples_gmaps.png")
         self._map = bymur_plots.HazardGraph(parent=self,
-                                            click_callback=self._controller.onMapClick)
+                                click_callback=self._controller.onMapClick,
+                                imgfile = os.path.join(wx.GetTopLevelParent(
+                                    self).basedir,"./data/naples_gmaps.png"))
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
@@ -862,6 +911,7 @@ class BymurWxLeftPanel(BymurWxPanel):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
         if (ev is None):  # First data load
             print "First data load"
+            self._phenCB.Clear()
             self._phenCB.AppendItems([haz['phenomenon_name']
                                       for haz in ctrls_data['phenomena']])
             self._phenCB.Enable(True)
@@ -961,8 +1011,8 @@ class BymurWxMenu(wx.MenuBar):
         self.menuFile = wx.Menu()
         menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Load database')
         self._menu_actions[menuItemTmp.GetId()] = self._controller.loadDB
-        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
-        self._menu_actions[menuItemTmp.GetId()] = self._controller.connectDB
+        # menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
+        # self._menu_actions[menuItemTmp.GetId()] = self._controller.connectDB
         self.menuFile.AppendSeparator()
         self.menuFile.Append(wx.ID_CLOSE, '&Quit')
         self._menu_actions[wx.ID_CLOSE] = self._controller.quit
@@ -1046,6 +1096,7 @@ class BymurWxView(wx.Frame):
     _db_loaded = False
 
     def __init__(self, *args, **kwargs):
+        self._basedir =  kwargs.pop('basedir', None)
         self._controller = kwargs.pop('controller', None)
         self._title = kwargs.pop('title', '')
         super(BymurWxView, self).__init__(*args, **kwargs)
@@ -1182,21 +1233,20 @@ class BymurWxView(wx.Frame):
     def OnBymurEvent(self, event):
         if event.GetEventType() == bf.wxBYMUR_DB_CONNECTED:
             print "bf.wxBYMUR_DB_CONNECTED"
+            self.dbConnected = True
+            self.leftPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
             print "bf.wxBYMUR_UPDATE_CTRLS"
             self.leftPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
+            print "bf.wxBYMUR_UPDATE_ALL"
             self.leftPanel.updateCtrls(event)
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_DIALOG:
+            print "bf.wxBYMUR_UPDATE_DIALOG"
+            self.leftPanel.updateCtrls()
         self.SetBusy(False)
-
-    # on connect
-    # bf.showMessage,
-    # {'parent' : self.wxframe,
-    # 'message' : "Connection Succeded!",
-    # 'kind': "BYMUR_INFO",
-    #                      'caption': "Info"},
 
     @property
     def rightPanel(self):
@@ -1241,6 +1291,14 @@ class BymurWxView(wx.Frame):
         self._db_loaded = value
         for item in self.menuBar.mapControls:
             self.menuBar.Enable(item.GetId(), value)
+
+    @property
+    def basedir(self):
+        return self._basedir
+
+    @basedir.setter
+    def basedir(self, dir):
+        self._basedir = dir
 
     @property
     def ctrls_data(self):
@@ -1294,11 +1352,13 @@ class BymurWxView(wx.Frame):
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):
         self._controller = kwargs.pop('controller', None)
+        self._basedir =  kwargs.pop('basedir', None)
         super(BymurWxApp, self).__init__(*args, **kwargs)
 
 
     def OnInit(self):
         frame = BymurWxView(parent=None, controller=self._controller,
+                            basedir = self._basedir,
                             title="ByMuR - Refactoring")
 
         self._controller.SetWxFrame(frame)
@@ -1312,5 +1372,6 @@ class BymurWxApp(wx.App):
 if __name__ == "__main__":
     core = bymur_core.BymurCore()
     control = bymur_controller.BymurController(core=core)
-    app = BymurWxApp(redirect=False, controller=control)
+    app = BymurWxApp(redirect=False, controller=control,
+                     basedir = control.basedir)
     app.MainLoop()
