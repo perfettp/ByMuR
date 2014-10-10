@@ -903,9 +903,54 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._ctrlsSizer.Add(self._updateButton, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(3, 4))
 
-        self._sizer.Add(self._ctrlsBoxSizer)
+
+        self._pointBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Point data")
+        self._pointBoxSizer = wx.StaticBoxSizer(
+            self._pointBox,
+            orient=wx.VERTICAL)
+        self._pointSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._pointBoxSizer.Add(self._pointSizer)
+
+        vpos = 0
+        self._pointText = wx.StaticText(self, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Select a point by ID or "
+                                                 "UTM coordinates")
+        self._pointSizer.Add(self._pointText, flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 4))
+        vpos += 1
+        self._pointIDLabel = wx.StaticText(self, wx.ID_ANY, 'Point ID')
+        self._pointIDCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                   style=wx.CB_DROPDOWN, size=(200, -1))
+        self._pointIDCB.Bind(wx.EVT_COMBOBOX, self.pointSelected)
+        self._pointSizer.Add(self._pointIDLabel, pos=(vpos, 0), span=(1, 2),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._pointSizer.Add(self._pointIDCB, pos=(vpos, 2), span=(1, 2))
+
+        vpos += 1
+        self._pointButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+                                        'Update Curve',
+                                        size=(-1, -1))
+        # self.Bind(wx.EVT_BUTTON, self._controller.updatePoint,
+        # #           self._updateButton)
+        self._pointSizer.Add(self._pointButton, flag=wx.EXPAND, pos=(vpos, 0),
+                              span=(3, 4))
+
+        self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
+        self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
         self.SetSizer(self._sizer)
         # self.Enable(False)
+
+    def updatePoints(self, ev=None):
+        self._pointIDCB.Clear()
+        self._pointIDCB.SetValue('')
+        self._pointIDCB.AppendItems([str(p['id']) for p in
+                                     wx.GetTopLevelParent(self).grid_points])
+
+
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
@@ -971,6 +1016,17 @@ class BymurWxLeftPanel(BymurWxPanel):
     def updateView(self, **kwargs):
         super(BymurWxLeftPanel, self).updateView(**kwargs)
 
+    def pointSelected(self, ev):
+        if (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED):
+            _point_id = self._pointIDCB.GetStringSelection()
+            if _point_id in self._pointIDCB.GetStrings()    :
+                print "Punto Valido"
+                self._controller.onPointSelect(int(_point_id))
+            else:
+                #TODO: error dialog
+                pass
+
+
     @property
     def ctrlsBoxTitle(self):
         """Get the current ctrlsBoxTitle."""
@@ -993,6 +1049,14 @@ class BymurWxLeftPanel(BymurWxPanel):
         print self._expTimeCB.GetSelection()
         values['exp_time'] = self._expTimeCB.GetStringSelection()
         return values
+
+    @property
+    def pointID(self):
+        return self._pointIDCB.GetValue()
+
+    @pointID.setter
+    def pointID(self, data):
+        self._pointIDCB.SetValue(data)
 
 
 class BymurWxMenu(wx.MenuBar):
@@ -1107,6 +1171,7 @@ class BymurWxView(wx.Frame):
         self._hazard_values = None
         self._selected_point = None
         self._selected_point_curves = None
+        self._grid_points = None
 
         # TODO: make a list for events
         self.Bind(bf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
@@ -1241,6 +1306,7 @@ class BymurWxView(wx.Frame):
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
             print "bf.wxBYMUR_UPDATE_ALL"
             self.leftPanel.updateCtrls(event)
+            self.leftPanel.updatePoints(event)
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_DIALOG:
@@ -1339,6 +1405,7 @@ class BymurWxView(wx.Frame):
     @selected_point.setter
     def selected_point(self, data):
         self._selected_point = data
+        self.leftPanel.pointID = str(data['point']['id'])
 
     @property
     def selected_point_curves(self):
@@ -1347,6 +1414,14 @@ class BymurWxView(wx.Frame):
     @selected_point_curves.setter
     def selected_point_curves(self, data):
         self._selected_point_curves = data
+        
+    @property
+    def grid_points(self):
+        return self._grid_points
+
+    @grid_points.setter
+    def grid_points(self, data):
+        self._grid_points = data
 
 
 class BymurWxApp(wx.App):

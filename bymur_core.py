@@ -39,6 +39,7 @@ class BymurCore(object):
         self._db = None
         self._db_details=None
         self._ctrls_data = {}
+        self._grid_points = []
         self._hazard_options = {}
         self._hazard_description = None
         self._hazard_values = None
@@ -132,6 +133,21 @@ class BymurCore(object):
         print "phenomena %s " % ret['phenomena']
         return ret
 
+    def setPointById(self, id):
+        print "grid points %s " % self.grid_points
+        tmp_point = None
+        print self.hazard_values
+        for i, p in enumerate(self.hazard_values):
+            if p['point']['id'] == id:
+                print p
+                tmp_point = p
+                tmp_point['index'] = i
+                tmp_point['curve'] = self.hazard_curves[i]['curve']
+                break
+        self.selected_point = tmp_point
+        # print "selected_point = %s" % self.selected_point
+        self.selected_point_curves = self.get_point_curves()
+
 
     def setPoint(self, xsel, ysel):
         xsel *= 1000
@@ -160,6 +176,7 @@ class BymurCore(object):
             tmp_point.update(self.hazard_values[
                 tmp_point['index']])
             tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
+            print tmp_point
             self.selected_point = tmp_point
             # print "selected_point = %s" % self.selected_point
             self.selected_point_curves = self.get_point_curves()
@@ -272,6 +289,9 @@ class BymurCore(object):
                                             self.hazard_curves)
 
 
+    def get_grid_points(self, grid_id):
+       return self.db.datagrid_points_get(grid_id)
+
 
     def updateModel(self, **ctrls_options):
 
@@ -292,6 +312,9 @@ class BymurCore(object):
                self.hazard_options['ret_per'],
                self.hazard_options['int_thresh'],
                self.hazard_options['hazard_threshold'])
+
+        self.grid_points = self.get_grid_points(self.hazard_description['datagrid_id'])
+
         #print "hazard_values = %s" % self.hazard_values
 
     def exportRawPoints(self, haz_array):
@@ -494,6 +517,14 @@ class BymurCore(object):
     @selected_point_curves.setter
     def selected_point_curves(self, data):
         self._selected_point_curves = data
+
+    @property
+    def grid_points(self):
+        return self._grid_points
+
+    @grid_points.setter
+    def grid_points(self, points_list):
+        self._grid_points = points_list
 
     @property
     def db(self):

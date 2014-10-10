@@ -114,8 +114,6 @@ class BymurController(object):
                                        caption="Error")
 
 
-
-
     def updateCurves(self, **kwargs):
         print "update curves"
         self.wxframe.rightPanel.curvesPanel.updateView()
@@ -232,11 +230,18 @@ class BymurController(object):
             else:
                 print "Problem setting point"
 
+    def onPointSelect(self, point_id):
+        self._core.setPointById(point_id)
+        self.set_selected_point()
+        self.set_selected_point_curves()
+        self.updateCurves()
+
 
     def update_hazard_data(self):
         self.set_hazard_options()
         self.set_hazard_description()
         self.set_hazard_values()
+        self.set_grid_points()
 
     def set_ctrls_data(self):
         self.wxframe.ctrls_data = self._core.ctrls_data
@@ -249,6 +254,9 @@ class BymurController(object):
 
     def set_hazard_values(self):
         self.wxframe.hazard_values = self._core.hazard_values
+
+    def set_grid_points(self):
+        self.wxframe.grid_points = self._core.grid_points
         
     def set_selected_point(self):
         self.wxframe.selected_point = self._core.selected_point
