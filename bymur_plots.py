@@ -238,11 +238,12 @@ class HazardGraph(BymurPlot):
         max_intervals = 5
         maxz = np.ceil(max(z_array))
         minz = np.floor(min(z_array))
-        print "z_array max: %s" %maxz
-        print "z_array min: %s" %minz
+        print "z_array max: %s" % maxz
+        print "z_array min: %s" % minz
 
         if (maxz - minz) < 4:
             inter = 0.2
+            print "qui"
         elif maxz < 10:
             inter = 1.
             maxz = max(maxz, 3.)
@@ -255,6 +256,8 @@ class HazardGraph(BymurPlot):
         while chk > max_intervals:
             itmp = itmp + 1
             inter = inter * itmp
+            if inter < 1:
+                inter = 1
             bounds = range(int(minz), int(maxz), int(inter))
             chk = len(bounds)
         maxz = minz + chk * inter
