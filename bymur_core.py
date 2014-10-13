@@ -10,16 +10,16 @@ class BymurCore(object):
     # Default values regardless of hazard model
     _ctrls_defaut = {
         'SEISMIC': {
-            'ret_per': 4975,
-            'int_thresh': 3.0
+            'ret_per': 475,
+            'int_thresh': 0.1
         },
         'TSUNAMIC': {
-            'ret_per': 4975,
-            'int_thresh': 3.0
+            'ret_per': 475,
+            'int_thresh': 0.1
         },
         'VOLCANIC': {
-            'ret_per': 4975,
-            'int_thresh': 3.0
+            'ret_per': 475,
+            'int_thresh': 0.1
         },
         'basedir': os.getcwd(), # TODO: da eliminare quando scarichero' le mappe
     }
