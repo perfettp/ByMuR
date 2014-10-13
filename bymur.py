@@ -939,8 +939,8 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._pointButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
                                         'Update Curve',
                                         size=(-1, -1))
-        # self.Bind(wx.EVT_BUTTON, self._controller.updatePoint,
-        # #           self._updateButton)
+        self.Bind(wx.EVT_BUTTON, self.pointCoordsSel,
+                   self._pointButton)
         self._pointSizer.Add(self._pointButton, flag=wx.EXPAND, pos=(vpos, 0),
                               span=(3, 4))
 
@@ -994,6 +994,10 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._sizer.Add(self._dataBoxSizer, flag=wx.EXPAND)
         self.SetSizer(self._sizer)
         # self.Enable(False)
+
+    def pointCoordsSel(self, ev):
+        self._controller.onPointSelect(self._pointEastSC.GetValue(),
+                                       self._pointNortSC.GetValue())
 
     def updatePointSel(self, ev=None, easting='', northing='',
                     haz_value='', prob_value=''):
@@ -1486,8 +1490,8 @@ class BymurWxView(wx.Frame):
     def selected_point(self, data):
         self._selected_point = data
         print data['point']
-        self.leftPanel.updatePointSel(easting=str(data['point']['easting']),
-                                   northing=str(data['point']['northing']))
+        # self.leftPanel.updatePointSel(easting=str(data['point']['easting']),
+        #                            northing=str(data['point']['northing']))
         self.leftPanel.updatePointData(easting=str(data['point']['easting']),
                                    northing=str(data['point']['northing']),
                                    haz_value=str(data['haz_value']),

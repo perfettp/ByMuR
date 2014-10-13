@@ -149,13 +149,20 @@ class BymurCore(object):
         self.selected_point_curves = self.get_point_curves()
 
 
-    def setPoint(self, xsel, ysel):
-        xsel *= 1000
-        ysel *= 1000
+    def setPoint(self, xpar, ypar):
+        xsel = np.float64(xpar)
+        ysel = np.float64(ypar)
+        print "xsel %s" % xsel
+        print "ysel %s" % ysel
+        print "xsel type %s" % type(xsel)
+        print "ysel type %s" % type(ysel)
+        # xsel *= 1000
+        # ysel *= 1000
         if (xsel >= self.hazard_metadata['east_min']
             and xsel <= self.hazard_metadata['east_max']
             and ysel >= self.hazard_metadata['nort_min']
             and ysel <= self.hazard_metadata['nort_max']):
+            print "hazard_values %s" % self.hazard_values
             dist = np.sqrt(([p['point']['easting']
                              for p in self.hazard_values] - xsel) ** 2 +
                            ([p['point']['northing']

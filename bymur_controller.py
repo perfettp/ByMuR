@@ -223,18 +223,20 @@ class BymurController(object):
 
     def onMapClick(self, event):
         if (event.inaxes == self.wxframe.rightPanel.mapPanel.map.haz_map):
-            if self._core.setPoint(event.xdata, event.ydata):
+            if self._core.setPoint(event.xdata*1000, event.ydata*1000):
                 self.set_selected_point()
                 self.set_selected_point_curves()
                 self.updateCurves()
             else:
-                print "Problem setting point"
+                print "onMapClick problem setting point"
 
-    def onPointSelect(self, point_id):
-        self._core.setPointById(point_id)
-        self.set_selected_point()
-        self.set_selected_point_curves()
-        self.updateCurves()
+    def onPointSelect(self, easting, northing):
+        if self._core.setPoint(easting, northing):
+            self.set_selected_point()
+            self.set_selected_point_curves()
+            self.updateCurves()
+        else:
+            print "onPointSelect problem setting point"
 
 
     def update_hazard_data(self):
