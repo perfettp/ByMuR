@@ -115,7 +115,7 @@ class BymurController(object):
 
 
     def updateCurves(self, **kwargs):
-        print "update curves"
+        # print "update curves"
         self.wxframe.rightPanel.curvesPanel.updateView()
 
     def quit(self):

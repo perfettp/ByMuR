@@ -136,7 +136,6 @@ class BymurCore(object):
     def setPointById(self, id):
         print "grid points %s " % self.grid_points
         tmp_point = None
-        print self.hazard_values
         for i, p in enumerate(self.hazard_values):
             if p['point']['id'] == id:
                 print p
@@ -145,39 +144,27 @@ class BymurCore(object):
                 tmp_point['curve'] = self.hazard_curves[i]['curve']
                 break
         self.selected_point = tmp_point
-        # print "selected_point = %s" % self.selected_point
         self.selected_point_curves = self.get_point_curves()
 
 
     def setPoint(self, xpar, ypar):
         xsel = np.float64(xpar)
         ysel = np.float64(ypar)
-        print "xsel %s" % xsel
-        print "ysel %s" % ysel
-        print "xsel type %s" % type(xsel)
-        print "ysel type %s" % type(ysel)
-        # xsel *= 1000
-        # ysel *= 1000
         if (xsel >= self.hazard_metadata['east_min']
             and xsel <= self.hazard_metadata['east_max']
             and ysel >= self.hazard_metadata['nort_min']
             and ysel <= self.hazard_metadata['nort_max']):
-            print "hazard_values %s" % self.hazard_values
             dist = np.sqrt(([p['point']['easting']
                              for p in self.hazard_values] - xsel) ** 2 +
                            ([p['point']['northing']
                              for p in self.hazard_values] - ysel) ** 2)
-            # print 'np.argmin(dist) %s' % np.argmin(dist)
             tmp_point = {}
             tmp_point['index'] = np.argmin(dist)
             tmp_point.update(self.hazard_values[
                 tmp_point['index']])
             tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
-            print "tmp_point = %s" % tmp_point
             self.selected_point = tmp_point
-            # print "selected_point = %s" % self.selected_point
             self.selected_point_curves = self.get_point_curves()
-            print "selected_point_curves = %s" % self.selected_point_curves
             return True
         else:
             return False

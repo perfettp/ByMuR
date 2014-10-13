@@ -904,17 +904,19 @@ class BymurWxLeftPanel(BymurWxPanel):
                              span=(3, 4))
 
 
+
+        vpos = 0
         self._pointBox = wx.StaticBox(
             self,
             wx.ID_ANY,
-            "Point selection")
+            "Point selection",
+            style=wx.EXPAND)
         self._pointBoxSizer = wx.StaticBoxSizer(
             self._pointBox,
             orient=wx.VERTICAL)
         self._pointSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._pointBoxSizer.Add(self._pointSizer)
+        self._pointBoxSizer.Add(self._pointSizer, flag=wx.EXPAND)
 
-        vpos = 0
         self._pointText = wx.StaticText(self, id=wx.ID_ANY,
                                            style=wx.EXPAND,
                                            label="Select a point by "
@@ -922,18 +924,17 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._pointSizer.Add(self._pointText, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(1, 4))
         vpos += 1
-        self._pointEastLabel = wx.StaticText(self, wx.ID_ANY, 'Easting (m)')
-        self._pointEastSC = wx.SpinCtrl(self, wx.ID_ANY, size=(200, -1))
-        self._pointSizer.Add(self._pointEastLabel, pos=(vpos, 0), span=(1, 2),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._pointSizer.Add(self._pointEastSC, pos=(vpos, 2), span=(1, 2))
+        self._pointEastLabel = wx.StaticText(self, wx.ID_ANY| wx.EXPAND, 'Easting ')
+        self._pointEastSC = wx.SpinCtrl(self, wx.ID_ANY| wx.EXPAND)
+        self._pointSizer.Add(self._pointEastLabel, pos=(vpos, 0), span=(1, 1),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT | wx.EXPAND)
+        self._pointSizer.Add(self._pointEastSC, pos=(vpos, 1), span=(1, 1), flag=wx.EXPAND)
 
-        vpos += 1
-        self._pointNortLabel = wx.StaticText(self, wx.ID_ANY, 'Northing (m)')
-        self._pointNortSC = wx.SpinCtrl(self, wx.ID_ANY, size=(200, -1))
-        self._pointSizer.Add(self._pointNortLabel, pos=(vpos, 0), span=(1, 2),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._pointSizer.Add(self._pointNortSC, pos=(vpos, 2), span=(1, 2))
+        self._pointNortLabel = wx.StaticText(self, wx.ID_ANY| wx.EXPAND, 'Northing ')
+        self._pointNortSC = wx.SpinCtrl(self, wx.ID_ANY| wx.EXPAND)
+        self._pointSizer.Add(self._pointNortLabel, pos=(vpos, 2), span=(1, 1),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT | wx.EXPAND)
+        self._pointSizer.Add(self._pointNortSC, pos=(vpos, 3), span=(1, 1), flag=wx.EXPAND)
 
         vpos += 1
         self._pointButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
@@ -942,7 +943,7 @@ class BymurWxLeftPanel(BymurWxPanel):
         self.Bind(wx.EVT_BUTTON, self.pointCoordsSel,
                    self._pointButton)
         self._pointSizer.Add(self._pointButton, flag=wx.EXPAND, pos=(vpos, 0),
-                              span=(3, 4))
+                              span=(2, 4))
 
 
         ## Nearest data point coordinates and values
@@ -957,37 +958,33 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._dataBoxSizer.Add(self._dataSizer)
 
         vpos = 0
-        self._dataEastLabel = wx.StaticText(self, wx.ID_ANY, 'Easting (m)')
-        self._dataEastTC = wx.TextCtrl(self, wx.ID_ANY,
-                                       style=wx.TE_READONLY, size=(200, -1))
-        self._dataSizer.Add(self._dataEastLabel, pos=(vpos, 0), span=(1, 2),
+        self._dataEastLabel = wx.StaticText(self, wx.ID_ANY, 'Easting ')
+        self._dataEastTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataEastLabel, pos=(vpos, 0), span=(1, 1),
                               flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataEastTC, pos=(vpos, 2), span=(1, 2))
+        self._dataSizer.Add(self._dataEastTC, pos=(vpos, 1), span=(1, 1))
+
+        self._dataHazLabel = wx.StaticText(self, wx.ID_ANY, 'Hazard ')
+        self._dataHazTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataHazLabel, pos=(vpos, 2), span=(1, 1),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._dataSizer.Add(self._dataHazTC, pos=(vpos, 3), span=(1, 1))
 
         vpos += 1
-        self._dataNortLabel = wx.StaticText(self, wx.ID_ANY, 'Northing (m)')
+        self._dataNortLabel = wx.StaticText(self, wx.ID_ANY, 'Northing ')
         self._dataNortTC = wx.TextCtrl(self, wx.ID_ANY,
-                                       style=wx.TE_READONLY, size=(200, -1))
-        self._dataSizer.Add(self._dataNortLabel, pos=(vpos, 0), span=(1, 2),
+                                       style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataNortLabel, pos=(vpos, 0), span=(1, 1),
                               flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataNortTC, pos=(vpos, 2), span=(1, 2))
-        
-        vpos += 1
-        self._dataHazLabel = wx.StaticText(self, wx.ID_ANY, 'Hazard value')
-        self._dataHazTC = wx.TextCtrl(self, wx.ID_ANY,
-                                       style=wx.TE_READONLY, size=(200, -1))
-        self._dataSizer.Add(self._dataHazLabel, pos=(vpos, 0), span=(1, 2),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataHazTC, pos=(vpos, 2), span=(1, 2))
-        
-        vpos += 1
-        self._dataProbLabel = wx.StaticText(self, wx.ID_ANY, 'Probability '
-                                                             'value')
+        self._dataSizer.Add(self._dataNortTC, pos=(vpos, 1), span=(1, 1))
+
+
+        self._dataProbLabel = wx.StaticText(self, wx.ID_ANY, 'Probability ')
         self._dataProbTC = wx.TextCtrl(self, wx.ID_ANY,
-                                       style=wx.TE_READONLY, size=(200, -1))
-        self._dataSizer.Add(self._dataProbLabel, pos=(vpos, 0), span=(1, 2),
+                                       style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataProbLabel, pos=(vpos, 2), span=(1, 1),
                               flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataProbTC, pos=(vpos, 2), span=(1, 2))
+        self._dataSizer.Add(self._dataProbTC, pos=(vpos, 3), span=(1, 1))
 
         self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
@@ -1086,18 +1083,6 @@ class BymurWxLeftPanel(BymurWxPanel):
             minVal=wx.GetTopLevelParent(self).hazard_metadata['nort_min'],
             maxVal=wx.GetTopLevelParent(self).hazard_metadata['nort_max']
             )
-
-
-    def pointSelected(self, ev):
-        print "pointSelected, ev: %s" % ev.GetEventType()
-        # if (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED):
-        #     _point_id = self._pointIDCB.GetStringSelection()
-        #     if _point_id in self._pointIDCB.GetStrings()    :
-        #         print "Punto Valido"
-        #         self._controller.onPointSelect(int(_point_id))
-        #     else:
-        #         #TODO: error dialog
-        #         pass
 
 
     @property
