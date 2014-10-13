@@ -152,16 +152,6 @@ class BymurCore(object):
     def setPoint(self, xsel, ysel):
         xsel *= 1000
         ysel *= 1000
-        # print "xsel %s" % xsel
-        # print "ysel %s" % ysel
-        # print "self.hazard_metadata ['east_min']   %s" % self.hazard_metadata[
-        #     'east_min']
-        # print "self.hazard_metadata ['east_max']   %s" % self.hazard_metadata[
-        #     'east_max']
-        # print "self.hazard_metadata ['nort_min']  %s" % self.hazard_metadata[
-        #     'nort_min']
-        # print "self.hazard_metadata ['nort_max']  %s" % self.hazard_metadata[
-        #     'nort_max']
         if (xsel >= self.hazard_metadata['east_min']
             and xsel <= self.hazard_metadata['east_max']
             and ysel >= self.hazard_metadata['nort_min']
@@ -176,11 +166,11 @@ class BymurCore(object):
             tmp_point.update(self.hazard_values[
                 tmp_point['index']])
             tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
-            print tmp_point
+            print "tmp_point = %s" % tmp_point
             self.selected_point = tmp_point
             # print "selected_point = %s" % self.selected_point
             self.selected_point_curves = self.get_point_curves()
-            # print "selected_point_curves = %s" % self.selected_point_curves
+            print "selected_point_curves = %s" % self.selected_point_curves
             return True
         else:
             return False
