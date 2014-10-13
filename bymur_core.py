@@ -150,6 +150,8 @@ class BymurCore(object):
     def setPoint(self, xpar, ypar):
         xsel = np.float64(xpar)
         ysel = np.float64(ypar)
+        print "xsel %s" % xsel
+        print "ysel %s" % ysel
         if (xsel >= self.hazard_metadata['east_min']
             and xsel <= self.hazard_metadata['east_max']
             and ysel >= self.hazard_metadata['nort_min']
@@ -160,6 +162,12 @@ class BymurCore(object):
                              for p in self.hazard_values] - ysel) ** 2)
             tmp_point = {}
             tmp_point['index'] = np.argmin(dist)
+            print "min_dist_haz %s" % dist[tmp_point['index']]
+            print "hazval_1 %s " % self.hazard_values[1]
+            print "len hazard_Values %s " % len(self.hazard_values)
+            print "temp_point index %s " % tmp_point['index']
+            print "hazard_values[%s]: %s " % (tmp_point['index'],
+                                                 self.hazard_values[tmp_point['index']])
             tmp_point.update(self.hazard_values[
                 tmp_point['index']])
             tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
