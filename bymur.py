@@ -917,40 +917,34 @@ class BymurWxLeftPanel(BymurWxPanel):
         vpos = 0
         self._pointText = wx.StaticText(self, id=wx.ID_ANY,
                                            style=wx.EXPAND,
-                                           label="Select a point by ID or "
+                                           label="Select a point by "
                                                  "UTM coordinates")
         self._pointSizer.Add(self._pointText, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(1, 4))
         vpos += 1
-        self._pointIDLabel = wx.StaticText(self, wx.ID_ANY, 'Point ID')
-        self._pointIDCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
-                                   style=wx.CB_DROPDOWN, size=(200, -1))
-        self._pointIDCB.Bind(wx.EVT_COMBOBOX, self.pointSelected)
-        self._pointSizer.Add(self._pointIDLabel, pos=(vpos, 0), span=(1, 2),
+        self._pointEastLabel = wx.StaticText(self, wx.ID_ANY, 'Easting (m)')
+        self._pointEastSC = wx.SpinCtrl(self, wx.ID_ANY, size=(200, -1))
+        self._pointSizer.Add(self._pointEastLabel, pos=(vpos, 0), span=(1, 2),
                               flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._pointSizer.Add(self._pointIDCB, pos=(vpos, 2), span=(1, 2))
+        self._pointSizer.Add(self._pointEastSC, pos=(vpos, 2), span=(1, 2))
 
         vpos += 1
-        self._pointButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
-                                        'Update Curve',
-                                        size=(-1, -1))
-        # self.Bind(wx.EVT_BUTTON, self._controller.updatePoint,
-        # #           self._updateButton)
-        self._pointSizer.Add(self._pointButton, flag=wx.EXPAND, pos=(vpos, 0),
-                              span=(3, 4))
+        self._pointNortLabel = wx.StaticText(self, wx.ID_ANY, 'Northing (m)')
+        self._pointNortSC = wx.SpinCtrl(self, wx.ID_ANY, size=(200, -1))
+        self._pointSizer.Add(self._pointNortLabel, pos=(vpos, 0), span=(1, 2),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._pointSizer.Add(self._pointNortSC, pos=(vpos, 2), span=(1, 2))
 
         self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
         self.SetSizer(self._sizer)
         # self.Enable(False)
 
-    def updatePoints(self, ev=None):
-        self._pointIDCB.Clear()
-        self._pointIDCB.SetValue('')
-        self._pointIDCB.AppendItems([str(p['id']) for p in
-                                     wx.GetTopLevelParent(self).grid_points])
-
-
+    def updatePoint(self, ev=None, easting=None, northing=None):
+        print "pointSelected, ev: %s" % ev
+        if easting is not None and northing is not None:
+            self._pointEastSC.SetValueString(easting)
+            self._pointNortSC.SetValueString(northing)
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
@@ -1016,15 +1010,27 @@ class BymurWxLeftPanel(BymurWxPanel):
     def updateView(self, **kwargs):
         super(BymurWxLeftPanel, self).updateView(**kwargs)
 
+    def updatePointInterval(self):
+        self._pointEastSC.SetRange(
+            minVal=wx.GetTopLevelParent(self).hazard_metadata['east_min'],
+            maxVal=wx.GetTopLevelParent(self).hazard_metadata['east_max']
+            )
+        self._pointNortSC.SetRange(
+            minVal=wx.GetTopLevelParent(self).hazard_metadata['nort_min'],
+            maxVal=wx.GetTopLevelParent(self).hazard_metadata['nort_max']
+            )
+
+
     def pointSelected(self, ev):
-        if (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED):
-            _point_id = self._pointIDCB.GetStringSelection()
-            if _point_id in self._pointIDCB.GetStrings()    :
-                print "Punto Valido"
-                self._controller.onPointSelect(int(_point_id))
-            else:
-                #TODO: error dialog
-                pass
+        print "pointSelected, ev: %s" % ev.GetEventType()
+        # if (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED):
+        #     _point_id = self._pointIDCB.GetStringSelection()
+        #     if _point_id in self._pointIDCB.GetStrings()    :
+        #         print "Punto Valido"
+        #         self._controller.onPointSelect(int(_point_id))
+        #     else:
+        #         #TODO: error dialog
+        #         pass
 
 
     @property
@@ -1168,6 +1174,7 @@ class BymurWxView(wx.Frame):
         self._ctrls_data = {}
         self._hazard_options = {}
         self._hazard_description = None
+        self._hazard_metadata = None
         self._hazard_values = None
         self._selected_point = None
         self._selected_point_curves = None
@@ -1306,7 +1313,7 @@ class BymurWxView(wx.Frame):
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
             print "bf.wxBYMUR_UPDATE_ALL"
             self.leftPanel.updateCtrls(event)
-            self.leftPanel.updatePoints(event)
+            self.leftPanel.updatePoint(event)
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_DIALOG:
@@ -1389,6 +1396,15 @@ class BymurWxView(wx.Frame):
     @hazard_description.setter
     def hazard_description(self, data):
         self._hazard_description = data
+        
+    @property
+    def hazard_metadata(self):
+        return self._hazard_metadata
+
+    @hazard_metadata.setter
+    def hazard_metadata(self, data):
+        self._hazard_metadata = data
+        self.leftPanel.updatePointInterval()
 
     @property
     def hazard_values(self):
@@ -1405,7 +1421,9 @@ class BymurWxView(wx.Frame):
     @selected_point.setter
     def selected_point(self, data):
         self._selected_point = data
-        self.leftPanel.pointID = str(data['point']['id'])
+        print data['point']
+        self.leftPanel.updatePoint(easting=str(data['point']['easting']),
+                                   northing=str(data['point']['northing']))
 
     @property
     def selected_point_curves(self):

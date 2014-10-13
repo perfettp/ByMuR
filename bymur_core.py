@@ -475,6 +475,14 @@ class BymurCore(object):
         self._hazard_description = data
 
     @property
+    def hazard_metadata(self):
+        return self._hazard_metadata
+
+    @hazard_metadata.setter
+    def hazard_metadata(self, data):
+        self._hazard_metadata = data
+
+    @property
     def hazard_curves(self):
         return self._hazard_curves
 

@@ -240,6 +240,7 @@ class BymurController(object):
     def update_hazard_data(self):
         self.set_hazard_options()
         self.set_hazard_description()
+        self.set_hazard_metadata()
         self.set_hazard_values()
         self.set_grid_points()
 
@@ -252,6 +253,9 @@ class BymurController(object):
     def set_hazard_description(self):
         self.wxframe.hazard_description = self._core.hazard_description
 
+    def set_hazard_metadata(self):
+        self.wxframe.hazard_metadata = self._core.hazard_metadata
+        
     def set_hazard_values(self):
         self.wxframe.hazard_values = self._core.hazard_values
 
