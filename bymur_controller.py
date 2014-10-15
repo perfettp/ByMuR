@@ -221,20 +221,32 @@ class BymurController(object):
     def nbTabChanged(self, event):
         self.wxframe.rightPanel.curvesPanel.updateView(**self._core.data)
 
+    def pick_point(self, index):
+        if self._core.set_point_by_index(index):
+            self.set_selected_point()
+            self.set_selected_point_curves()
+            # TODO": fire_event
+            self.updateCurves()
+            return True
+        else:
+            return False
+
     def onMapClick(self, event):
-        if (event.inaxes == self.wxframe.rightPanel.mapPanel.map.haz_map):
-            if self._core.setPoint(event.xdata*1000, event.ydata*1000):
-                self.set_selected_point()
-                self.set_selected_point_curves()
-                self.updateCurves()
-            else:
-                print "onMapClick problem setting point"
+        if self._core.setPoint(event.mouseevent.xdata*1000,
+                               event.mouseevent.ydata*1000):
+            self.set_selected_point()
+            self.set_selected_point_curves()
+            # TODO": fire_event
+            self.updateCurves()
+        else:
+            print "onMapClick problem setting point"
 
     def onPointSelect(self, easting, northing):
         if self._core.setPoint(easting, northing):
             self.set_selected_point()
             self.set_selected_point_curves()
-            self.updateCurves()
+            bf.fire_event(self.wxframe, bf.wxBYMUR_UPDATE_POINT)
+            # self.updateCurves()
         else:
             print "onPointSelect problem setting point"
 

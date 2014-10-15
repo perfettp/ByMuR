@@ -147,6 +147,15 @@ class BymurCore(object):
         self.selected_point_curves = self.get_point_curves()
 
 
+    def set_point_by_index(self, index):
+        tmp_point = {}
+        tmp_point['index'] = index
+        tmp_point.update(self.hazard_values[index])
+        tmp_point['curve'] = self.hazard_curves[index]['curve']
+        self.selected_point = tmp_point
+        self.selected_point_curves = self.get_point_curves()
+        return True
+
     def setPoint(self, xpar, ypar):
         xsel = np.float64(xpar)
         ysel = np.float64(ypar)
