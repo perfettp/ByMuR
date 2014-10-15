@@ -113,11 +113,6 @@ class BymurController(object):
                                        kind="BYMUR_ERROR",
                                        caption="Error")
 
-
-    def updateCurves(self, **kwargs):
-        # print "update curves"
-        self.wxframe.rightPanel.curvesPanel.updateView()
-
     def quit(self):
         print "Close"
         self._core.closeDB()
@@ -225,31 +220,14 @@ class BymurController(object):
         if self._core.set_point_by_index(index):
             self.set_selected_point()
             self.set_selected_point_curves()
-            # TODO": fire_event
-            self.updateCurves()
-            return True
-        else:
-            return False
+            bf.fire_event(self.wxframe, bf.wxBYMUR_UPDATE_POINT)
 
-    def onMapClick(self, event):
-        if self._core.setPoint(event.mouseevent.xdata*1000,
-                               event.mouseevent.ydata*1000):
-            self.set_selected_point()
-            self.set_selected_point_curves()
-            # TODO": fire_event
-            self.updateCurves()
-        else:
-            print "onMapClick problem setting point"
 
     def onPointSelect(self, easting, northing):
         if self._core.setPoint(easting, northing):
             self.set_selected_point()
             self.set_selected_point_curves()
             bf.fire_event(self.wxframe, bf.wxBYMUR_UPDATE_POINT)
-            # self.updateCurves()
-        else:
-            print "onPointSelect problem setting point"
-
 
     def update_hazard_data(self):
         self.set_hazard_options()

@@ -680,7 +680,6 @@ class BymurWxMapPanel(BymurWxPanel):
         self._title = kwargs.pop('title', "Map")
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        # self._map = plotLibs.MapFigure(self, self._controller)
         print "basedir %s" %  wx.GetTopLevelParent(self).basedir
         print "file %s" %  os.path.join(wx.GetTopLevelParent(self).basedir,
                                      "./data/naples_gmaps.png")
@@ -1365,7 +1364,6 @@ class BymurWxView(wx.Frame):
             self.leftPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_POINT:
             print "bf.wxBYMUR_UPDATE_POINT"
-            print "selected_point %s " % self._selected_point
             self.rightPanel.mapPanel.updatePoint()
             self.rightPanel.curvesPanel.updateView()
 

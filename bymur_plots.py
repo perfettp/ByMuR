@@ -65,9 +65,6 @@ class BymurPlot(object):
         self._canvas.draw()
 
 
-
-
-
 class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
         self._imgfile = kwargs.get('imgfile',"naples_gmaps.png")
@@ -88,31 +85,18 @@ class HazardGraph(BymurPlot):
         self.prob_point.set_data(x, y)
         self._canvas.draw()
 
-    @property
-    def selected_point(self):
-        return self._selected_point
-
-    @selected_point.setter
-    def selected_point(self, coords):
-        self._selected_point = coords
-        self.draw_point(coords[0], coords[1])
-
     def on_pick(self, event):
         x = event.mouseevent.xdata
         y = event.mouseevent.ydata
         ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
-        if self._click_callback(ind):
-            self.selected_point=(self.x_points[ind], self.y_points[ind])
-            # self.draw_point(self.x_points[ind], self.y_points[ind])
+        self._click_callback(ind)
 
     def plot(self, hazard_description, points_utm):
         # Prepare matplotlib grid and data
         grid_points_number = 256
         self._points_utm = points_utm
         self.x_points = [p['point']['easting']*1e-3 for p in self._points_utm]
-        # self.x_points = [x*1e-3 for x in self.x_points]
         self.y_points = [p['point']['northing']*1e-3 for p in self._points_utm]
-        # self.y_points = [x*1e-3 for x in self.y_points]
         x_vector = np.linspace(min(self.x_points), max(self.x_points), grid_points_number)
         y_vector = np.linspace(min(self.y_points), max(self.y_points), grid_points_number)
         x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
@@ -286,6 +270,16 @@ class HazardGraph(BymurPlot):
         # bounds = np.linspace(minz, maxz, chk + 1)
         bounds = np.linspace(min(z_array), max(z_array), max_intervals)
         return bounds
+
+    @property
+    def selected_point(self):
+        return self._selected_point
+
+    @selected_point.setter
+    def selected_point(self, coords):
+        self._selected_point = coords
+        self.draw_point(coords[0], coords[1])
+
 
 class HazardCurve(BymurPlot):
     def __init__(self, *args, **kwargs):

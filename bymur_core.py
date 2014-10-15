@@ -1,3 +1,4 @@
+import bymur_functions as bf
 import bymur_db as db
 import numpy as np # ma lo uso solo per sqrt?
 import math
@@ -133,19 +134,6 @@ class BymurCore(object):
         print "phenomena %s " % ret['phenomena']
         return ret
 
-    def setPointById(self, id):
-        print "grid points %s " % self.grid_points
-        tmp_point = None
-        for i, p in enumerate(self.hazard_values):
-            if p['point']['id'] == id:
-                print p
-                tmp_point = p
-                tmp_point['index'] = i
-                tmp_point['curve'] = self.hazard_curves[i]['curve']
-                break
-        self.selected_point = tmp_point
-        self.selected_point_curves = self.get_point_curves()
-
 
     def set_point_by_index(self, index):
         tmp_point = {}
@@ -165,18 +153,24 @@ class BymurCore(object):
             and xsel <= self.hazard_metadata['east_max']
             and ysel >= self.hazard_metadata['nort_min']
             and ysel <= self.hazard_metadata['nort_max']):
-            dist = np.sqrt(([p['point']['easting']
-                             for p in self.hazard_values] - xsel) ** 2 +
-                           ([p['point']['northing']
-                             for p in self.hazard_values] - ysel) ** 2)
+            ind = bf.nearest_point_index(xsel, ysel,
+                                         [p['point']['easting']
+                                          for p in self.hazard_values],
+                                         [p['point']['northing']
+                                          for p in self.hazard_values])
+
+            # dist = np.sqrt(([p['point']['easting']
+            #                  for p in self.hazard_values] - xsel) ** 2 +
+            #                ([p['point']['northing']
+            #                  for p in self.hazard_values] - ysel) ** 2)
             tmp_point = {}
-            tmp_point['index'] = np.argmin(dist)
-            print "min_dist_haz %s" % dist[tmp_point['index']]
-            print "hazval_1 %s " % self.hazard_values[1]
-            print "len hazard_Values %s " % len(self.hazard_values)
-            print "temp_point index %s " % tmp_point['index']
-            print "hazard_values[%s]: %s " % (tmp_point['index'],
-                                                 self.hazard_values[tmp_point['index']])
+            tmp_point['index'] = ind
+            # print "min_dist_haz %s" % dist[tmp_point['index']]
+            # print "hazval_1 %s " % self.hazard_values[1]
+            # print "len hazard_Values %s " % len(self.hazard_values)
+            # print "temp_point index %s " % tmp_point['index']
+            # print "hazard_values[%s]: %s " % (tmp_point['index'],
+            #                                      self.hazard_values[tmp_point['index']])
             tmp_point.update(self.hazard_values[
                 tmp_point['index']])
             tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
