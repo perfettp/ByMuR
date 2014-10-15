@@ -30,12 +30,13 @@
 '''
 
 import numpy as np
-
+import bymur_functions as bf
 import matplotlib as mpl
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as pyplot
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
+
 
 
 # some global plotting settings
@@ -64,40 +65,41 @@ class BymurPlot(object):
         self._canvas.draw()
 
 
-
-
-
-
 class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
         self._imgfile = kwargs.get('imgfile',"naples_gmaps.png")
         self._click_callback = kwargs.get('click_callback', None)
-        super(HazardGraph, self).__init__(*args, **kwargs)
-        self._figure.canvas.mpl_connect('button_press_event',
-                                        self._click_callback)
-        self._points_data = None
+        self.haz_point = None
+        self.prob_point = None
 
+        super(HazardGraph, self).__init__(*args, **kwargs)
+        self._figure.canvas.mpl_connect('pick_event',
+                                        self.on_pick)
+        self._points_data = None
+        self._selected_point = None
+
+    def draw_point(self, x, y):
+        self.haz_point.set_visible(True)
+        self.haz_point.set_data(x, y)
+        self.prob_point.set_visible(True)
+        self.prob_point.set_data(x, y)
+        self._canvas.draw()
+
+    def on_pick(self, event):
+        x = event.mouseevent.xdata
+        y = event.mouseevent.ydata
+        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
+        self._click_callback(ind)
 
     def plot(self, hazard_description, points_utm):
-
-
         # Prepare matplotlib grid and data
-        grid_points_number = 100
+        grid_points_number = 256
         self._points_utm = points_utm
-        x_points = [p['point']['easting'] for p in self._points_utm]
-
-        # TODO: fix these points
-        x_points = [x/1000 for x in x_points]
-        print "y_points len: %s" % len(x_points)
-        y_points = [p['point']['northing'] for p in self._points_utm]
-        y_points = [x/1000 for x in y_points]
-        print "y_points len: %s" % len(y_points)
-        x_vector = np.linspace(min(x_points), max(x_points), grid_points_number)
-        y_vector = np.linspace(min(y_points), max(y_points), grid_points_number)
-        print "x_vector len: %s" % len(x_vector)
-        print "y_vector len: %s" % len(y_vector)
+        self.x_points = [p['point']['easting']*1e-3 for p in self._points_utm]
+        self.y_points = [p['point']['northing']*1e-3 for p in self._points_utm]
+        x_vector = np.linspace(min(self.x_points), max(self.x_points), grid_points_number)
+        y_vector = np.linspace(min(self.y_points), max(self.y_points), grid_points_number)
         x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
-
 
 
         self._figure.clf()
@@ -106,25 +108,39 @@ class HazardGraph(BymurPlot):
         self._figure.hold(True)
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
         self.haz_map = self.plot_hazard_map(hazard_description,
-                                            x_points, y_points,
                                             x_mesh, y_mesh,
                              [p['haz_value'] for p in self._points_utm],
                              map_limits)
 
-        self.prob_map = self.plot_probability_map(x_points, y_points, x_mesh,
-                                              y_mesh,
+        self.haz_point,  = self.haz_map.plot([self.x_points[0]],
+                                                  [self.y_points[0]],
+                                                  'o', ms=8,
+                                                  alpha=0.8,
+                                                  color='m',
+                                                  visible=False,
+                                                  zorder=5)
+
+        self.prob_map = self.plot_probability_map(x_mesh, y_mesh,
                                   [p['prob_value'] for p in self._points_utm],
                                   map_limits)
 
+        self.prob_point,  = self.prob_map.plot([self.x_points[0]],
+                                                  [self.y_points[0]],
+                                                  'o', ms=8,
+                                                  alpha=0.8,
+                                                  color='m',
+                                                  visible=False,
+                                                  zorder=5)
+
         self._canvas.draw()
 
-    def plot_hazard_map(self, hazard_description, x_points, y_points, x_mesh,
+    def plot_hazard_map(self, hazard_description, x_mesh,
                         y_mesh, z_points,
                  map_limits):
         xmap1, xmap2, ymap1, ymap2 = map_limits
         haz_bar_label = hazard_description['imt']
         # TODO: install natgrid to use natural neighbor interpolation
-        z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
+        z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
 
         # Define colors mapping and levels
@@ -149,24 +165,17 @@ class HazardGraph(BymurPlot):
 
 
         # Plot hazard map
-        haz_contourf = haz_subplot.contourf(x_mesh, y_mesh, z_mesh,
-                                            z_boundaries,
-                                            origin="lower",
-                                            cmap=self._cmap,
-                                            alpha=0.5,
-                                            zorder=1 )
-        haz_contour = haz_subplot.contour(x_mesh, y_mesh, z_mesh,
-                                          z_boundaries,
-                                          origin="lower",
-                                          aspect="equal",
+        haz_scatter = haz_subplot.scatter(self.x_points, self.y_points, marker='.',
+                                          c = z_points,
                                           cmap=self._cmap,
-                                          linewidths=2,
-                                          alpha=1,
-                                          zorder=2)
+                                          alpha=0.7,
+                                          zorder=2,
+                                          picker=5,
+                                          linewidths = 0)
 
         # Plot hazard bar
         hazard_bar = self._figure.colorbar(
-            haz_contourf,
+            haz_scatter,
             shrink=0.9,
             norm=cmap_norm_index,
             ticks=z_boundaries,
@@ -184,11 +193,11 @@ class HazardGraph(BymurPlot):
         # haz_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return haz_subplot
 
-    def plot_probability_map(self, x_points, y_points, x_mesh, y_mesh, z_points,
+    def plot_probability_map(self, x_mesh, y_mesh, z_points,
                  map_limits):
 
         xmap1, xmap2, ymap1, ymap2 = map_limits
-        z_mesh = mlab.griddata(x_points, y_points, z_points, x_mesh, y_mesh,
+        z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
 
         # Define colors mapping and levels
@@ -207,22 +216,19 @@ class HazardGraph(BymurPlot):
                 xmap2,
                 ymap1,
                 ymap2))
-        prob_contourf = prob_subplot.contourf(x_mesh, y_mesh, z_mesh,
-                                          z_boundaries, origin="lower",
-                                          cmap=self._cmap, alpha=0.5)
-        prob_contour = prob_subplot.contour(x_mesh, y_mesh, z_mesh,
-                                         z_boundaries,
-                                         origin="lower",
-                                         aspect="equal",
-                                         cmap=self._cmap,
-                                         linewidths=2,
-                                         alpha=1)
+        
+        prob_scatter = prob_subplot.scatter(self.x_points, self.y_points,
+                                            marker='.', c = z_points,
+                                            cmap=self._cmap,
+                                            alpha=0.7,
+                                            zorder=2,
+                                            picker=5,
+                                            linewidths = 0)
 
         probability_bar = self._figure.colorbar(
-            prob_contourf,
+            prob_scatter,
             shrink=0.9,
             orientation='vertical')
-
 
         probability_bar.set_alpha(1)
         prob_subplot.set_title("Probability Map\n", fontsize=9)
@@ -264,6 +270,16 @@ class HazardGraph(BymurPlot):
         # bounds = np.linspace(minz, maxz, chk + 1)
         bounds = np.linspace(min(z_array), max(z_array), max_intervals)
         return bounds
+
+    @property
+    def selected_point(self):
+        return self._selected_point
+
+    @selected_point.setter
+    def selected_point(self, coords):
+        self._selected_point = coords
+        self.draw_point(coords[0], coords[1])
+
 
 class HazardCurve(BymurPlot):
     def __init__(self, *args, **kwargs):

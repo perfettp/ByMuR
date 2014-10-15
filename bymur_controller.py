@@ -113,11 +113,6 @@ class BymurController(object):
                                        kind="BYMUR_ERROR",
                                        caption="Error")
 
-
-    def updateCurves(self, **kwargs):
-        # print "update curves"
-        self.wxframe.rightPanel.curvesPanel.updateView()
-
     def quit(self):
         print "Close"
         self._core.closeDB()
@@ -221,23 +216,18 @@ class BymurController(object):
     def nbTabChanged(self, event):
         self.wxframe.rightPanel.curvesPanel.updateView(**self._core.data)
 
-    def onMapClick(self, event):
-        if (event.inaxes == self.wxframe.rightPanel.mapPanel.map.haz_map):
-            if self._core.setPoint(event.xdata*1000, event.ydata*1000):
-                self.set_selected_point()
-                self.set_selected_point_curves()
-                self.updateCurves()
-            else:
-                print "onMapClick problem setting point"
+    def pick_point(self, index):
+        if self._core.set_point_by_index(index):
+            self.set_selected_point()
+            self.set_selected_point_curves()
+            bf.fire_event(self.wxframe, bf.wxBYMUR_UPDATE_POINT)
+
 
     def onPointSelect(self, easting, northing):
         if self._core.setPoint(easting, northing):
             self.set_selected_point()
             self.set_selected_point_curves()
-            self.updateCurves()
-        else:
-            print "onPointSelect problem setting point"
-
+            bf.fire_event(self.wxframe, bf.wxBYMUR_UPDATE_POINT)
 
     def update_hazard_data(self):
         self.set_hazard_options()

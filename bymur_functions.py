@@ -36,6 +36,7 @@ import wx
 import linecache
 import sys
 import threading
+import numpy as np
 
 
 wxBYMUR_UPDATE_CURVE = wx.NewEventType()
@@ -43,6 +44,7 @@ wxBYMUR_UPDATE_MAP = wx.NewEventType()
 wxBYMUR_UPDATE_DIALOG = wx.NewEventType()
 wxBYMUR_UPDATE_CTRLS = wx.NewEventType()
 wxBYMUR_UPDATE_ALL = wx.NewEventType()
+wxBYMUR_UPDATE_POINT = wx.NewEventType()
 wxBYMUR_THREAD_CLOSED = wx.NewEventType()
 wxBYMUR_DB_CONNECTED = wx.NewEventType()
 BYMUR_UPDATE_CURVE = wx.PyEventBinder(wxBYMUR_UPDATE_CURVE)
@@ -50,6 +52,7 @@ BYMUR_UPDATE_MAP = wx.PyEventBinder(wxBYMUR_UPDATE_MAP)
 BYMUR_UPDATE_DIALOG = wx.PyEventBinder(wxBYMUR_UPDATE_DIALOG)
 BYMUR_UPDATE_CTRLS = wx.PyEventBinder(wxBYMUR_UPDATE_CTRLS)
 BYMUR_UPDATE_ALL = wx.PyEventBinder(wxBYMUR_UPDATE_ALL)
+BYMUR_UPDATE_POINT = wx.PyEventBinder(wxBYMUR_UPDATE_POINT)
 BYMUR_THREAD_CLOSED = wx.PyEventBinder(wxBYMUR_THREAD_CLOSED)
 BYMUR_DB_CONNECTED = wx.PyEventBinder(wxBYMUR_DB_CONNECTED)
 
@@ -298,3 +301,12 @@ def showMessage(**kwargs):
         answer = msgDialog.ShowModal()
         return (answer == wx.ID_OK) or (answer == wx.ID_YES)
 
+def nearest_point_index(x,y,x_points,y_points):
+    distances = np.hypot(x-x_points,
+                             y-y_points)
+
+    indmin = distances.argmin()
+    return indmin
+
+def fire_event(target_id, event_type):
+    wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))

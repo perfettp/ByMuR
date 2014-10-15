@@ -680,12 +680,11 @@ class BymurWxMapPanel(BymurWxPanel):
         self._title = kwargs.pop('title', "Map")
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        # self._map = plotLibs.MapFigure(self, self._controller)
         print "basedir %s" %  wx.GetTopLevelParent(self).basedir
         print "file %s" %  os.path.join(wx.GetTopLevelParent(self).basedir,
                                      "./data/naples_gmaps.png")
         self._map = bymur_plots.HazardGraph(parent=self,
-                                click_callback=self._controller.onMapClick,
+                                click_callback=self._controller.pick_point,
                                 imgfile = os.path.join(wx.GetTopLevelParent(
                                     self).basedir,"./data/naples_gmaps.png"))
         # TODO: fix these references
@@ -698,6 +697,13 @@ class BymurWxMapPanel(BymurWxPanel):
         self._map.plot(wx.GetTopLevelParent(self).hazard_description,
                        wx.GetTopLevelParent(self).hazard_values)
         self.Enable(True)
+
+    def updatePoint(self, **kwargs):
+        if wx.GetTopLevelParent(self).selected_point is not None:
+            self._map.selected_point = (wx.GetTopLevelParent(self).
+                                        selected_point['point']['easting']*1e-3,
+                                        wx.GetTopLevelParent(self).
+                                        selected_point['point']['northing']*1e-3)
 
     @property
     def title(self):
@@ -950,7 +956,7 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._dataBox = wx.StaticBox(
             self,
             wx.ID_ANY,
-            "Nearest hazard point data")
+            "Selected point data")
         self._dataBoxSizer = wx.StaticBoxSizer(
             self._dataBox,
             orient=wx.VERTICAL)
@@ -958,26 +964,11 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._dataBoxSizer.Add(self._dataSizer)
 
         vpos = 0
-        self._dataEastLabel = wx.StaticText(self, wx.ID_ANY, 'Easting ')
-        self._dataEastTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
-        self._dataSizer.Add(self._dataEastLabel, pos=(vpos, 0), span=(1, 1),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataEastTC, pos=(vpos, 1), span=(1, 1))
-
         self._dataHazLabel = wx.StaticText(self, wx.ID_ANY, 'Hazard ')
         self._dataHazTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
-        self._dataSizer.Add(self._dataHazLabel, pos=(vpos, 2), span=(1, 1),
+        self._dataSizer.Add(self._dataHazLabel, pos=(vpos, 0), span=(1, 1),
                               flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataHazTC, pos=(vpos, 3), span=(1, 1))
-
-        vpos += 1
-        self._dataNortLabel = wx.StaticText(self, wx.ID_ANY, 'Northing ')
-        self._dataNortTC = wx.TextCtrl(self, wx.ID_ANY,
-                                       style=wx.TE_READONLY)
-        self._dataSizer.Add(self._dataNortLabel, pos=(vpos, 0), span=(1, 1),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataNortTC, pos=(vpos, 1), span=(1, 1))
-
+        self._dataSizer.Add(self._dataHazTC, pos=(vpos, 1), span=(1, 1))
 
         self._dataProbLabel = wx.StaticText(self, wx.ID_ANY, 'Probability ')
         self._dataProbTC = wx.TextCtrl(self, wx.ID_ANY,
@@ -996,16 +987,14 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._controller.onPointSelect(self._pointEastSC.GetValue(),
                                        self._pointNortSC.GetValue())
 
-    def updatePointSel(self, ev=None, easting='', northing='',
-                    haz_value='', prob_value=''):
-        print "pointSelected, ev: %s" % ev
+    def updatePointSel(self, ev=None, easting='', northing=''):
         self._pointEastSC.SetValueString(easting)
         self._pointNortSC.SetValueString(northing)
 
     def updatePointData(self, easting='', northing='',
                     haz_value='', prob_value=''):
-        self._dataEastTC.SetValue(easting)
-        self._dataNortTC.SetValue(northing)
+        self._pointEastSC.SetValueString(easting)
+        self._pointNortSC.SetValueString(northing)
         self._dataHazTC.SetValue(haz_value)
         self._dataProbTC.SetValue(prob_value)
 
@@ -1234,6 +1223,7 @@ class BymurWxView(wx.Frame):
 
         # TODO: make a list for events
         self.Bind(bf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_POINT, self.OnBymurEvent)
         self.Bind(bf.BYMUR_UPDATE_CURVE, self.OnBymurEvent)
         self.Bind(bf.BYMUR_UPDATE_MAP, self.OnBymurEvent)
         self.Bind(bf.BYMUR_UPDATE_DIALOG, self.OnBymurEvent)
@@ -1372,7 +1362,13 @@ class BymurWxView(wx.Frame):
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_DIALOG:
             print "bf.wxBYMUR_UPDATE_DIALOG"
             self.leftPanel.updateCtrls()
-        self.SetBusy(False)
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_POINT:
+            print "bf.wxBYMUR_UPDATE_POINT"
+            self.rightPanel.mapPanel.updatePoint()
+            self.rightPanel.curvesPanel.updateView()
+
+        if self.GetBusy():
+            self.SetBusy(False)
 
     @property
     def rightPanel(self):
