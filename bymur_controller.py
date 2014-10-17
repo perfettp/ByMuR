@@ -4,7 +4,7 @@ import bymur_functions as bf
 
 
 class BymurController(object):
-    _exception_debug = True
+    _exception_debug = False
     _basedir = os.getcwd()
     _dbDetails = {'db_host': '***REMOVED***',
                   'db_port': '3306',
@@ -46,6 +46,7 @@ class BymurController(object):
             self._core = kwargs.pop('core')
         except Exception as e:
             raise
+        self._hazard_options = {}
 
     def loadDB(self):
         if (not self._core.db):
@@ -204,13 +205,21 @@ class BymurController(object):
         self.wxframe.updateView(**self._core.data)
 
     def updateParameters(self, event):
-        hazard_options = self.wxframe.leftPanel.hazard_options
-        bf.SpawnThread(self.wxframe,
+        try:
+            self.hazard_options = self.wxframe.leftPanel.hazard_options
+            bf.SpawnThread(self.wxframe,
                        bf.wxBYMUR_UPDATE_ALL,
                        self._core.updateModel,
-                       hazard_options,
+                       self.hazard_options,
                        callback=self.update_hazard_data,
                        wait_msg="Updating maps...")
+        except Exception as e:
+            bf.showMessage(parent=self.wxframe,
+                           debug=self._exception_debug,
+                           message="Error setting hazard_options!\n" + str(e),
+                           kind="BYMUR_ERROR",
+                           caption="Error")
+
 
 
     def nbTabChanged(self, event):
@@ -284,5 +293,19 @@ class BymurController(object):
         time.sleep(10)
         print "out sleep"
 
-    # def get_ctrls_data(self):
-    #     return self._core.ctrls_data
+    @property
+    def hazard_options(self):
+        return self._hazard_options
+
+    @hazard_options.setter
+    def hazard_options(self, data):
+        print "Setting hazard_options data: %s" % data
+        tmp = {}
+        if (data['ret_per'] is None) or (data['int_thresh'] is None) or  \
+                (data['hazard_name'] is None) or (data['exp_time'] is None):
+            raise StandardError("Hazard options are not complete")
+        tmp['hazard_name'] = data['hazard_name']
+        tmp['ret_per'] = float(data['ret_per'])
+        tmp['int_thresh'] = float(data['int_thresh'])
+        tmp['exp_time'] = int(data['exp_time'])
+        self._hazard_options = tmp

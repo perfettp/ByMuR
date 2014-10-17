@@ -1088,12 +1088,9 @@ class BymurWxLeftPanel(BymurWxPanel):
     def hazard_options(self):
         """Get the current ctrlsBox parameters"""
         values = {}
-        values['haz_mod'] = self._hazModCB.GetStringSelection()
+        values['hazard_name'] = self._hazModCB.GetStringSelection()
         values['ret_per'] = self._retPerText.GetValue()
         values['int_thresh'] = self._intThresText.GetValue()
-        print self._expTimeCB.GetStringSelection()
-        print self._expTimeCB.GetCurrentSelection()
-        print self._expTimeCB.GetSelection()
         values['exp_time'] = self._expTimeCB.GetStringSelection()
         return values
 

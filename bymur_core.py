@@ -26,17 +26,6 @@ class BymurCore(object):
     }
 
     def __init__(self):
-        # self._conf = { 'haz_mod':0,        # selected hazard phenomenon
-        #                'ret_per':4975,     # selected Return Period
-        #                 'int_thresh': 3.0,   # selected intensity  threshold
-        #                 'tw': 0,           # selected time window
-        #                 #  Qui sotto non so perche' siano definite queste costanti
-        #                 'limits':[375.300, 508.500, 4449.200, 4569.800],
-        #                 'perc': range(1, 100),
-        #                 'pt_sel': 0
-        # }
-        # self._data = {}
-
         self._db = None
         self._db_details=None
         self._ctrls_data = {}
@@ -291,16 +280,12 @@ class BymurCore(object):
     def updateModel(self, **ctrls_options):
 
         print "ctrls_options %s" % ctrls_options
-        haz_tmp = {}
-        haz_tmp['hazard_name'] = ctrls_options.get('haz_mod', '')
-        haz_tmp['exp_time'] = int(ctrls_options.get('exp_time', 0))
-        haz_tmp['ret_per'] = float(ctrls_options.get('ret_per', 0))
-        haz_tmp['int_thresh'] = float(ctrls_options.get('int_thresh', 0))
+        haz_tmp = ctrls_options
         haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time']/
                                                    haz_tmp['ret_per'])
         self.hazard_options = haz_tmp
 
-        print "hazard_options %s " % self.hazard_options
+        print "core hazard_options %s " % self.hazard_options
         self.hazard_values = self.compute_hazard_values(
                self.hazard_options['hazard_name'],
                self.hazard_options['exp_time'],
