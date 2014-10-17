@@ -97,7 +97,7 @@ class BymurDBBoxSizer(BymurStaticBoxSizer):
         return self._dbNameText.GetValue()
 
 
-class BymurGridBoxSizer(BymurStaticBoxSizer):
+class BymurLoadGridBoxSizer(BymurStaticBoxSizer):
     _gridText = "Load a 2-column ascii file having easting\n" \
                "(1st col) and northing (2nd col) of each spatial\n" \
                "point."
@@ -106,7 +106,7 @@ class BymurGridBoxSizer(BymurStaticBoxSizer):
         self._basedir = kwargs.pop('basedir', '')
         self._filepath = kwargs.pop('filepath', '')
 
-        super(BymurGridBoxSizer, self).__init__(*args, **kwargs)
+        super(BymurLoadGridBoxSizer, self).__init__(*args, **kwargs)
 
         self._gridBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
         self.Add(self._gridBoxGrid)
@@ -139,7 +139,31 @@ class BymurGridBoxSizer(BymurStaticBoxSizer):
     @property
     def gridPath(self):
         return self._gridFileText.GetValue()
+    
+    
+class BymurSelectGridBoxSizer(BymurStaticBoxSizer):
+    _gridText = "Select a grid from database:"
 
+    def __init__(self, *args, **kwargs):
+        self.grid_list= kwargs.pop('grid_list', [])
+
+        super(BymurSelectGridBoxSizer, self).__init__(*args, **kwargs)
+
+        self._gridBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._gridBoxGrid)
+        self._gridBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label=self._gridText),
+                             flag=wx.EXPAND, pos=(0, 0), span=(1, 6))
+        self._gridCB = wx.ComboBox(self._parent, wx.ID_ANY)
+        self._gridCB.AppendItems(self.grid_list)
+
+        self._gridBoxGrid.Add(self._gridCB, flag=wx.EXPAND,
+                             pos=(1, 0), span=(1, 6))
+
+    @property
+    def gridName(self):
+       return self._gridCB.GetValue()
 
 class BymurEnsBoxSizer(BymurStaticBoxSizer):
     _hazText = "Chose among the list of possible hazard models \n" \
@@ -410,7 +434,7 @@ class BymurLoadGridDlg(wx.Dialog):
         self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
         self._sizer.Add(self._gridSizer)
 
-        self._gridBoxSizer = BymurGridBoxSizer(parent=self,
+        self._gridBoxSizer = BymurLoadGridBoxSizer(parent=self,
                                              label="Geographical grid "
                                                    "data",
                                              **self._localGridDefaults)
@@ -520,6 +544,9 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
                               'haz_perc': kwargs.pop('haz_perc', '')}
         self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
+        self._localGridData = {'grid_list': kwargs.pop('grid_list', []) }
+        # self._upload_callback = kwargs.pop('upload_callback', None)
+        # print "callback: %s" % self._upload_callback
         super(BymurAddDBDataDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
         self.SetTitle(self._title)
@@ -527,11 +554,17 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
         self._sizer.Add(self._gridSizer)
 
+        self._gridSelectBoxSizer = BymurSelectGridBoxSizer(parent=self,
+                                                           label="Datagrid",
+                                        **self._localGridData)
+        self._gridSizer.Add(self._gridSelectBoxSizer, flag=wx.EXPAND,
+                            pos=(0, 0), span=(1, 1))
+
         self._hazBoxSizer = BymurHazBoxSizer(parent=self,
                                              label="Hazard",
                                              **self._localHazData)
         self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
-                            pos=(0, 0), span=(1, 1))
+                            pos=(1, 0), span=(1, 1))
         self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
                         flag=wx.ALL | wx.ALIGN_CENTER, border=10)
         self.SetSizerAndFit(self._sizer)
@@ -542,6 +575,8 @@ class BymurAddDBDataDlg(wx.Dialog):
             result = 1
             self._localHazData['haz_path'] = self._hazBoxSizer.hazPath
             self._localHazData['haz_perc'] = self._hazBoxSizer.hazPerc
+            self._localHazData['datagrid_name'] = \
+                self._gridSelectBoxSizer.gridName
         elif (result == wx.ID_CANCEL):
             result = 0
         else:

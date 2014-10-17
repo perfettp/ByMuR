@@ -15,8 +15,7 @@ class BymurController(object):
 
     _addDBDataDetails = {
         'haz_path': os.path.join(_basedir, "hazards"),
-        'haz_perc': "10:90:10",
-        'grid_path': os.path.join(_basedir, "data", "naples-grid.txt"),
+        'haz_perc': "10:90:10"
     }
 
     _createDBDetails = {'db_host': '***REMOVED***',
@@ -143,6 +142,9 @@ class BymurController(object):
 
     def addDBData(self):
         print "addDBData"
+        self._addDBDataDetails['grid_list'] = [d['datagrid_name']
+                                               for d in
+                                               self._core.db.datagrid_list()]
         dialogResult = self._wxframe.showDlg("BymurAddDBDataDlg",
                                                        **self._addDBDataDetails)
         if dialogResult:

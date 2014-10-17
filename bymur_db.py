@@ -426,6 +426,22 @@ ALTER TABLE `volcanic_data`
         else:
             return 0
 
+    def datagrid_name(self, id):
+        sqlquery = "SELECT name FROM datagrids WHERE id = {0}"
+        self._cursor.execute(sqlquery.format(id))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            return 0
+
+    def datagrid_list(self):
+        sqlquery = "SELECT id, name FROM datagrids"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('datagrid_id','datagrid_name'), phen))
+                     for phen in self._cursor.fetchall()]
+
+
     def datagrid_get_insert_id(self, name):
 
         sqlquery = "SELECT id FROM datagrids WHERE name = '{0}'"
@@ -934,8 +950,11 @@ ALTER TABLE `volcanic_data`
               % (len(datagrid_points),
                  newpoints,
                  rel_tmp)
+        return datagrid_name(datagrid_id)
 
-    def add_data(self, datadir, percpattern, datagridfile_path):
+
+
+    def add_data(self, datadir, percpattern, datagrid_name):
         """
         Using data provided by the input form (see openCreateDB function)
         to create Tables in Bymur DB and populate them.
@@ -962,25 +981,11 @@ ALTER TABLE `volcanic_data`
         """
 
         createDBdata = {}
-
-        # Read, build and insert datagrid in  the db
-        datagrid_name, datagrid_ext = os.path.splitext(os.path.basename(
-            datagridfile_path))
-        datagrid_points = bf.get_gridpoints_from_file(datagridfile_path)
-        newpoints = self.insert_utm_points(datagrid_points)
-        pointsid_list = self.pointsid_list(datagrid_points)
         datagrid_id = self.datagrid_get_insert_id(datagrid_name)
-        rel_tmp = self.datagrid_points_insert(datagrid_id, datagrid_points)
 
-        print "Filename: %s , datagrid name: %s , id: %s" \
-              % (os.path.basename(datagridfile_path),
-                 datagrid_name,
+        print " datagrid name: %s , id: %s" \
+              % (datagrid_name,
                  datagrid_id)
-        print "Read points: %s , new points inserted: %s, new rels: %s" \
-              % (len(datagrid_points),
-                 newpoints,
-                 rel_tmp)
-
 
         # Read and parse percentiles field
         if percpattern.find(":") != -1:
