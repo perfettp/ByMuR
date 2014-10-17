@@ -310,3 +310,8 @@ def nearest_point_index(x,y,x_points,y_points):
 
 def fire_event(target_id, event_type):
     wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
+
+
+
+
+    return True
