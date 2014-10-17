@@ -84,12 +84,19 @@ class BymurThread(threading.Thread):
         super(BymurThread, self).__init__()
 
     def run(self):
-        self._function(**self._function_args)
-        evt_id = self._event.GetEventType()
-        print evt_id
-        if self._callback:
-            self._callback()
-        wx.PostEvent(self._targetid, self._event)
+        try:
+            self._function(**self._function_args)
+            evt_id = self._event.GetEventType()
+            print evt_id
+            if self._callback:
+                self._callback()
+        except Exception as e:
+            showMessage(parent=self._targetid,
+                        message="Error in backgroud thread\n "+str(e),
+                        kind="BYMUR_ERROR",
+                        caption="Error")
+        finally:
+            wx.PostEvent(self._targetid, self._event)
 
 
 class HazardXMLModel(object):

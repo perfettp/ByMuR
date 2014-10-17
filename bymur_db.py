@@ -918,6 +918,23 @@ ALTER TABLE `volcanic_data`
         print "create"
 
 
+    def load_grid(self, datagridfile_path):
+        datagrid_name, datagrid_ext = os.path.splitext(os.path.basename(
+            datagridfile_path))
+        datagrid_points = bf.get_gridpoints_from_file(datagridfile_path)
+        newpoints = self.insert_utm_points(datagrid_points)
+        datagrid_id = self.datagrid_get_insert_id(datagrid_name)
+        rel_tmp = self.datagrid_points_insert(datagrid_id, datagrid_points)
+
+        print "Filename: %s , datagrid name: %s , id: %s" \
+              % (os.path.basename(datagridfile_path),
+                 datagrid_name,
+                 datagrid_id)
+        print "Read points: %s , new points inserted: %s, new rels: %s" \
+              % (len(datagrid_points),
+                 newpoints,
+                 rel_tmp)
+
     def add_data(self, datadir, percpattern, datagridfile_path):
         """
         Using data provided by the input form (see openCreateDB function)

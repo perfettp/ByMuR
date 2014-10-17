@@ -119,6 +119,27 @@ class BymurController(object):
         self._core.closeDB()
         self.wxframe.Close()
 
+    def loadGrid(self):
+        print "loadGrid"
+        gridData = {'basedir': self.basedir,
+                    'filepath': ''}
+        dialogResult = self._wxframe.showDlg("BymurLoadGridDlg", **gridData)
+        if dialogResult:
+            gridData.update(dialogResult)
+            try:
+                bf.SpawnThread(self.wxframe,
+                               bf.wxBYMUR_UPDATE_DIALOG,
+                               self._core.loadGrid,
+                               gridData,
+                               self.set_ctrls_data,
+                               wait_msg="Adding grid to database...")
+            except Exception as e:
+                bf.showMessage(parent=self.wxframe,
+                               message=str(e),
+                               debug=self._exception_debug,
+                               kind="BYMUR_ERROR",
+                               caption="Error")
+
 
     def addDBData(self):
         print "addDBData"

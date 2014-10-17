@@ -101,6 +101,12 @@ class BymurCore(object):
                          addDBData['grid_path'])
         self._ctrls_data = self.get_controls_data()
 
+    def loadGrid(self, **gridData):
+        print "core loadGrid: %s" % gridData
+        filepath=gridData.pop('filepath', None)
+        self.db.load_grid(filepath)
+
+
     def get_controls_data(self):
         ret = {}
         hazard_models = self.db.hazard_models_get()

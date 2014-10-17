@@ -97,47 +97,48 @@ class BymurDBBoxSizer(BymurStaticBoxSizer):
         return self._dbNameText.GetValue()
 
 
-class BymurGeoBoxSizer(BymurStaticBoxSizer):
-    _geoText = "Load a 3-column ascii file having latitude\n" \
-               "(1st col) and longitude (2nd col) of each spatial\n" \
-               "point and the corresponding ID area (3rd col)."
+class BymurGridBoxSizer(BymurStaticBoxSizer):
+    _gridText = "Load a 2-column ascii file having easting\n" \
+               "(1st col) and northing (2nd col) of each spatial\n" \
+               "point."
 
     def __init__(self, *args, **kwargs):
-        self._gridPath = kwargs.pop('grid_path', '')
+        self._basedir = kwargs.pop('basedir', '')
+        self._filepath = kwargs.pop('filepath', '')
 
-        super(BymurGeoBoxSizer, self).__init__(*args, **kwargs)
+        super(BymurGridBoxSizer, self).__init__(*args, **kwargs)
 
-        self._geoBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
-        self.Add(self._geoBoxGrid)
-        self._geoBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+        self._gridBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._gridBoxGrid)
+        self._gridBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
                                            style=wx.EXPAND,
-                                           label=self._geoText),
+                                           label=self._gridText),
                              flag=wx.EXPAND, pos=(0, 0), span=(1, 6))
-        self._geoFileText = wx.TextCtrl(self._parent, wx.ID_ANY)
-        self._geoBoxGrid.Add(self._geoFileText, flag=wx.EXPAND,
+        self._gridFileText = wx.TextCtrl(self._parent, wx.ID_ANY)
+        self._gridBoxGrid.Add(self._gridFileText, flag=wx.EXPAND,
                              pos=(1, 0), span=(1, 5))
-        self._geoFileText.SetValue(self._gridPath)
-        self._geoFileButton = wx.Button(self._parent, id=wx.ID_ANY,
+        self._gridFileText.SetValue(self._basedir)
+        self._gridFileButton = wx.Button(self._parent, id=wx.ID_ANY,
                                         label="Select File")
-        self._geoFileButton.Bind(event=wx.EVT_BUTTON, handler=self.selGridFile)
-        self._geoBoxGrid.Add(self._geoFileButton, flag=wx.EXPAND,
+        self._gridFileButton.Bind(event=wx.EVT_BUTTON, handler=self.selGridFile)
+        self._gridBoxGrid.Add(self._gridFileButton, flag=wx.EXPAND,
                              pos=(1, 5), span=(1, 1))
 
     def selGridFile(self, event):
-        dir = os.path.dirname(self._geoFileText.GetValue())
+        dir = os.path.dirname(self._gridFileText.GetValue())
         if (not os.path.isdir(dir)):
-            dir = os.path.expanduser("~")
+            dir = self._basedir
         dlg = wx.FileDialog(self._parent, message="Upload File", defaultDir=dir,
                             defaultFile="", wildcard="*.*",
                             style=wx.FD_OPEN | wx.FD_CHANGE_DIR)
 
         if (dlg.ShowModal() == wx.ID_OK):
-            self._geoFileText.SetValue(dlg.GetPath())
+            self._gridFileText.SetValue(dlg.GetPath())
         dlg.Destroy()
 
     @property
     def gridPath(self):
-        return self._geoFileText.GetValue()
+        return self._gridFileText.GetValue()
 
 
 class BymurEnsBoxSizer(BymurStaticBoxSizer):
@@ -394,6 +395,43 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
     def hazPerc(self):
         return self._hazPercText.GetValue()
 
+class BymurLoadGridDlg(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        self._title = "Load grid file to DB"
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localGridDefaults = {'basedir': kwargs.pop('basedir', ''),
+                                   'filepath': kwargs.pop('filepath', '')}
+        self._localData = {}
+        super(BymurLoadGridDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+        self.SetTitle(self._title)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
+        self._sizer.Add(self._gridSizer)
+
+        self._gridBoxSizer = BymurGridBoxSizer(parent=self,
+                                             label="Geographical grid "
+                                                   "data",
+                                             **self._localGridDefaults)
+        self._gridSizer.Add(self._gridBoxSizer, flag=wx.EXPAND,
+                            pos=(0, 0), span=(1, 1))
+
+        self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                        flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+        self.SetSizerAndFit(self._sizer)
+
+    def ShowModal(self, *args, **kwargs):
+        result = super(BymurLoadGridDlg, self).ShowModal(*args, **kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localData['filepath'] = self._gridBoxSizer.gridPath
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localData)
+
 
 class BymurDBCreateDlg(wx.Dialog):
     def __init__(self, *args, **kwargs):
@@ -489,18 +527,11 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
         self._sizer.Add(self._gridSizer)
 
-        self._geoBoxSizer = BymurGeoBoxSizer(parent=self,
-                                             label="Geographical grid "
-                                                   "data",
-                                             **self._localGeoDefaults)
-        self._gridSizer.Add(self._geoBoxSizer, flag=wx.EXPAND,
-                            pos=(0, 0), span=(1, 1))
-
         self._hazBoxSizer = BymurHazBoxSizer(parent=self,
                                              label="Hazard",
                                              **self._localHazData)
         self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
-                            pos=(0, 1), span=(1, 1))
+                            pos=(0, 0), span=(1, 1))
         self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
                         flag=wx.ALL | wx.ALIGN_CENTER, border=10)
         self.SetSizerAndFit(self._sizer)
@@ -509,7 +540,6 @@ class BymurAddDBDataDlg(wx.Dialog):
         result = super(BymurAddDBDataDlg, self).ShowModal(*args, **kwargs)
         if (result == wx.ID_OK):
             result = 1
-            self._localHazData['grid_path'] = self._geoBoxSizer.gridPath
             self._localHazData['haz_path'] = self._hazBoxSizer.hazPath
             self._localHazData['haz_perc'] = self._hazBoxSizer.hazPerc
         elif (result == wx.ID_CANCEL):
@@ -1129,20 +1159,29 @@ class BymurWxMenu(wx.MenuBar):
         # Database menu and items
         self.menuDB = wx.Menu()
         menuItemTmp = self.menuDB.Append(wx.ID_ANY,
-                                         '&Create DataBase (DB)')  # original method was openCreateDB
+                                         '&Create DataBase (DB)')
         self._menu_actions[menuItemTmp.GetId()] = self._controller.createDB
         menuItemTmp = self.menuDB.Append(wx.ID_ANY, '&Add Data to DB')
         self._db_actions.append(menuItemTmp)
         self._menu_actions[
-            menuItemTmp.GetId()] = self._controller.addDBData  # original method was openAddDB
+            menuItemTmp.GetId()] = self._controller.addDBData
         menuItemTmp.Enable(False)
         self.menuDB.AppendSeparator()
         menuItemTmp = self.menuDB.Append(wx.ID_ANY, '&Drop All DB Tables')
         self._db_actions.append(menuItemTmp)
         menuItemTmp.Enable(False)
         self._menu_actions[
-            menuItemTmp.GetId()] = self._controller.dropDBTables  # original method was dropAllTabs
+            menuItemTmp.GetId()] = self._controller.dropDBTables
         self.Append(self.menuDB, '&DataBase')
+
+        # Grid menu
+        self.menuGrid = wx.Menu()
+        menuItemTmp = self.menuGrid.Append(wx.ID_ANY,
+                                         '&Load grid file')
+        menuItemTmp.Enable(False)
+        self._db_actions.append(menuItemTmp)
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.loadGrid
+        self.Append(self.menuGrid, '&Grid')
 
         # Plot menu and items
         self.menuPlot = wx.Menu()
