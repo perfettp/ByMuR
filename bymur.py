@@ -377,13 +377,14 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         self._hazBoxGrid.Add(self._hazDirLabel, flag=wx.EXPAND, pos=(1, 0),
                              span=(1, 1))
         self._hazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
-                                       style=wx.EXPAND)
+                                       style=wx.EXPAND|wx.TE_READONLY)
         self._hazBoxGrid.Add(self._hazDirTC, flag=wx.EXPAND, pos=(1, 1),
                              span=(1, 5))
 
         self._hazFilesAllCB = wx.CheckBox(self._parent, id=wx.ID_ANY,
                                             style=wx.EXPAND, label="Select "
                                                                    "all files")
+        self._hazFilesAllCB.Bind(wx.EVT_CHECKBOX, self._select_all)
         self._hazBoxGrid.Add(self._hazFilesAllCB, flag=wx.EXPAND,
                              pos=(2, 0), span=(1, 6))
         self._hazFilesCLB = wx.CheckListBox(self._parent, id=wx.ID_ANY,
@@ -391,6 +392,15 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
 
         self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
                              pos=(3, 0), span=(7, 6))
+
+    def _select_all(self, ev):
+        if self._hazFilesAllCB.IsChecked():
+            # print self._hazFilesCLB.GetItems()
+            # for i in range(len(self._hazFilesCLB.GetItems())):
+            self._hazFilesCLB.SetChecked(range(len(self._hazFilesCLB.GetItems())))
+        else:
+            for i in range(len(self._hazFilesCLB.GetItems())):
+                self._hazFilesCLB.Check(i, check=False)
 
     def _list_header(self, list):
         list.SetFirstItemStr("Select all files")
