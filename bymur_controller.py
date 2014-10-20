@@ -14,8 +14,7 @@ class BymurController(object):
     }
 
     _addDBDataDetails = {
-        'haz_path': os.path.join(_basedir, "hazards"),
-        'haz_perc': "10:90:10"
+        'haz_path': os.path.join(_basedir, "hazards")
     }
 
     _createDBDetails = {'db_host': '***REMOVED***',

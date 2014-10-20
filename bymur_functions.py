@@ -317,8 +317,15 @@ def nearest_point_index(x,y,x_points,y_points):
 
 def fire_event(target_id, event_type):
     wx.PostEvent(target_id, BymurUpdateEvent(event_type,1))
-
-
-
-
     return True
+
+def find_xml_files(rootdir):
+    files_array=[]
+    for root, dirs, files in os.walk(rootdir):
+        for file in files:
+            if file.endswith(".xml"):
+                 files_array.append(os.path.relpath(os.path.join(root,file),
+                                                 rootdir))
+    return files_array
+
+

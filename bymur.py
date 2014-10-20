@@ -357,50 +357,51 @@ class BymurMapBoxSizer(BymurStaticBoxSizer):
 
 
 class BymurHazBoxSizer(BymurStaticBoxSizer):
-    _hazPercLabel = "Insert percentile single values or ranges"
-    _hazPercExample = "Ex: 10,50,90 for single values or 5:100:5\n" \
-                      "for range from 5 to 100 with a step of 5"
+    _hazRecLabel = "Add all xml files recursively"
 
     def __init__(self, *args, **kwargs):
         self._hazPath = kwargs.pop('haz_path', '')
-        self._hazPerc = kwargs.pop('haz_perc', '')
         super(BymurHazBoxSizer, self).__init__(*args, **kwargs)
 
         self._hazBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
         self.Add(self._hazBoxGrid)
-        self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
-                                           style=wx.EXPAND,
-                                           label="Select hazard files "
-                                                 "directory"),
-                             flag=wx.EXPAND, pos=(0, 0), span=(1, 6))
-        self._hazDirText = wx.TextCtrl(self._parent, wx.ID_ANY)
-        self._hazDirText.SetValue(self._hazPath)
-        self._hazBoxGrid.Add(self._hazDirText, flag=wx.EXPAND,
-                             pos=(1, 0), span=(1, 5))
         self._hazDirButton = wx.Button(self._parent, id=wx.ID_ANY,
-                                       label="Select path")
+                                       style=wx.EXPAND,
+                                       label="Select directory to scan")
         self._hazDirButton.Bind(event=wx.EVT_BUTTON, handler=self.selHazPath)
         self._hazBoxGrid.Add(self._hazDirButton, flag=wx.EXPAND,
-                             pos=(1, 5), span=(1, 1))
+                             pos=(0, 0), span=(1,6))
 
-        self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
-                                           style=wx.EXPAND,
-                                           label=self._hazPercLabel),
-                             flag=wx.EXPAND, pos=(2, 0), span=(1, 6))
+        self._hazDirLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND, label = "Root dir")
+        self._hazBoxGrid.Add(self._hazDirLabel, flag=wx.EXPAND, pos=(1, 0),
+                             span=(1, 1))
+        self._hazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND)
+        self._hazBoxGrid.Add(self._hazDirTC, flag=wx.EXPAND, pos=(1, 1),
+                             span=(1, 5))
 
-        self._hazPercText = wx.TextCtrl(self._parent, wx.ID_ANY)
-        self._hazPercText.SetValue(self._hazPerc);
-        self._hazBoxGrid.Add(self._hazPercText, flag=wx.EXPAND,
-                             pos=(3, 0), span=(1, 6))
+        self._hazFilesAllCB = wx.CheckBox(self._parent, id=wx.ID_ANY,
+                                            style=wx.EXPAND, label="Select "
+                                                                   "all files")
+        self._hazBoxGrid.Add(self._hazFilesAllCB, flag=wx.EXPAND,
+                             pos=(2, 0), span=(1, 6))
+        self._hazFilesCLB = wx.CheckListBox(self._parent, id=wx.ID_ANY,
+                                            style=wx.EXPAND)
 
-        self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
-                                           style=wx.EXPAND,
-                                           label=self._hazPercExample),
-                             flag=wx.EXPAND, pos=(4, 0), span=(2, 6))
+        self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
+                             pos=(3, 0), span=(7, 6))
+
+    def _list_header(self, list):
+        list.SetFirstItemStr("Select all files")
+        list.SetItemBackgroundColour(1, wx.RED)
+        f = list.GetFont()
+        f.SetWeight(wx.BOLD)
+        list.SetItemFont(1,f)
 
     def selHazPath(self, event):
         print "selHazPath"
-        dir = os.path.dirname(self._hazDirText.GetValue())
+        dir = os.path.dirname(self._hazPath)
         if (not os.path.isdir(dir)):
             dir = os.path.expanduser("~")
 
@@ -408,7 +409,11 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
                            style=wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
             path = dlg.GetPath()
-            self._hazDirText.SetValue(dlg.GetPath())
+            #TODO: da qui. Trovo tutti i file .xml e li aggiungo alla lista
+            #TODO:  Pulsante checkall
+            self._hazFilesCLB.Clear()
+            self._hazDirTC.SetValue(path)
+            self._hazFilesCLB.AppendItems(bf.find_xml_files(path))
         dlg.Destroy()
 
     @property
@@ -473,8 +478,9 @@ class BymurDBCreateDlg(wx.Dialog):
                                   'easting_min': kwargs.pop('easting_min', 0),
                                   'easting_max': kwargs.pop('easting_max', 0),
                                   'map_path': kwargs.pop('map_path', '')}
-        self._localHazDefaults = {'haz_path': kwargs.pop('haz_path', ''),
-                                  'haz_perc': kwargs.pop('haz_perc', '')}
+        # self._localHazDefaults = {'haz_path': kwargs.pop('haz_path', ''),
+        #                           'haz_perc': kwargs.pop('haz_perc', '')}
+        self._localHazDefaults = {'haz_path': kwargs.pop('haz_path', '')}
 
         super(BymurDBCreateDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
@@ -541,8 +547,10 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._title = 'Add data to database'
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
-        self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
-                              'haz_perc': kwargs.pop('haz_perc', '')}
+        # self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
+        #                       'haz_perc': kwargs.pop('haz_perc', '')
+        # }
+        self._localHazData = {'haz_path': kwargs.pop('haz_path', '')}
         self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
         self._localGridData = {'grid_list': kwargs.pop('grid_list', []) }
         # self._upload_callback = kwargs.pop('upload_callback', None)
