@@ -126,9 +126,9 @@ class HazardXMLModel(object):
         self._model_name = ''
         self._iml_thresholds = []
         self._iml_imt = ''
-        self._dtime = ''
+        self._exp_time = ''
         self._statistic = ''
-        self._percentile_value = 0
+        self._percentile_value = '0'
         self._points_values= []
         self._points_coords = []
         self._phenomenon = phenomenon.upper()
@@ -148,10 +148,10 @@ class HazardXMLModel(object):
                 if element.tag == 'hazardCurveField':
                     self._statistic = element.get('statistics')
                     if self.statistic == 'percentile':
-                        self._percentile_value = float(element.get(
-                            'percentileValue', '0'))
+                        self._percentile_value = element.get(
+                            'percentileValue')
                     else:
-                        self._percentile_value = 0
+                        self._percentile_value = '0'
                     # print "statistic: %s" % self._statistic
                     # print "percentile: %s" % self._percentile_value
 
@@ -165,8 +165,7 @@ class HazardXMLModel(object):
                     # print "model: %s" % self._model_name
                     element.clear()
                 elif element.tag == 'timeterm':
-                    self._dtime = float(element.get('deltaT').strip('yr'))
-                    # print "dtime: %s" % self._dtime
+                    self._exp_time = float(element.get('deltaT').strip('yr'))
                     element.clear()
                 elif element.tag == 'IML':
                     self._iml_imt = element.get('IMT')
@@ -216,8 +215,8 @@ class HazardXMLModel(object):
         return self._iml_imt
 
     @property
-    def dtime(self):
-        return self._dtime
+    def exp_time(self):
+        return self._exp_time
 
     @property
     def statistic(self):

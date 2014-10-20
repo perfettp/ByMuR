@@ -34,6 +34,7 @@ import re
 import MySQLdb as mdb
 import bymur_functions as bf
 
+
 class BymurDB(object):
     _sql_schema = """
         --
@@ -438,8 +439,8 @@ ALTER TABLE `volcanic_data`
     def datagrid_list(self):
         sqlquery = "SELECT id, name FROM datagrids"
         self._cursor.execute(sqlquery)
-        return [dict(zip(('datagrid_id','datagrid_name'), phen))
-                     for phen in self._cursor.fetchall()]
+        return [dict(zip(('datagrid_id', 'datagrid_name'), phen))
+                for phen in self._cursor.fetchall()]
 
 
     def datagrid_get_insert_id(self, name):
@@ -473,7 +474,7 @@ ALTER TABLE `volcanic_data`
         """
         sqlquery %= str(datagrid_id)
         self._cursor.execute(sqlquery)
-        return [dict(zip(['id','easting','northing',
+        return [dict(zip(['id', 'easting', 'northing',
                           'zone_number', 'zone_letter'], x))
                 for x in self._cursor.fetchall()]
 
@@ -492,7 +493,7 @@ ALTER TABLE `volcanic_data`
                         `haz`.`id_datagrid`=`grid`.`id`
                 """
         self._cursor.execute(sqlquery)
-        return [dict(zip(['hazard_id','hazard_name','phenomenon_id',
+        return [dict(zip(['hazard_id', 'hazard_name', 'phenomenon_id',
                           'phenomenon_name', 'grid_id', 'grid_name'], x))
                 for x in self._cursor.fetchall()]
 
@@ -542,9 +543,9 @@ ALTER TABLE `volcanic_data`
         if len(points) < 1:
             return -1
         points_list = ', '.join([str((x['easting'], x['northing'],
-        x['zone_number'], x['zone_letter'])) for
-                                x in
-                                points])
+                                      x['zone_number'], x['zone_letter'])) for
+                                 x in
+                                 points])
         sqlquery %= points_list
         self._cursor.execute(sqlquery)
         return [item[0] for item in self._cursor.fetchall()]
@@ -564,15 +565,15 @@ ALTER TABLE `volcanic_data`
     def phenomena_list(self):
         sqlquery = "SELECT id, name FROM phenomena"
         self._cursor.execute(sqlquery)
-        return [dict(zip(('phenomenon_id','phenomenon_name'), phen))
-                     for phen in self._cursor.fetchall()]
+        return [dict(zip(('phenomenon_id', 'phenomenon_name'), phen))
+                for phen in self._cursor.fetchall()]
 
     def get_phenomenon_by_id(self, phenomeon_id):
         sqlquery = """ SELECT `ph`.`id`, `ph`.`name`
             FROM `phenomena` `ph`  WHERE `ph`.`id`= '{0}'
         """
         self._cursor.execute(sqlquery.format(phenomeon_id))
-        return dict(zip(['id','name'], self._cursor.fetchone()))
+        return dict(zip(['id', 'name'], self._cursor.fetchone()))
 
     def intensity_measure_unit_get_insert_id(self, unit_name):
         sqlquery = """
@@ -630,7 +631,7 @@ ALTER TABLE `volcanic_data`
 
         if len(iml_thresholds) < 1:
             return -1
-       #  print iml_thresholds
+            # print iml_thresholds
         iml_thresh_list = ', '.join([str(y) for y in [float(x)
                                                       for x in
                                                       iml_thresholds]])
@@ -664,7 +665,7 @@ ALTER TABLE `volcanic_data`
     def statistic_get_insert_id(self, statistic,
                                 percentile_value):
         sqlquery = "SELECT id FROM statistics WHERE name = '{0}'"
-        if percentile_value:
+        if percentile_value != '0':
             statistic_name = statistic + str(percentile_value)
         else:
             statistic_name = statistic
@@ -695,7 +696,7 @@ ALTER TABLE `volcanic_data`
         """
         sqlquery %= str(haz_id)
         self._cursor.execute(sqlquery)
-        return [dict(zip(['id','name'], (x[0], x[1])))
+        return [dict(zip(['id', 'name'], (x[0], x[1])))
                 for x in self._cursor.fetchall()]
 
 
@@ -718,7 +719,7 @@ ALTER TABLE `volcanic_data`
         """
         sqlquery %= str(haz_id)
         self._cursor.execute(sqlquery)
-        return [dict(zip(['id','years'], (x[0], int(x[1]))))
+        return [dict(zip(['id', 'years'], (x[0], int(x[1]))))
                 for x in self._cursor.fetchall()]
 
     def get_exposure_time_by_value(self, exp_time_value):
@@ -750,7 +751,8 @@ ALTER TABLE `volcanic_data`
                     INSERT IGNORE INTO hazmodel_exptimes
                     (id_hazard_model, id_exposure_time)
                         VALUES({0}, {1})"""
-        return self._cursor.execute(sqlquery.format(hazard_id, exposure_time_id))
+        return self._cursor.execute(
+            sqlquery.format(hazard_id, exposure_time_id))
 
     def volcanos_list(self, haz_id):
         sqlquery = """ SELECT `vol`.`id`, `vol`.`name`
@@ -761,7 +763,7 @@ ALTER TABLE `volcanic_data`
         """
         sqlquery %= str(haz_id)
         self._cursor.execute(sqlquery)
-        return [dict(zip(['id','name'], x))
+        return [dict(zip(['id', 'name'], x))
                 for x in self._cursor.fetchall()]
 
     def volcano_get_insert_id(self, volcano):
@@ -831,7 +833,7 @@ ALTER TABLE `volcanic_data`
 
 
     def hazard_data_insert(self, phenomenon, hazard_model_id, datagrid_id,
-                             stat_id, exptime_id, points, curves):
+                           stat_id, exptime_id, points, curves):
 
         if phenomenon == 'VOLCANIC':
             table_name = "volcanic_data"
@@ -842,14 +844,14 @@ ALTER TABLE `volcanic_data`
 
         points_idlist = self.pointsid_list(points)
         point_curve_map = zip(points_idlist,
-                              [", ".join(map(str,x)) for x in curves])
+                              [", ".join(map(str, x)) for x in curves])
 
         sqlquery = """
                     INSERT IGNORE INTO `{0}` (id_hazard_model,
                         id_point, id_grid, id_statistic, id_exposure_time,
                         hazard_curve) VALUES ( """ + str(hazard_model_id) + """
                         , %s, """ + str(datagrid_id) + ", " + str(
-            stat_id) + ","  + str(exptime_id) + """, %s )"""
+            stat_id) + "," + str(exptime_id) + """, %s )"""
 
         sqlquery = sqlquery.format(table_name)
         # print "point_curve_map %s " % point_curve_map
@@ -868,7 +870,7 @@ ALTER TABLE `volcanic_data`
                                        points, curves)
 
     def get_point_all_curves(self, phenomenon_id,
-            hazard_id, point_id, exp_time_id):
+                             hazard_id, point_id, exp_time_id):
         phenomenon = self.get_phenomenon_by_id(phenomenon_id)
         if phenomenon['name'] == 'VOLCANIC':
             table_name = "volcanic_data"
@@ -915,9 +917,9 @@ ALTER TABLE `volcanic_data`
              AND `d`.`id_statistic` = {3} and `d`.`id_exposure_time` = {4}
         """
         query = sqlquery.format(table_name,
-                                             hazard_model_id,
-                                             datagrid_id,
-                                             stat_id, exptime_id)
+                                hazard_model_id,
+                                datagrid_id,
+                                stat_id, exptime_id)
         self._cursor.execute(sqlquery.format(table_name,
                                              hazard_model_id,
                                              datagrid_id,
@@ -925,7 +927,7 @@ ALTER TABLE `volcanic_data`
         return [dict(zip(['point', 'curve'],
                          (dict(zip(['id', 'easting', 'northing',
                                     'zone_number', 'zone_letter'],
-                                   (x[0],x[1], x[2], x[3], x[4]))),
+                                   (x[0], x[1], x[2], x[3], x[4]))),
                           ([float(a) for a in x[5].split(',')]))))
                 for x in self._cursor.fetchall()]
 
@@ -953,179 +955,90 @@ ALTER TABLE `volcanic_data`
         return datagrid_name
 
 
-
-    def add_data(self, datadir, percpattern, datagrid_name):
-        """
-        Using data provided by the input form (see openCreateDB function)
-        to create Tables in Bymur DB and populate them.
-
-        NOTA: STO SUPPONENDO CHE L'UTENTE PREPARI UNA STRUTTURA AD ALBERO
-        GERARCHICA DEI DATI :
-
-        cartella_hazard/
-            |--hazard1/
-               |--model1/
-                  |--time1/
-                  |--time2/
-                  |--time3/
-               |--model2/
-                  |--time1/
-                  |--time2/
-                  |--time3/
-            |--hazard2/
-            |--hazard3/
-
-        NB: ogni hazard puo' avere una quantita' diversa di modelli (minimo uno),
-            e invece suppongo che i tempi di ricorrenza (time1,time2...) siano
-            gli stessi per ogni modello
+    def add_data(self, datagrid_name, haz_files, phenomenon_name):
         """
 
-        createDBdata = {}
+        """
         datagrid_id = self.datagrid_get_insert_id(datagrid_name)
-
         print " datagrid name: %s , id: %s" \
-              % (datagrid_name,
-                 datagrid_id)
+              % (datagrid_name, datagrid_id)
 
-        # Read and parse percentiles field
-        if percpattern.find(":") != -1:
-            perc_start, perc_end, perc_step = percpattern.split(":")
-            createDBdata['perc_list'] = range(int(perc_start), int(perc_end)
-                                              + 1,
-                                              int(perc_step))
-        elif percpattern.find(",") != -1:
-            createDBdata['perc_list'] = [int(i) for i in
-                                         percpattern.split(",")]
-        else:
-            raise Exception("Input in percentiles field is not correct")
+        phenomenon_id = self.phenomenon_get_insert_id(phenomenon_name)
+        print " phenomenon name: %s , id: %s" \
+              % (phenomenon_name, phenomenon_id)
 
-        # print "perc_list: %s " % (createDBdata['perc_list'])
+        for hazFile in haz_files:
+            try:
+                fileXmlModel = bf.HazardXMLModel(hazFile, phenomenon_name)
+            except Exception as e:
+                print "ERROR: %s is not a valid ByMuR file! %s" \
+                      "Skipping to next one" % (hazFile, str(e))
+                continue
+            # Foreign keys are already defined
+            # Now insert hazard, after this other
+            # many-to-many relationship
+            print "DB > Creating hazarm_models entry"
+            hazard_model_id = self.hazardmodel_get_insert_id(
+                phenomenon_id,
+                datagrid_id,
+                fileXmlModel.model_name)
 
-        # Extract infos from directory tree
-        createDBdata['phenomena'] = os.listdir(datadir)
-        # print "phenomena: %s " % (createDBdata['phenomena'])
+            # Data in hazmodel_intensities
+            # print "fileXmlModel.iml_imt: %s" % \
+            # fileXmlModel.iml_imt
+            print "DB > Inserting intensities"
+            imt_id = self.intensity_measure_unit_get_insert_id(
+                fileXmlModel.iml_imt)
+            self.intensity_thresholds_insert(
+                fileXmlModel.iml_thresholds, imt_id)
+            iml_thres = self.intensity_thresholds_idlist(imt_id,
+                                                         fileXmlModel.iml_thresholds)
+            self.hazard_thresholds_rel(hazard_model_id,
+                                       iml_thres)
 
-        createDBdata['hazard_models'] = []
-        for phen in createDBdata['phenomena']:
-            print "phen: %s" % phen
-            if phen == ".git" or phen == ".gitignore":
-                    continue
-            item_tmp = {'phenomenon_name': phen,
-                        'phenomenon_id': self.phenomenon_get_insert_id(phen)}
-            item_tmp['models'] = []
-            for model in os.listdir(os.path.join(datadir, phen)):
-                print "model: %s " % model
+            # Data in hazmodel_statistics
+            print "DB > Inserting statistics"
+            stat_id = self.statistic_get_insert_id(
+                fileXmlModel.statistic,
+                fileXmlModel.percentile_value)
 
-                model_tmp = {'name': model}
-                model_tmp['dtimes'] = []
-                model_tmp['dtime_dirs'] = []
-                for dtime in os.listdir(os.path.join(datadir, phen, model)):
-                    print "dtime: %s" % dtime
-                    model_tmp['dtimes'].append(dtime.replace("dt", "").zfill(3))
-                    model_tmp['dtime_dirs'].append(dtime)
-                item_tmp['models'].append(model_tmp)
-            createDBdata['hazard_models'].append(item_tmp)
+            self.hazard_statistic_rel(hazard_model_id,
+                                      stat_id)
 
-        print "Hazard models to populate\n%s " % createDBdata['hazard_models']
+            print "DB > Inserting exposure times"
+            exptime_id = self.exposure_time_get_insert_id(
+                fileXmlModel.exp_time)
+            self.hazard_exposure_time_rel(hazard_model_id,
+                                          exptime_id)
 
-        # Build regular expression for percentiles
-        # createDBdata['perc_list'] = [10, 20 ]
-        perc_re = "|".join(["percentile-"+str(p) for p in
-                                        createDBdata['perc_list']])
-        perc_re = '(mean|' + perc_re + ')' if perc_re else  '(mean)'
-        perc_re = 'hazardcurve-'+perc_re+'.xml'
+            print "DB > Inserting hazard data: " \
+                  "phenomenon: %s \n" \
+                  "hazard_model id: %s \n" \
+                  "datagrid_id %s \n" \
+                  "stat_id %s \n" \
+                  "exptime id: %s \n" \
+                  "points_id_len: %s \n" \
+                  "points_value_len: %s \n" \
+                  % (
+                fileXmlModel.phenomenon,
+                hazard_model_id,
+                datagrid_id,
+                stat_id,
+                exptime_id,
+                len(fileXmlModel.points_coords),
+                len(fileXmlModel.points_values)
+            )
 
-        # Walk in data tree and Parse files matching my reg_exps
-        for phen in createDBdata['hazard_models']:
-            # print "phen['phenomenon_name'] %s" % phen['phenomenon_name']
-            for mod in phen['models']:
-                # print "mod['name'] %s" % mod['name']
-                for dtime_dir_i in range(len(mod['dtime_dirs'])):
-                    dtime_dir = mod['dtime_dirs'][dtime_dir_i]
-                    dtime = mod['dtimes'][dtime_dir_i]
-                    # print "timedir %s" % dtime_dir
-                    # print "dtime %s" % dtime
-                    dir_tmp = os.path.join(datadir, phen['phenomenon_name'],
-                                           mod['name'], dtime_dir)
-                    for filename in os.listdir(dir_tmp):
-                        if re.match(perc_re, filename):
-                            try:
-                                fileXmlModel =  bf.HazardXMLModel(
-                                    os.path.join(dir_tmp, filename),
-                                    phen['phenomenon_name'])
-                            except Exception as e:
-                                print "ERROR: %s is not a valid ByMuR file! " \
-                                      "Skipping to next one" % filename
-                                continue
-                            # Foreign keys are already defined
-                            # Now insert hazard, after this other
-                            # many-to-many relationship
-                            print "DB > Creating hazarm_models entry"
-                            hazard_model_id = self.hazardmodel_get_insert_id(
-                                phen['phenomenon_id'],
-                                datagrid_id,
-                                mod['name'])
-
-
-                            # Data in hazmodel_intensities
-                            # print "fileXmlModel.iml_imt: %s" % \
-                            #       fileXmlModel.iml_imt
-                            print "DB > Inserting intensities"
-                            imt_id = self.intensity_measure_unit_get_insert_id(
-                                fileXmlModel.iml_imt)
-                            self.intensity_thresholds_insert(
-                                fileXmlModel.iml_thresholds, imt_id)
-                            iml_thres = self.intensity_thresholds_idlist(imt_id,
-                                fileXmlModel.iml_thresholds)
-                            self.hazard_thresholds_rel(hazard_model_id,
-                                                   iml_thres)
-
-                            # Data in hazmodel_statistics
-                            print "DB > Inserting statistics"
-                            stat_id = self.statistic_get_insert_id(
-                                fileXmlModel.statistic,
-                                fileXmlModel.percentile_value)
-
-                            self.hazard_statistic_rel(hazard_model_id,
-                                                   stat_id)
-
-                            # Data in hazmodel_exptimes
-                            # TODO: dtime potrebbe essere chiamato exp_time?
-                            print "DB > Inserting exposure times"
-                            exptime_id = self.exposure_time_get_insert_id(
-                                fileXmlModel.dtime)
-                            self.hazard_exposure_time_rel(hazard_model_id,
-                                                        exptime_id)
-
-
-                            print "DB > Inserting hazard data: " \
-                                  "phenomenon: %s \n" \
-                                  "hazard_model id: %s \n" \
-                                  "datagrid_id %s \n" \
-                                  "stat_id %s \n" \
-                                  "exptime id: %s \n" \
-                                  "points_id_len: %s \n" \
-                                  "points_value_len: %s \n" \
-                                      % (
-                                fileXmlModel.phenomenon,
-                                hazard_model_id,
-                                datagrid_id,
-                                stat_id,
-                                exptime_id,
-                                len(fileXmlModel.points_coords),
-                                len(fileXmlModel.points_values)
-                            )
-
-                            self.hazard_data_insert(
-                                fileXmlModel.phenomenon,
-                                hazard_model_id,
-                                datagrid_id,
-                                stat_id,
-                                exptime_id,
-                                fileXmlModel.points_coords,
-                                fileXmlModel.points_values
-                            )
-                            del fileXmlModel
+            self.hazard_data_insert(
+                fileXmlModel.phenomenon,
+                hazard_model_id,
+                datagrid_id,
+                stat_id,
+                exptime_id,
+                fileXmlModel.points_coords,
+                fileXmlModel.points_values
+            )
+            del fileXmlModel
         return True
 
     def drop_tables(self):

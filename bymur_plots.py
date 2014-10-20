@@ -299,7 +299,7 @@ class HazardCurve(BymurPlot):
                             right=hazard_description['int_thresh_list'][
                                 len(hazard_description['int_thresh_list'])-1])
         for perc in perc_to_plot:
-            perc_key = "percentile"+perc+".0"
+            perc_key = "percentile"+perc
             if selected_point_curves[perc_key] is not None:
                 perc_label =  perc + "th Percentile"
                 self._axes.plot(hazard_description['int_thresh_list'],

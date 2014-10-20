@@ -144,6 +144,8 @@ class BymurController(object):
         self._addDBDataDetails['grid_list'] = [d['datagrid_name']
                                                for d in
                                                self._core.db.datagrid_list()]
+        self._addDBDataDetails['phenomena_list'] = [p['phenomenon_name'] for p
+                                                   in  self._core.db.phenomena_list()]
         dialogResult = self._wxframe.showDlg("BymurAddDBDataDlg",
                                                        **self._addDBDataDetails)
         if dialogResult:

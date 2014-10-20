@@ -358,9 +358,11 @@ class BymurMapBoxSizer(BymurStaticBoxSizer):
 
 class BymurHazBoxSizer(BymurStaticBoxSizer):
     _hazRecLabel = "Add all xml files recursively"
+    _phenText = "Select phenomenon: "
 
     def __init__(self, *args, **kwargs):
         self._hazPath = kwargs.pop('haz_path', '')
+        self.phenomena_list = kwargs.pop('phenomena_list', '')
         super(BymurHazBoxSizer, self).__init__(*args, **kwargs)
 
         self._hazBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
@@ -389,14 +391,22 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
                              pos=(2, 0), span=(1, 6))
         self._hazFilesCLB = wx.CheckListBox(self._parent, id=wx.ID_ANY,
                                             style=wx.EXPAND)
-
         self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
                              pos=(3, 0), span=(7, 6))
 
+        self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label=self._phenText),
+                             flag=wx.EXPAND, pos=(10, 0), span=(1, 6))
+        self._phenCB = wx.ComboBox(self._parent, wx.ID_ANY)
+        self._phenCB.AppendItems(self.phenomena_list)
+        self._hazBoxGrid.Add(self._phenCB, flag=wx.EXPAND,
+                             pos=(11, 0), span=(1, 6))
+
+
+
     def _select_all(self, ev):
         if self._hazFilesAllCB.IsChecked():
-            # print self._hazFilesCLB.GetItems()
-            # for i in range(len(self._hazFilesCLB.GetItems())):
             self._hazFilesCLB.SetChecked(range(len(self._hazFilesCLB.GetItems())))
         else:
             for i in range(len(self._hazFilesCLB.GetItems())):
@@ -418,21 +428,21 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         dlg = wx.DirDialog(self._parent, "Select a directory:", defaultPath=dir,
                            style=wx.DD_DEFAULT_STYLE)
         if dlg.ShowModal() == wx.ID_OK:
-            path = dlg.GetPath()
-            #TODO: da qui. Trovo tutti i file .xml e li aggiungo alla lista
-            #TODO:  Pulsante checkall
+            self._rootdir = dlg.GetPath()
             self._hazFilesCLB.Clear()
-            self._hazDirTC.SetValue(path)
-            self._hazFilesCLB.AppendItems(bf.find_xml_files(path))
+            self._hazDirTC.SetValue(self._rootdir)
+            self._hazFilesCLB.AppendItems(bf.find_xml_files(self._rootdir))
         dlg.Destroy()
 
     @property
-    def hazPath(self):
-        return self._hazDirText.GetValue()
+    def hazFilesList(self):
+        return [os.path.join(self._rootdir, p) for p in
+                list(self._hazFilesCLB.GetCheckedStrings())]
 
     @property
-    def hazPerc(self):
-        return self._hazPercText.GetValue()
+    def phenomenon(self):
+        return self._phenCB.GetStringSelection()
+
 
 class BymurLoadGridDlg(wx.Dialog):
     def __init__(self, *args, **kwargs):
@@ -560,7 +570,9 @@ class BymurAddDBDataDlg(wx.Dialog):
         # self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
         #                       'haz_perc': kwargs.pop('haz_perc', '')
         # }
-        self._localHazData = {'haz_path': kwargs.pop('haz_path', '')}
+        self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
+                              'phenomena_list': kwargs.pop('phenomena_list', '')
+                              }
         self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
         self._localGridData = {'grid_list': kwargs.pop('grid_list', []) }
         # self._upload_callback = kwargs.pop('upload_callback', None)
@@ -590,11 +602,19 @@ class BymurAddDBDataDlg(wx.Dialog):
     def ShowModal(self, *args, **kwargs):
         result = super(BymurAddDBDataDlg, self).ShowModal(*args, **kwargs)
         if (result == wx.ID_OK):
-            result = 1
-            self._localHazData['haz_path'] = self._hazBoxSizer.hazPath
-            self._localHazData['haz_perc'] = self._hazBoxSizer.hazPerc
+            self._localHazData['haz_files'] = self._hazBoxSizer.hazFilesList
+            self._localHazData['phenomenon'] = self._hazBoxSizer.phenomenon
             self._localHazData['datagrid_name'] = \
                 self._gridSelectBoxSizer.gridName
+            if self._localHazData['datagrid_name'] == '':
+                    result = -1
+            elif self._localHazData['haz_files'] == []:
+                    result = -1
+            elif self._localHazData['phenomenon'] == '':
+                    result = -1
+            else:
+                result = 1
+            print self._localHazData
         elif (result == wx.ID_CANCEL):
             result = 0
         else:

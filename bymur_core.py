@@ -96,9 +96,9 @@ class BymurCore(object):
         # TODO: add a dialog for successfull creation
 
     def addDBData(self, **addDBData):
-        self.db.add_data(addDBData['haz_path'],
-                         addDBData['haz_perc'],
-                         addDBData['datagrid_name'])
+        self.db.add_data(addDBData['datagrid_name'],
+                         addDBData['haz_files'],
+                         addDBData['phenomenon'])
         self._ctrls_data = self.get_controls_data()
 
     def loadGrid(self, **gridData):
