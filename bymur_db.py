@@ -950,7 +950,7 @@ ALTER TABLE `volcanic_data`
               % (len(datagrid_points),
                  newpoints,
                  rel_tmp)
-        return datagrid_name(datagrid_id)
+        return datagrid_name
 
 
 
