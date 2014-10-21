@@ -108,18 +108,18 @@ class HazardXMLModel(object):
                                              filename)
         try:
             xml_schema = etree.XMLSchema(file = self._xsd_file)
-            # xmlparser = etree.XMLParser(schema=xml_schema)
+            xmlparser = etree.XMLParser(schema=xml_schema)
             print "Loaded schema: %s " % self._xsd_file
         except Exception as e:
             print "%s is not a valid XSD file" % self._xsd_file
             raise Exception(str(e))
 
-        try:
-            xml_schema.assertValid(etree.parse(filename))
-            print "%s is a valid XML file" % filename
-        except Exception as e:
-            print "%s is not a valid XML file" % filename
-            raise Exception(str(e))
+        # try:
+        #     with open(filename, 'r') as f:
+        #         etree.fromstring(f.read(), xmlparser)
+        # except Exception as e:
+        #     print "%s is not a valid XML file" % filename
+        #     raise Exception(str(e))
 
         self._filename = filename
         self._volcano = ''
@@ -140,6 +140,7 @@ class HazardXMLModel(object):
             print self.__class__.__name__ + ", error parsing file " + \
                   self._filename +  " : " + str(e)
             raise Exception(str(e))
+
 
     def parse(self, utm_zone_number=33, utm_zone_letter='T'):
         context = etree.iterparse(self._filename, events=("start", "end"))
