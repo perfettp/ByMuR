@@ -331,5 +331,5 @@ class BymurController(object):
         tmp['hazard_name'] = data['hazard_name']
         tmp['ret_per'] = float(data['ret_per'])
         tmp['int_thresh'] = float(data['int_thresh'])
-        tmp['exp_time'] = int(data['exp_time'])
+        tmp['exp_time'] = float(data['exp_time'])
         self._hazard_options = tmp

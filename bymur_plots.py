@@ -101,7 +101,6 @@ class HazardGraph(BymurPlot):
         y_vector = np.linspace(min(self.y_points), max(self.y_points), grid_points_number)
         x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
 
-
         self._figure.clf()
         self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
                                      top=0.92, wspace=0.35, hspace=0.2)
@@ -293,16 +292,20 @@ class HazardCurve(BymurPlot):
         self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
         self._figure.hold(True)
         self._axes.grid(True)
-        xticks = hazard_description['int_thresh_list'] + [0]
+        _iml = [float(limit) for limit in hazard_description['iml'].split()]
+        xticks = _iml  + [0]
         self._axes.set_xticks(xticks)
         self._axes.set_xlim(left=0,
-                            right=hazard_description['int_thresh_list'][
-                                len(hazard_description['int_thresh_list'])-1])
+                            right=_iml[len(_iml)-1])
+
         for perc in perc_to_plot:
             perc_key = "percentile"+perc
             if selected_point_curves[perc_key] is not None:
                 perc_label =  perc + "th Percentile"
-                self._axes.plot(hazard_description['int_thresh_list'],
+                print "number of _iml elements: %s " % len(_iml)
+                print "number of curve elements: %s " % \
+                        len(selected_point_curves[perc_key].split(','))
+                self._axes.plot(_iml,
                                 [float(y) for  y in
                                  selected_point_curves[perc_key].split(',')],
                                 linewidth=1,
@@ -311,7 +314,7 @@ class HazardCurve(BymurPlot):
 
 
         if selected_point_curves["mean"] is not None:
-                self._axes.plot(hazard_description['int_thresh_list'],
+                self._axes.plot(_iml,
                                 [float(y) for  y in
                                  selected_point_curves["mean"].split(',')],
                                  color="#000000",

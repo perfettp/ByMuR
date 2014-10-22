@@ -355,11 +355,11 @@ class BymurDB(object):
             FROM `hazard_models` `haz_mod`
             WHERE `haz_mod`.`name`= '%s' AND  `haz_mod`.`exposure_time`= '%s'
         """
-        sqlquery %= str(haz_name.upper())
-        sqlquery %= str(exp_time)
+        sqlquery %= (str(haz_name.upper()), str(exp_time))
         self._cursor.execute(sqlquery)
         return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
-                         'hazard_name', 'date'], self._cursor.fetchone()))
+                         'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],
+                        self._cursor.fetchone()))
 
     def insert_hazard_data(self, phenomenon, hazard_model_id, stat_id,
                            points, curves):
@@ -414,7 +414,7 @@ class BymurDB(object):
         res = self._cursor.fetchall()
         return dict(res)
 
-    def get_curves(self, phenomenon_id, hazard_model_id, datagrid_id, stat_id):
+    def get_curves(self, phenomenon_id, hazard_model_id, stat_id):
         phenomenon = self.get_phenomenon_by_id(phenomenon_id)
         if phenomenon['name'] == 'VOLCANIC':
             table_name = "volcanic_data"
@@ -430,12 +430,11 @@ class BymurDB(object):
                         `d`.`hazard_curve` FROM
             `{0}` `d` LEFT JOIN `points` `p`
              ON `d`.`id_point`=`p`.`id`
-             WHERE `d`.`id_hazard_model`= {1} AND `d`.`id_grid` = {2}
-             AND `d`.`id_statistic` = {3}
+             WHERE `d`.`id_hazard_model`= {1}
+             AND `d`.`id_statistic` = {2}
         """
         self._cursor.execute(sqlquery.format(table_name,
                                              hazard_model_id,
-                                             datagrid_id,
                                              stat_id))
         return [dict(zip(['point', 'curve'],
                          (dict(zip(['id', 'easting', 'northing',

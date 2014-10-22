@@ -219,40 +219,27 @@ class BymurCore(object):
                               statistic_name='mean'):
 
         haz_tmp = self._db.get_hazard_model_by_name_exptime(hazard_name, exp_time)
-        # haz_tmp['int_thresh_list'] = self._db.get_intensity_threshods_by_haz(
-        #     haz_tmp['hazard_id'])
-        # haz_tmp['imt'] = self._db.get_intensity_measure_unit_by_haz(
-        #     haz_tmp['hazard_id'])
-        # haz_tmp['exposure_times'] = self._db.get_exposure_times_by_haz(
-        #     haz_tmp['hazard_id'])
         haz_tmp['statistics'] = self._db.get_statistics_by_haz(
             haz_tmp['hazard_id'])
         self.hazard_description = haz_tmp
         print "hazard_description %s" % self.hazard_description
-        # to here, should be below in updateModel
 
-        # exp_time_id = self._db.get_exposure_time_by_value(exp_time)
-        # print "exp_time_id = %s" % exp_time_id
         statistic_id = self._db.get_statistic_by_value(statistic_name)
-        print "statistic_id = %s" % statistic_id
 
-
-
-        self.hazard_curves = self._db.get_curves(haz_tmp['phenomenon_id'],
-                                                 haz_tmp['hazard_id'],
-                                                 haz_tmp['datagrid_id'],
+        self.hazard_curves = self._db.get_curves(self.hazard_description['phenomenon_id'],
+                                                 self.hazard_description['hazard_id'],
                                                  statistic_id)
-
+        _iml = [float(limit) for limit in  self.hazard_description['iml'].split()]
 
         return map((lambda p: dict(zip(['point','haz_value',
                                                        'prob_value'],
                                                 (p['point'],
                                                  self.get_haz_value(
-                                                     haz_tmp['iml'],
+                                                     _iml,
                                                      hazard_threshold,
                                                      p['curve']),
                                                  self.get_prob_value(
-                                                     haz_tmp['iml'],
+                                                     _iml,
                                                      intensity_threshold,
                                                      p['curve'])
                                                 )))),
