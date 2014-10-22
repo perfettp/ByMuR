@@ -37,360 +37,6 @@ import bymur_functions as bf
 
 class BymurDB(object):
     _sql_schema = """
-        --
--- Database: `bymurDB-dev-utm`
---
-
--- --------------------------------------------------------
-
---
--- Table structure for table `datagrids`
---
-
-CREATE TABLE IF NOT EXISTS `datagrids` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `name_UNIQUE` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `exposure_times`
---
-
-CREATE TABLE IF NOT EXISTS `exposure_times` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `years` float NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `years_UNIQUE` (`years`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=2 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `grid_points`
---
-
-CREATE TABLE IF NOT EXISTS `grid_points` (
-  `id_datagrid` int(11) NOT NULL,
-  `id_point` bigint(20) NOT NULL,
-  PRIMARY KEY (`id_datagrid`,`id_point`),
-  KEY `fk_grid_points_1` (`id_datagrid`),
-  KEY `fk_grid_points_2` (`id_point`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `hazard_models`
---
-
-CREATE TABLE IF NOT EXISTS `hazard_models` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `id_phenomenon` int(11) NOT NULL,
-  `id_datagrid` int(11) NOT NULL,
-  `name` varchar(45) COLLATE utf8_bin NOT NULL,
-  `date` date DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  KEY `fk_hazard_models_2` (`id_datagrid`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `hazmodel_exptimes`
---
-
-CREATE TABLE IF NOT EXISTS `hazmodel_exptimes` (
-  `id_hazard_model` int(11) NOT NULL,
-  `id_exposure_time` int(11) NOT NULL,
-  PRIMARY KEY (`id_hazard_model`,`id_exposure_time`),
-  KEY `fk_hazmodels_exptimes_1` (`id_hazard_model`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `hazmodel_intensities`
---
-
-CREATE TABLE IF NOT EXISTS `hazmodel_intensities` (
-  `id_hazard_model` int(11) NOT NULL,
-  `id_intensity_threshold` int(11) NOT NULL,
-  PRIMARY KEY (`id_hazard_model`,`id_intensity_threshold`),
-  KEY `fk_hazmodel_intensities_1` (`id_hazard_model`),
-  KEY `fk_hazmodel_intensities_2` (`id_intensity_threshold`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `hazmodel_statistics`
---
-
-CREATE TABLE IF NOT EXISTS `hazmodel_statistics` (
-  `id_hazard_model` int(11) NOT NULL,
-  `id_statistic` int(11) NOT NULL,
-  PRIMARY KEY (`id_hazard_model`,`id_statistic`),
-  KEY `fk_hazmodels_statistics_1` (`id_hazard_model`),
-  KEY `fk_hazmodels_statistics_2` (`id_statistic`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `hazmodel_volcanos`
---
-
-CREATE TABLE IF NOT EXISTS `hazmodel_volcanos` (
-  `id_hazard_model` int(11) NOT NULL,
-  `id_volcano` int(11) NOT NULL,
-  PRIMARY KEY (`id_hazard_model`,`id_volcano`),
-  KEY `fk_hazmodel_volcano_1` (`id_hazard_model`),
-  KEY `fk_hazmodel_volcano_2` (`id_volcano`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `intensity_measure_unit`
---
-
-CREATE TABLE IF NOT EXISTS `intensity_measure_unit` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `measure_unit_text` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `measure_unit_text_UNIQUE` (`measure_unit_text`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `intensity_thresholds`
---
-
-CREATE TABLE IF NOT EXISTS `intensity_thresholds` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `value` decimal(8,3) NOT NULL,
-  `id_unit` int(11) NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `value` (`value`,`id_unit`),
-  KEY `fk_intensity_thresholds_1` (`id_unit`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=443 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `phenomena`
---
-
-CREATE TABLE IF NOT EXISTS `phenomena` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `name_UNIQUE` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=4 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `points`
---
-
-CREATE TABLE IF NOT EXISTS `points` (
-  `id` bigint(20) NOT NULL AUTO_INCREMENT,
-  `easting` bigint(20) NOT NULL,
-  `northing` bigint(20) NOT NULL,
-  `zone_number` tinyint(4) DEFAULT NULL,
-  `zone_letter` char(1) COLLATE utf8_bin DEFAULT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `coords` (`easting`,`northing`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=79025 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `seismic_data`
---
-
-CREATE TABLE IF NOT EXISTS `seismic_data` (
-  `id_hazard_model` int(11) NOT NULL,
-  `id_point` bigint(20) NOT NULL,
-  `id_grid` int(11) NOT NULL,
-  `id_statistic` int(11) NOT NULL,
-  `id_exposure_time` int(11) NOT NULL,
-  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
-  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
-  KEY `fk_seismic_data_1` (`id_hazard_model`),
-  KEY `fk_seismic_data_2` (`id_point`),
-  KEY `fk_seismic_data_3` (`id_grid`),
-  KEY `fk_seismic_data_4` (`id_statistic`),
-  KEY `fk_seismic_data_5` (`id_exposure_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `statistics`
---
-
-CREATE TABLE IF NOT EXISTS `statistics` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `name_UNIQUE` (`name`)
-) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=11 ;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `tsunamic_data`
---
-
-CREATE TABLE IF NOT EXISTS `tsunamic_data` (
-  `id_hazard_model` int(11) NOT NULL,
-  `id_point` bigint(20) NOT NULL,
-  `id_grid` int(11) NOT NULL,
-  `id_statistic` int(11) NOT NULL,
-  `id_exposure_time` int(11) NOT NULL,
-  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
-  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
-  KEY `fk_tsunamic_data_1` (`id_hazard_model`),
-  KEY `fk_tsunamic_data_2` (`id_point`),
-  KEY `fk_tsunamic_data_3` (`id_grid`),
-  KEY `fk_tsunamic_data_4` (`id_statistic`),
-  KEY `fk_tsunamic_data_5` (`id_exposure_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `volcanic_data`
---
-
-CREATE TABLE IF NOT EXISTS `volcanic_data` (
-  `id_hazard_model` int(11) NOT NULL,
-  `id_point` bigint(20) NOT NULL,
-  `id_grid` int(11) NOT NULL,
-  `id_statistic` int(11) NOT NULL,
-  `id_exposure_time` int(11) NOT NULL,
-  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`,`id_exposure_time`,`id_grid`),
-  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`,`id_grid`),
-  KEY `fk_volcanic_data_1` (`id_hazard_model`),
-  KEY `fk_volcanic_data_2` (`id_point`),
-  KEY `fk_volcanic_data_3` (`id_grid`),
-  KEY `fk_volcanic_data_4` (`id_statistic`),
-  KEY `fk_volcanic_data_5` (`id_exposure_time`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
-
--- --------------------------------------------------------
-
---
--- Table structure for table `volcanos`
---
-
-CREATE TABLE IF NOT EXISTS `volcanos` (
-  `id` int(11) NOT NULL AUTO_INCREMENT,
-  `name` varchar(45) COLLATE utf8_bin NOT NULL,
-  PRIMARY KEY (`id`),
-  UNIQUE KEY `name_UNIQUE` (`name`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
-
---
--- Constraints for dumped tables
---
-
---
--- Constraints for table `grid_points`
---
-ALTER TABLE `grid_points`
-  ADD CONSTRAINT `grid_points_ibfk_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `grid_points_ibfk_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_grid_points_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_grid_points_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `hazard_models`
---
-ALTER TABLE `hazard_models`
-  ADD CONSTRAINT `hazard_models_ibfk_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazard_models_2` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `hazmodel_exptimes`
---
-ALTER TABLE `hazmodel_exptimes`
-  ADD CONSTRAINT `hazmodel_exptimes_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazmodels_exptimes_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `hazmodel_intensities`
---
-ALTER TABLE `hazmodel_intensities`
-  ADD CONSTRAINT `hazmodel_intensities_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `hazmodel_intensities_ibfk_2` FOREIGN KEY (`id_intensity_threshold`) REFERENCES `intensity_thresholds` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazmodel_intensities_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazmodel_intensities_2` FOREIGN KEY (`id_intensity_threshold`) REFERENCES `intensity_thresholds` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `hazmodel_statistics`
---
-ALTER TABLE `hazmodel_statistics`
-  ADD CONSTRAINT `hazmodel_statistics_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `hazmodel_statistics_ibfk_2` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazmodels_statistics_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazmodels_statistics_2` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `hazmodel_volcanos`
---
-ALTER TABLE `hazmodel_volcanos`
-  ADD CONSTRAINT `hazmodel_volcanos_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `hazmodel_volcanos_ibfk_2` FOREIGN KEY (`id_volcano`) REFERENCES `volcanos` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazmodel_volcano_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_hazmodel_volcano_2` FOREIGN KEY (`id_volcano`) REFERENCES `volcanos` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `intensity_thresholds`
---
-ALTER TABLE `intensity_thresholds`
-  ADD CONSTRAINT `intensity_thresholds_ibfk_1` FOREIGN KEY (`id_unit`) REFERENCES `intensity_measure_unit` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_intensity_thresholds_1` FOREIGN KEY (`id_unit`) REFERENCES `intensity_measure_unit` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `tsunamic_data`
---
-ALTER TABLE `tsunamic_data`
-  ADD CONSTRAINT `tsunamic_data_ibfk_6` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_7` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_8` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_9` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_10` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `tsunamic_data_ibfk_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
-
---
--- Constraints for table `volcanic_data`
---
-ALTER TABLE `volcanic_data`
-  ADD CONSTRAINT `volcanic_data_ibfk_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `volcanic_data_ibfk_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `volcanic_data_ibfk_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `volcanic_data_ibfk_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `volcanic_data_ibfk_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_volcanic_data_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_volcanic_data_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_volcanic_data_3` FOREIGN KEY (`id_grid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_volcanic_data_4` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
-  ADD CONSTRAINT `fk_volcanic_data_5` FOREIGN KEY (`id_exposure_time`) REFERENCES `exposure_times` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
 
     """
 
@@ -418,7 +64,7 @@ ALTER TABLE `volcanic_data`
     def commit(self):
         self._connection.commit()
 
-    def datagrid_id(self, name):
+    def get_datagrid_id_by_name(self, name):
         sqlquery = "SELECT id FROM datagrids WHERE name = '{0}'"
         self._cursor.execute(sqlquery.format(name.upper()))
         id = self._cursor.fetchone()
@@ -427,7 +73,7 @@ ALTER TABLE `volcanic_data`
         else:
             return 0
 
-    def datagrid_name(self, id):
+    def get_datagrid_name_by_id(self, id):
         sqlquery = "SELECT name FROM datagrids WHERE id = {0}"
         self._cursor.execute(sqlquery.format(id))
         id = self._cursor.fetchone()
@@ -436,14 +82,13 @@ ALTER TABLE `volcanic_data`
         else:
             return 0
 
-    def datagrid_list(self):
+    def get_datagrids_list(self):
         sqlquery = "SELECT id, name FROM datagrids"
         self._cursor.execute(sqlquery)
         return [dict(zip(('datagrid_id', 'datagrid_name'), phen))
                 for phen in self._cursor.fetchall()]
 
-
-    def datagrid_get_insert_id(self, name):
+    def insert_id_datagrid(self, name):
 
         sqlquery = "SELECT id FROM datagrids WHERE name = '{0}'"
         self._cursor.execute(sqlquery.format(name.upper()))
@@ -455,7 +100,7 @@ ALTER TABLE `volcanic_data`
             self._cursor.execute(sqlquery.format(name.upper()))
             return self._cursor.lastrowid
 
-    def datagrid_points_rel(self, datagrid_id, points_id_list):
+    def insert_datagrid_points_rels(self, datagrid_id, points_id_list):
         """
 
         """
@@ -465,8 +110,7 @@ ALTER TABLE `volcanic_data`
         return self._cursor.executemany(sqlquery, [(id,) for id
                                                    in points_id_list])
 
-
-    def datagrid_points_get(self, datagrid_id):
+    def get_points_by_datagrid_id(self, datagrid_id):
         sqlquery = """ SELECT `p`.`id`, `p`.`easting`, `p`.`northing`,
             `p`.`zone_number`,  `p`.`zone_letter`
             FROM `points` p LEFT JOIN `grid_points` gp ON  p.`id`=gp.`id_point`
@@ -478,11 +122,14 @@ ALTER TABLE `volcanic_data`
                           'zone_number', 'zone_letter'], x))
                 for x in self._cursor.fetchall()]
 
-
-    def hazard_models_get(self):
+    def get_hazard_models_list(self):
         sqlquery = """
                     SELECT `haz`.`id` as `haz_id`,
                             `haz`.`name` as `haz_name`,
+                            `haz`.`exposure_time` as `exp_time`,
+                            `haz`.`iml` as `iml`,
+                            `haz`.`imt` as `imt`,
+                            `haz`.`date` as `date`,
                             `phen`.`id` as `id_phenomenon`,
                             `phen`.`name` as `phenomenon_name`,
                             `haz`.`id_datagrid` as `grid_id`,
@@ -493,12 +140,13 @@ ALTER TABLE `volcanic_data`
                         `haz`.`id_datagrid`=`grid`.`id`
                 """
         self._cursor.execute(sqlquery)
-        return [dict(zip(['hazard_id', 'hazard_name', 'phenomenon_id',
+        return [dict(zip(['hazard_id', 'hazard_name', 'exposure_time', 'iml',
+                          'imt', 'date', 'phenomenon_id',
                           'phenomenon_name', 'grid_id', 'grid_name'], x))
                 for x in self._cursor.fetchall()]
 
 
-    def datagrid_points_insert(self, datagrid_id, points):
+    def insert_datagrid_points(self, datagrid_id, points):
         """
         """
 
@@ -507,10 +155,10 @@ ALTER TABLE `volcanic_data`
         # Insert points
         # print "Point insert result: %s" % self.points_insert(points)
         # Get list of points id
-        pointsid_list = self.pointsid_list(points)
+        pointsid_list = self.get_pointsid_list_by_coords(points)
         # print "Points id list: %s " % pointsid_list
         # Associate grid with points
-        return self.datagrid_points_rel(datagrid_id, pointsid_list)
+        return self.insert_datagrid_points_rels(datagrid_id, pointsid_list)
 
 
     def insert_utm_points(self, points):
@@ -527,7 +175,7 @@ ALTER TABLE `volcanic_data`
                     """
         return self._cursor.executemany(sqlquery, points)
 
-    def pointsid_list(self, points):
+    def get_pointsid_list_by_coords(self, points):
         """
         Get points id list from table 'point'
         :param points: list of point dictionaries
@@ -550,7 +198,7 @@ ALTER TABLE `volcanic_data`
         self._cursor.execute(sqlquery)
         return [item[0] for item in self._cursor.fetchall()]
 
-    def phenomenon_get_insert_id(self, phenomenon_name):
+    def insert_id_phenomenon(self, phenomenon_name):
 
         sqlquery = "SELECT id FROM phenomena WHERE name = '{0}'"
         self._cursor.execute(sqlquery.format(phenomenon_name.upper()))
@@ -562,7 +210,7 @@ ALTER TABLE `volcanic_data`
             self._cursor.execute(sqlquery.format(phenomenon_name.upper()))
             return self._cursor.lastrowid
 
-    def phenomena_list(self):
+    def get_phenomena_list(self):
         sqlquery = "SELECT id, name FROM phenomena"
         self._cursor.execute(sqlquery)
         return [dict(zip(('phenomenon_id', 'phenomenon_name'), phen))
@@ -575,94 +223,7 @@ ALTER TABLE `volcanic_data`
         self._cursor.execute(sqlquery.format(phenomeon_id))
         return dict(zip(['id', 'name'], self._cursor.fetchone()))
 
-    def intensity_measure_unit_get_insert_id(self, unit_name):
-        sqlquery = """
-                    SELECT id FROM intensity_measure_unit
-                    WHERE measure_unit_text = '{0}'
-                   """
-        # print sqlquery.format(unit_name)
-        self._cursor.execute(sqlquery.format(unit_name))
-        id = self._cursor.fetchone()
-        if id:
-            return id[0]
-        else:
-            sqlquery = """
-                        INSERT INTO intensity_measure_unit (measure_unit_text)
-                        VALUES('{0}')
-                       """
-            # print sqlquery.format(unit_name)
-            self._cursor.execute(sqlquery.format(unit_name))
-            return self._cursor.lastrowid
-
-    def get_intensity_measure_unit_by_haz(self, haz_id):
-        sqlquery = """ SELECT `imu`.`measure_unit_text`
-            FROM (`hazmodel_intensities` `haz_int` LEFT JOIN
-            `intensity_thresholds` `it` ON
-            `haz_int`.`id_intensity_threshold`=`it`.`id`)
-                LEFT JOIN `intensity_measure_unit` `imu` ON
-                    `it`.`id_unit` = `imu`.`id`
-            WHERE `haz_int`.`id_hazard_model`= %s LIMIT 1
-        """
-        sqlquery %= str(haz_id)
-        self._cursor.execute(sqlquery)
-        return self._cursor.fetchone()[0]
-
-
-    def intensity_thresholds_insert(self, int_thres, imt_id):
-        """
-        """
-        sqlquery = """
-                    INSERT IGNORE INTO intensity_thresholds (value,
-                        id_unit) VALUES( %s, """ + str(imt_id) + """)"""
-
-        # print sqlquery
-        # print int_thres
-
-        return self._cursor.executemany(sqlquery, [(val,) for val
-                                                   in int_thres])
-
-    def intensity_thresholds_idlist(self, imt_id, iml_thresholds):
-        """
-        """
-
-        sqlquery = """
-                    SELECT id FROM intensity_thresholds WHERE
-                    (value) IN (%s) AND id_unit=""" + str(imt_id)
-
-        if len(iml_thresholds) < 1:
-            return -1
-            # print iml_thresholds
-        iml_thresh_list = ', '.join([str(y) for y in [float(x)
-                                                      for x in
-                                                      iml_thresholds]])
-        sqlquery %= iml_thresh_list
-        self._cursor.execute(sqlquery)
-        return [item[0] for item in self._cursor.fetchall()]
-
-    def hazard_thresholds_rel(self, hazard_id, thresholds_id_list):
-        """
-
-        """
-        sqlquery = """
-                    INSERT IGNORE INTO hazmodel_intensities
-                    (id_hazard_model, id_intensity_threshold)
-                        VALUES(""" + str(hazard_id) + """, %s)"""
-        return self._cursor.executemany(sqlquery, [(id,) for id
-                                                   in thresholds_id_list])
-
-    def get_intensity_threshods_by_haz(self, haz_id):
-
-        sqlquery = """ SELECT `it`.`value`
-            FROM `hazmodel_intensities` `haz_int` LEFT JOIN
-            `intensity_thresholds` `it` ON
-            `haz_int`.`id_intensity_threshold`=`it`.`id`
-            WHERE `haz_int`.`id_hazard_model`= %s ORDER BY `it`.`value`
-        """
-        sqlquery %= str(haz_id)
-        self._cursor.execute(sqlquery)
-        return [float(item[0]) for item in self._cursor.fetchall()]
-
-    def statistic_get_insert_id(self, statistic,
+    def insert_id_statistic(self, statistic,
                                 percentile_value):
         sqlquery = "SELECT id FROM statistics WHERE name = '{0}'"
         if percentile_value != '0':
@@ -699,8 +260,7 @@ ALTER TABLE `volcanic_data`
         return [dict(zip(['id', 'name'], (x[0], x[1])))
                 for x in self._cursor.fetchall()]
 
-
-    def hazard_statistic_rel(self, hazard_id, statistic_id):
+    def insert_hazard_statistic_rel(self, hazard_id, statistic_id):
         """
 
         """
@@ -710,51 +270,7 @@ ALTER TABLE `volcanic_data`
                         VALUES ({0}, {1})"""
         return self._cursor.execute(sqlquery.format(hazard_id, statistic_id))
 
-    def get_exposure_times_by_haz(self, haz_id):
-        sqlquery = """ SELECT `et`.`id`, `et`.`years`
-            FROM `hazmodel_exptimes` `haz_exp` LEFT JOIN
-            `exposure_times` `et` ON
-            `haz_exp`.`id_exposure_time`=`et`.`id`
-            WHERE `haz_exp`.`id_hazard_model`= %s
-        """
-        sqlquery %= str(haz_id)
-        self._cursor.execute(sqlquery)
-        return [dict(zip(['id', 'years'], (x[0], int(x[1]))))
-                for x in self._cursor.fetchall()]
-
-    def get_exposure_time_by_value(self, exp_time_value):
-        sqlquery = """ SELECT `et`.`id`
-            FROM `exposure_times` `et`
-            WHERE `et`.`years`= %s
-        """
-        sqlquery %= str(exp_time_value)
-        self._cursor.execute(sqlquery)
-        return self._cursor.fetchone()[0]
-
-
-    def exposure_time_get_insert_id(self, exposure_time):
-        sqlquery = "SELECT id FROM exposure_times WHERE years = '{0}'"
-        self._cursor.execute(sqlquery.format(str(float(exposure_time))))
-        id = self._cursor.fetchone()
-        if id:
-            return id[0]
-        else:
-            sqlquery = "INSERT INTO exposure_times (years) VALUES('{0}')"
-            self._cursor.execute(sqlquery.format(str(float(exposure_time))))
-            return self._cursor.lastrowid
-
-    def hazard_exposure_time_rel(self, hazard_id, exposure_time_id):
-        """
-
-        """
-        sqlquery = """
-                    INSERT IGNORE INTO hazmodel_exptimes
-                    (id_hazard_model, id_exposure_time)
-                        VALUES({0}, {1})"""
-        return self._cursor.execute(
-            sqlquery.format(hazard_id, exposure_time_id))
-
-    def volcanos_list(self, haz_id):
+    def get_volcanos_list(self, haz_id):
         sqlquery = """ SELECT `vol`.`id`, `vol`.`name`
             FROM `hazmodel_volcanos` `haz_vol` LEFT JOIN
             `volcanos` `vol` ON
@@ -766,7 +282,7 @@ ALTER TABLE `volcanic_data`
         return [dict(zip(['id', 'name'], x))
                 for x in self._cursor.fetchall()]
 
-    def volcano_get_insert_id(self, volcano):
+    def insert_id_volcano(self, volcano):
         sqlquery = "SELECT id FROM volcanos WHERE name = '{0}'"
         self._cursor.execute(sqlquery.format(volcano.upper()))
         id = self._cursor.fetchone()
@@ -777,7 +293,7 @@ ALTER TABLE `volcanic_data`
             self._cursor.execute(sqlquery.format(volcano.upper()))
             return self._cursor.lastrowid
 
-    def hazard_volcano_rel(self, hazard_id, volcano_id):
+    def insert_hazard_volcano_rel(self, hazard_id, volcano_id):
         """
 
         """
@@ -787,20 +303,25 @@ ALTER TABLE `volcanic_data`
                         VALUES({0}, {1})"""
         return self._cursor.execute(sqlquery.format(hazard_id, volcano_id))
 
-    def hazardmodel_get_insert_id(self, id_phen,
-                                  id_datagrid, name, date='0'):
-        sqlquery = "SELECT id FROM hazard_models WHERE name = '{0}'"
-        self._cursor.execute(sqlquery.format(name.upper()))
+    def insert_id_hazard_model(self, id_phen, id_datagrid, name,
+                               exp_time, iml, imt, date='0'):
+        sqlquery = """SELECT id FROM hazard_models
+                   WHERE name = '{0}' AND exposure_time = '{1}'
+                   """
+        self._cursor.execute(sqlquery.format(name.upper(), exp_time))
         id = self._cursor.fetchone()
         if id:
             return id[0]
         else:
             sqlquery = """
                     INSERT INTO hazard_models (id_phenomenon, id_datagrid,
-                                        name, date) VALUES({0}, {1}, '{2}', {3})
+                                        name, exposure_time, iml, imt, date)
+                                        VALUES({0}, {1}, '{2}', '{3}', '{4}',
+                                        '{5}', {6})
                     """
             self._cursor.execute(sqlquery.format(id_phen, id_datagrid,
-                                                 name.upper(), date))
+                                                 name.upper(), exp_time,
+                                                 iml, imt, date))
             return self._cursor.lastrowid
 
     def get_hazard_model_by_id(self, haz_id):
@@ -808,6 +329,9 @@ ALTER TABLE `volcanic_data`
                     `haz_mod`.`id_phenomenon`,
                     `haz_mod`.`id_datagrid`,
                     `haz_mod`.`name`,
+                    `haz_mod`.`exposure_time`,
+                    `haz_mod`.`iml`,
+                    `haz_mod`.`imt`,
                     `haz_mod`.`date`
             FROM `hazard_models` `haz_mod`
             WHERE `haz_mod`.`id`= %s
@@ -815,25 +339,30 @@ ALTER TABLE `volcanic_data`
         sqlquery %= str(haz_id)
         self._cursor.execute(sqlquery)
         return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
-                         'hazard_name', 'date'], self._cursor.fetchone()))
+                         'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],
+                        self._cursor.fetchone()))
 
-    def get_hazard_model_by_name(self, haz_name):
+    # TODO: sistemare questa
+    def get_hazard_model_by_name_exptime(self, haz_name, exp_time):
         sqlquery = """ SELECT `haz_mod`.`id`,
                     `haz_mod`.`id_phenomenon`,
                     `haz_mod`.`id_datagrid`,
                     `haz_mod`.`name`,
+                    `haz_mod`.`exposure_time`,
+                    `haz_mod`.`iml`,
+                    `haz_mod`.`imt`,
                     `haz_mod`.`date`
             FROM `hazard_models` `haz_mod`
-            WHERE `haz_mod`.`name`= '%s'
+            WHERE `haz_mod`.`name`= '%s' AND  `haz_mod`.`exposure_time`= '%s'
         """
         sqlquery %= str(haz_name.upper())
+        sqlquery %= str(exp_time)
         self._cursor.execute(sqlquery)
         return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
                          'hazard_name', 'date'], self._cursor.fetchone()))
 
-
-    def hazard_data_insert(self, phenomenon, hazard_model_id, datagrid_id,
-                           stat_id, exptime_id, points, curves):
+    def insert_hazard_data(self, phenomenon, hazard_model_id, stat_id,
+                           points, curves):
 
         if phenomenon == 'VOLCANIC':
             table_name = "volcanic_data"
@@ -842,35 +371,27 @@ ALTER TABLE `volcanic_data`
         elif phenomenon == 'TSUNAMIC':
             table_name = "tsunamic_data"
 
-        points_idlist = self.pointsid_list(points)
+        points_idlist = self.get_pointsid_list_by_coords(points)
         point_curve_map = zip(points_idlist,
                               [", ".join(map(str, x)) for x in curves])
-
         sqlquery = """
                     INSERT IGNORE INTO `{0}` (id_hazard_model,
-                        id_point, id_grid, id_statistic, id_exposure_time,
-                        hazard_curve) VALUES ( """ + str(hazard_model_id) + """
-                        , %s, """ + str(datagrid_id) + ", " + str(
-            stat_id) + "," + str(exptime_id) + """, %s )"""
+                        id_point, id_statistic, hazard_curve)
+                        VALUES ( """ + str(hazard_model_id) + """
+                        , %s, """ + str(stat_id) + """, %s )"""
 
         sqlquery = sqlquery.format(table_name)
-        # print "point_curve_map %s " % point_curve_map
         return self._cursor.executemany(sqlquery, point_curve_map)
 
-    def volcanic_data_insert(self, hazard_model_id, datagrid_id,
-                             stat_id, exptime_id, points, curves):
-        return self.hazard_data_insert('VOLCANIC', hazard_model_id,
-                                       datagrid_id, stat_id, exptime_id,
+    def insert_volcanic_data(self, hazard_model_id, stat_id, points, curves):
+        return self.insert_hazard_data('VOLCANIC', hazard_model_id, stat_id,
                                        points, curves)
 
-    def seismic_data_insert(self, hazard_model_id, datagrid_id,
-                            stat_id, exptime_id, points, curves):
-        return self.hazard_data_insert('SEISMIC', hazard_model_id,
-                                       datagrid_id, stat_id, exptime_id,
+    def insert_seismic_data(self, hazard_model_id, stat_id, points, curves):
+        return self.insert_hazard_data('SEISMIC', hazard_model_id, stat_id,
                                        points, curves)
 
-    def get_point_all_curves(self, phenomenon_id,
-                             hazard_id, point_id, exp_time_id):
+    def get_point_all_curves(self, phenomenon_id, hazard_id, point_id):
         phenomenon = self.get_phenomenon_by_id(phenomenon_id)
         if phenomenon['name'] == 'VOLCANIC':
             table_name = "volcanic_data"
@@ -886,18 +407,14 @@ ALTER TABLE `volcanic_data`
                     FROM `{0}` `dt` JOIN `statistics` `st` ON
                         `dt`.`id_statistic` = `st`.`id`
                     WHERE `dt`.`id_hazard_model`={1} AND
-                     `dt`.`id_point`={2} AND
-                     `dt`.`id_exposure_time`={3}
+                     `dt`.`id_point`={2}
         """
-        query = sqlquery.format(table_name, hazard_id, point_id, exp_time_id)
+        query = sqlquery.format(table_name, hazard_id, point_id)
         self._cursor.execute(query)
         res = self._cursor.fetchall()
         return dict(res)
 
-    def get_curves(self, phenomenon_id, hazard_model_id,
-                   datagrid_id, stat_id, exptime_id):
-
-
+    def get_curves(self, phenomenon_id, hazard_model_id, datagrid_id, stat_id):
         phenomenon = self.get_phenomenon_by_id(phenomenon_id)
         if phenomenon['name'] == 'VOLCANIC':
             table_name = "volcanic_data"
@@ -914,16 +431,12 @@ ALTER TABLE `volcanic_data`
             `{0}` `d` LEFT JOIN `points` `p`
              ON `d`.`id_point`=`p`.`id`
              WHERE `d`.`id_hazard_model`= {1} AND `d`.`id_grid` = {2}
-             AND `d`.`id_statistic` = {3} and `d`.`id_exposure_time` = {4}
+             AND `d`.`id_statistic` = {3}
         """
-        query = sqlquery.format(table_name,
-                                hazard_model_id,
-                                datagrid_id,
-                                stat_id, exptime_id)
         self._cursor.execute(sqlquery.format(table_name,
                                              hazard_model_id,
                                              datagrid_id,
-                                             stat_id, exptime_id))
+                                             stat_id))
         return [dict(zip(['point', 'curve'],
                          (dict(zip(['id', 'easting', 'northing',
                                     'zone_number', 'zone_letter'],
@@ -941,8 +454,8 @@ ALTER TABLE `volcanic_data`
             datagridfile_path))
         datagrid_points = bf.get_gridpoints_from_file(datagridfile_path)
         newpoints = self.insert_utm_points(datagrid_points)
-        datagrid_id = self.datagrid_get_insert_id(datagrid_name)
-        rel_tmp = self.datagrid_points_insert(datagrid_id, datagrid_points)
+        datagrid_id = self.insert_id_datagrid(datagrid_name)
+        rel_tmp = self.insert_datagrid_points(datagrid_id, datagrid_points)
 
         print "Filename: %s , datagrid name: %s , id: %s" \
               % (os.path.basename(datagridfile_path),
@@ -959,11 +472,11 @@ ALTER TABLE `volcanic_data`
         """
 
         """
-        datagrid_id = self.datagrid_get_insert_id(datagrid_name)
+        datagrid_id = self.insert_id_datagrid(datagrid_name)
         print " datagrid name: %s , id: %s" \
               % (datagrid_name, datagrid_id)
 
-        phenomenon_id = self.phenomenon_get_insert_id(phenomenon_name)
+        phenomenon_id = self.insert_id_phenomenon(phenomenon_name)
         print " phenomenon name: %s , id: %s" \
               % (phenomenon_name, phenomenon_id)
 
@@ -978,45 +491,31 @@ ALTER TABLE `volcanic_data`
             # Now insert hazard, after this other
             # many-to-many relationship
             print "DB > Creating hazarm_models entry"
-            hazard_model_id = self.hazardmodel_get_insert_id(
+            hazard_model_id = self.insert_id_hazard_model(
                 phenomenon_id,
                 datagrid_id,
-                fileXmlModel.model_name)
-
-            # Data in hazmodel_intensities
-            # print "fileXmlModel.iml_imt: %s" % \
-            # fileXmlModel.iml_imt
-            print "DB > Inserting intensities"
-            imt_id = self.intensity_measure_unit_get_insert_id(
+                fileXmlModel.model_name,
+                fileXmlModel.exp_time,
+                fileXmlModel.iml_thresholds,
                 fileXmlModel.iml_imt)
-            self.intensity_thresholds_insert(
-                fileXmlModel.iml_thresholds, imt_id)
-            iml_thres = self.intensity_thresholds_idlist(imt_id,
-                                                         fileXmlModel.iml_thresholds)
-            self.hazard_thresholds_rel(hazard_model_id,
-                                       iml_thres)
 
             # Data in hazmodel_statistics
             print "DB > Inserting statistics"
-            stat_id = self.statistic_get_insert_id(
+            stat_id = self.insert_id_statistic(
                 fileXmlModel.statistic,
                 fileXmlModel.percentile_value)
 
-            self.hazard_statistic_rel(hazard_model_id,
+            self.insert_hazard_statistic_rel(hazard_model_id,
                                       stat_id)
-
-            print "DB > Inserting exposure times"
-            exptime_id = self.exposure_time_get_insert_id(
-                fileXmlModel.exp_time)
-            self.hazard_exposure_time_rel(hazard_model_id,
-                                          exptime_id)
 
             print "DB > Inserting hazard data: " \
                   "phenomenon: %s \n" \
-                  "hazard_model id: %s \n" \
-                  "datagrid_id %s \n" \
-                  "stat_id %s \n" \
-                  "exptime id: %s \n" \
+                  "hazard_model_id: %s \n" \
+                  "datagrid_id: %s \n" \
+                  "stat_id: %s \n" \
+                  "exp_time : %s \n" \
+                  "iml : %s \n" \
+                  "imt : %s \n" \
                   "points_id_len: %s \n" \
                   "points_value_len: %s \n" \
                   % (
@@ -1024,20 +523,18 @@ ALTER TABLE `volcanic_data`
                 hazard_model_id,
                 datagrid_id,
                 stat_id,
-                exptime_id,
+                fileXmlModel.exp_time,
+                fileXmlModel.iml_thresholds,
+                fileXmlModel.iml_imt,
                 len(fileXmlModel.points_coords),
                 len(fileXmlModel.points_values)
             )
 
-            self.hazard_data_insert(
-                fileXmlModel.phenomenon,
-                hazard_model_id,
-                datagrid_id,
-                stat_id,
-                exptime_id,
-                fileXmlModel.points_coords,
-                fileXmlModel.points_values
-            )
+            self.insert_hazard_data(fileXmlModel.phenomenon,
+                                    hazard_model_id,
+                                    stat_id,
+                                    fileXmlModel.points_coords,
+                                    fileXmlModel.points_values)
             del fileXmlModel
         return True
 
@@ -1050,3 +547,137 @@ ALTER TABLE `volcanic_data`
 
     def close(self):
         self._connection.close()
+
+
+    # TODO: da eliminare modificando prima il codice
+
+    # def intensity_measure_unit_get_insert_id(self, unit_name):
+    #     sqlquery = """
+    #                 SELECT id FROM intensity_measure_unit
+    #                 WHERE measure_unit_text = '{0}'
+    #                """
+    #     # print sqlquery.format(unit_name)
+    #     self._cursor.execute(sqlquery.format(unit_name))
+    #     id = self._cursor.fetchone()
+    #     if id:
+    #         return id[0]
+    #     else:
+    #         sqlquery = """
+    #                     INSERT INTO intensity_measure_unit (measure_unit_text)
+    #                     VALUES('{0}')
+    #                    """
+    #         # print sqlquery.format(unit_name)
+    #         self._cursor.execute(sqlquery.format(unit_name))
+    #         return self._cursor.lastrowid
+
+    # def get_intensity_measure_unit_by_haz(self, haz_id):
+    #     sqlquery = """ SELECT `imu`.`measure_unit_text`
+    #         FROM (`hazmodel_intensities` `haz_int` LEFT JOIN
+    #         `intensity_thresholds` `it` ON
+    #         `haz_int`.`id_intensity_threshold`=`it`.`id`)
+    #             LEFT JOIN `intensity_measure_unit` `imu` ON
+    #                 `it`.`id_unit` = `imu`.`id`
+    #         WHERE `haz_int`.`id_hazard_model`= %s LIMIT 1
+    #     """
+    #     sqlquery %= str(haz_id)
+    #     self._cursor.execute(sqlquery)
+    #     return self._cursor.fetchone()[0]
+
+
+    # def intensity_thresholds_insert(self, int_thres, imt_id):
+    #     """
+    #     """
+    #     sqlquery = """
+    #                 INSERT IGNORE INTO intensity_thresholds (value,
+    #                     id_unit) VALUES( %s, """ + str(imt_id) + """)"""
+    #
+    #     # print sqlquery
+    #     # print int_thres
+    #
+    #     return self._cursor.executemany(sqlquery, [(val,) for val
+    #                                                in int_thres])
+
+    # def intensity_thresholds_idlist(self, imt_id, iml_thresholds):
+    #     """
+    #     """
+    #
+    #     sqlquery = """
+    #                 SELECT id FROM intensity_thresholds WHERE
+    #                 (value) IN (%s) AND id_unit=""" + str(imt_id)
+    #
+    #     if len(iml_thresholds) < 1:
+    #         return -1
+    #         # print iml_thresholds
+    #     iml_thresh_list = ', '.join([str(y) for y in [float(x)
+    #                                                   for x in
+    #                                                   iml_thresholds]])
+    #     sqlquery %= iml_thresh_list
+    #     self._cursor.execute(sqlquery)
+    #     return [item[0] for item in self._cursor.fetchall()]
+
+    # def hazard_thresholds_rel(self, hazard_id, thresholds_id_list):
+    #     """
+    #
+    #     """
+    #     sqlquery = """
+    #                 INSERT IGNORE INTO hazmodel_intensities
+    #                 (id_hazard_model, id_intensity_threshold)
+    #                     VALUES(""" + str(hazard_id) + """, %s)"""
+    #     return self._cursor.executemany(sqlquery, [(id,) for id
+    #                                                in thresholds_id_list])
+
+    # def get_intensity_threshods_by_haz(self, haz_id):
+    #
+    #     sqlquery = """ SELECT `it`.`value`
+    #         FROM `hazmodel_intensities` `haz_int` LEFT JOIN
+    #         `intensity_thresholds` `it` ON
+    #         `haz_int`.`id_intensity_threshold`=`it`.`id`
+    #         WHERE `haz_int`.`id_hazard_model`= %s ORDER BY `it`.`value`
+    #     """
+    #     sqlquery %= str(haz_id)
+    #     self._cursor.execute(sqlquery)
+    #     return [float(item[0]) for item in self._cursor.fetchall()]
+
+    # def get_exposure_times_by_haz(self, haz_id):
+    #     sqlquery = """ SELECT `et`.`id`, `et`.`years`
+    #         FROM `hazmodel_exptimes` `haz_exp` LEFT JOIN
+    #         `exposure_times` `et` ON
+    #         `haz_exp`.`id_exposure_time`=`et`.`id`
+    #         WHERE `haz_exp`.`id_hazard_model`= %s
+    #     """
+    #     sqlquery %= str(haz_id)
+    #     self._cursor.execute(sqlquery)
+    #     return [dict(zip(['id', 'years'], (x[0], int(x[1]))))
+    #             for x in self._cursor.fetchall()]
+
+    # def get_exposure_time_by_value(self, exp_time_value):
+    #     sqlquery = """ SELECT `et`.`id`
+    #         FROM `exposure_times` `et`
+    #         WHERE `et`.`years`= %s
+    #     """
+    #     sqlquery %= str(exp_time_value)
+    #     self._cursor.execute(sqlquery)
+    #     return self._cursor.fetchone()[0]
+
+
+    # def exposure_time_get_insert_id(self, exposure_time):
+    #     sqlquery = "SELECT id FROM exposure_times WHERE years = '{0}'"
+    #     self._cursor.execute(sqlquery.format(str(float(exposure_time))))
+    #     id = self._cursor.fetchone()
+    #     if id:
+    #         return id[0]
+    #     else:
+    #         sqlquery = "INSERT INTO exposure_times (years) VALUES('{0}')"
+    #         self._cursor.execute(sqlquery.format(str(float(exposure_time))))
+    #         return self._cursor.lastrowid
+
+    # def hazard_exposure_time_rel(self, hazard_id, exposure_time_id):
+    #     """
+    #
+    #     """
+    #     sqlquery = """
+    #                 INSERT IGNORE INTO hazmodel_exptimes
+    #                 (id_hazard_model, id_exposure_time)
+    #                     VALUES({0}, {1})"""
+    #     return self._cursor.execute(
+    #         sqlquery.format(hazard_id, exposure_time_id))

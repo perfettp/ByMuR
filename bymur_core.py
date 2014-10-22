@@ -108,22 +108,18 @@ class BymurCore(object):
 
     def get_controls_data(self):
         ret = {}
-        hazard_models = self.db.hazard_models_get()
+        hazard_models = self.db.get_hazard_models_list()
         # [{'id_phenomenon', 'phenomenon_name', 'haz_id', 'haz_name'}]
         for ind, hazard in enumerate(hazard_models):
             haz_tmp = hazard
-            haz_tmp['exposure_times'] = \
-                self.db.get_exposure_times_by_haz(haz_tmp['hazard_id'])
-                # [{'id':, 'years': }]
             if haz_tmp['phenomenon_name'] == 'VOLCANIC':
-                haz_tmp['volcano'] = self.db.volcanos_list(haz_tmp['hazard_id'])
-                # [{'id':, 'name': }]
+                haz_tmp['volcano'] = self.db.get_volcanos_list(haz_tmp['hazard_id'])
             else:
                 haz_tmp['volcano'] = None
             hazard_models[ind] = haz_tmp
 
         ret['hazard_models'] = hazard_models
-        ret['phenomena'] = self.db.phenomena_list()
+        ret['phenomena'] = self.db.get_phenomena_list()
         print "hazard_models %s:" % ret['hazard_models']
         print "phenomena %s " % ret['phenomena']
         return ret
@@ -164,14 +160,10 @@ class BymurCore(object):
             return False
 
     def get_point_curves(self):
-        exp_time_id = self._db.get_exposure_time_by_value(
-            self.hazard_options['exp_time'])
         point_data = self._db.get_point_all_curves(
             self.hazard_description['phenomenon_id'],
             self.hazard_description['hazard_id'],
-            self.selected_point['point']['id'],
-            exp_time_id
-        )
+            self.selected_point['point']['id'])
         return point_data
 
     def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
@@ -222,25 +214,25 @@ class BymurCore(object):
 
 
 
-    def compute_hazard_values(self, hazard_name, exp_time, ret_per,
+    def compute_hazard_values(self, hazard_name, exp_time,
                               intensity_threshold, hazard_threshold,
                               statistic_name='mean'):
 
-        haz_tmp = self._db.get_hazard_model_by_name(hazard_name)
-        haz_tmp['int_thresh_list'] = self._db.get_intensity_threshods_by_haz(
-            haz_tmp['hazard_id'])
-        haz_tmp['imt'] = self._db.get_intensity_measure_unit_by_haz(
-            haz_tmp['hazard_id'])
-        haz_tmp['exposure_times'] = self._db.get_exposure_times_by_haz(
-            haz_tmp['hazard_id'])
+        haz_tmp = self._db.get_hazard_model_by_name_exptime(hazard_name, exp_time)
+        # haz_tmp['int_thresh_list'] = self._db.get_intensity_threshods_by_haz(
+        #     haz_tmp['hazard_id'])
+        # haz_tmp['imt'] = self._db.get_intensity_measure_unit_by_haz(
+        #     haz_tmp['hazard_id'])
+        # haz_tmp['exposure_times'] = self._db.get_exposure_times_by_haz(
+        #     haz_tmp['hazard_id'])
         haz_tmp['statistics'] = self._db.get_statistics_by_haz(
             haz_tmp['hazard_id'])
         self.hazard_description = haz_tmp
         print "hazard_description %s" % self.hazard_description
         # to here, should be below in updateModel
 
-        exp_time_id = self._db.get_exposure_time_by_value(exp_time)
-        print "exp_time_id = %s" % exp_time_id
+        # exp_time_id = self._db.get_exposure_time_by_value(exp_time)
+        # print "exp_time_id = %s" % exp_time_id
         statistic_id = self._db.get_statistic_by_value(statistic_name)
         print "statistic_id = %s" % statistic_id
 
@@ -249,18 +241,18 @@ class BymurCore(object):
         self.hazard_curves = self._db.get_curves(haz_tmp['phenomenon_id'],
                                                  haz_tmp['hazard_id'],
                                                  haz_tmp['datagrid_id'],
-                                                 statistic_id, exp_time_id)
+                                                 statistic_id)
 
 
         return map((lambda p: dict(zip(['point','haz_value',
                                                        'prob_value'],
                                                 (p['point'],
                                                  self.get_haz_value(
-                                                     haz_tmp['int_thresh_list'],
+                                                     haz_tmp['iml'],
                                                      hazard_threshold,
                                                      p['curve']),
                                                  self.get_prob_value(
-                                                     haz_tmp['int_thresh_list'],
+                                                     haz_tmp['iml'],
                                                      intensity_threshold,
                                                      p['curve'])
                                                 )))),
@@ -268,7 +260,7 @@ class BymurCore(object):
 
 
     def get_grid_points(self, grid_id):
-       return self.db.datagrid_points_get(grid_id)
+       return self.db.get_points_by_datagrid_id(grid_id)
 
 
     def updateModel(self, **ctrls_options):
@@ -283,7 +275,6 @@ class BymurCore(object):
         self.hazard_values = self.compute_hazard_values(
                self.hazard_options['hazard_name'],
                self.hazard_options['exp_time'],
-               self.hazard_options['ret_per'],
                self.hazard_options['int_thresh'],
                self.hazard_options['hazard_threshold'])
 

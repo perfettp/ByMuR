@@ -10,7 +10,7 @@ class BymurController(object):
                   'db_port': '3306',
                   'db_user': '***REMOVED***',
                   'db_password': '***REMOVED***',
-                  'db_name': 'bymurDB-dev-utm'
+                  'db_name': 'bymurDB-utm-fix'
     }
 
     _addDBDataDetails = {
@@ -143,9 +143,9 @@ class BymurController(object):
         print "addDBData"
         self._addDBDataDetails['grid_list'] = [d['datagrid_name']
                                                for d in
-                                               self._core.db.datagrid_list()]
+                                               self._core.db.get_datagrids_list()]
         self._addDBDataDetails['phenomena_list'] = [p['phenomenon_name'] for p
-                                                   in  self._core.db.phenomena_list()]
+                                                   in  self._core.db.get_phenomena_list()]
         dialogResult = self._wxframe.showDlg("BymurAddDBDataDlg",
                                                        **self._addDBDataDetails)
         if dialogResult:

@@ -171,7 +171,7 @@ class HazardXMLModel(object):
                 elif element.tag == 'IML':
                     self._iml_imt = element.get('IMT')
                     # print "imt: %s" % self._iml_imt
-                    self._iml_thresholds = list(element.text.strip().split())
+                    self._iml_thresholds = element.text.strip()
                     # print "iml_thresholds: %s" % self._iml_thresholds
                     element.clear()
                 elif element.tag == 'HCNode':

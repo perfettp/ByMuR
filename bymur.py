@@ -1111,7 +1111,7 @@ class BymurWxLeftPanel(BymurWxPanel):
                                       for haz in ctrls_data['phenomena']])
             self._phenCB.Enable(True)
             self.Enable(True)
-        elif (ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED):
+        elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
             _phen_name = self._phenCB.GetStringSelection()
             _haz_sel = self._hazModCB.GetValue()
             _grid_sel = self._gridCB.GetValue()
@@ -1120,13 +1120,34 @@ class BymurWxLeftPanel(BymurWxPanel):
                           if haz['phenomenon_name'] == _phen_name]
                 self._hazModCB.Clear()
                 self._hazModCB.SetValue('')
-                self._hazModCB.AppendItems([haz['hazard_name']
-                                            for haz in _hlist])
+                self._hazModCB.AppendItems((list(set([haz['hazard_name']
+                                            for haz in _hlist]))))
                 self._hazModCB.Enable(True)
+                print "le: %s" % len(self._hazModCB.Items)
+                if len(self._hazModCB.Items) > 0:
+                    self._hazModCB.SetSelection(0)
+                _haz_sel = self._hazModCB.GetValue()
+                _glist = [haz for haz in ctrls_data['hazard_models']
+                          if haz['hazard_name'] == _haz_sel]
                 self._gridCB.Clear()
                 self._gridCB.SetValue('')
+                self._gridCB.AppendItems(list(set([haz['grid_name']
+                                          for haz in _glist])))
+                self._gridCB.Enable(True)
+                if len(self._gridCB.Items) > 0:
+                    self._gridCB.SetSelection(0)
+                _grid_sel = self._gridCB.GetValue()
+                _exptimelist = [haz['exposure_time'] for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
+                self._expTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expTimeCB.Items) > 0:
+                    self._expTimeCB.SetSelection(0)
+                self._expTimeCB.Enable(True)
                 self._retPerText.SetValue(
                     str(ctrls_data[_phen_name]['ret_per']))
                 self._intThresText.SetValue(
@@ -1138,27 +1159,24 @@ class BymurWxLeftPanel(BymurWxPanel):
                           if haz['hazard_name'] == _haz_sel]
                 self._gridCB.Clear()
                 self._gridCB.SetValue('')
-                self._gridCB.AppendItems([haz['grid_name']
-                                          for haz in _glist])
+                self._gridCB.AppendItems(list(set([haz['grid_name']
+                                          for haz in _glist])))
                 self._gridCB.Enable(True)
+                if len(self._gridCB.Items) > 0:
+                    self._gridCB.SetSelection(0)
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
             elif ev.GetEventObject() == self._gridCB:
-                _exptimelist = []
-                print _haz_sel
-                print _phen_name
-                for haz in ctrls_data['hazard_models']:
-                    print haz
-                    if (haz['hazard_name'] == _haz_sel and
+                _exptimelist = [haz['exposure_time'] for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name and
-                                haz['grid_name'] == _grid_sel):
-                        _haz_id = haz['hazard_id']
-                        _exptimelist = haz['exposure_times']
-                        break
+                                haz['grid_name'] == _grid_sel)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
-                self._expTimeCB.AppendItems([str(et['years'])
-                                             for et in _exptimelist])
+                self._expTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expTimeCB.Items) > 0:
+                    self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
             elif ev.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
                 pass
