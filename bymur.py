@@ -1123,10 +1123,15 @@ class BymurWxLeftPanel(BymurWxPanel):
                 self._hazModCB.AppendItems((list(set([haz['hazard_name']
                                             for haz in _hlist]))))
                 self._hazModCB.Enable(True)
-                print "le: %s" % len(self._hazModCB.Items)
                 if len(self._hazModCB.Items) > 0:
                     self._hazModCB.SetSelection(0)
                 _haz_sel = self._hazModCB.GetValue()
+                self._retPerText.SetValue(
+                    str(ctrls_data[_phen_name]['ret_per']))
+                self._intThresText.SetValue(
+                    str(ctrls_data[_phen_name]['int_thresh']))
+                self._retPerText.Enable(True)
+                self._intThresText.Enable(True)
                 _glist = [haz for haz in ctrls_data['hazard_models']
                           if haz['hazard_name'] == _haz_sel]
                 self._gridCB.Clear()
@@ -1148,12 +1153,6 @@ class BymurWxLeftPanel(BymurWxPanel):
                 if len(self._expTimeCB.Items) > 0:
                     self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
-                self._retPerText.SetValue(
-                    str(ctrls_data[_phen_name]['ret_per']))
-                self._intThresText.SetValue(
-                    str(ctrls_data[_phen_name]['int_thresh']))
-                self._retPerText.Enable(True)
-                self._intThresText.Enable(True)
             elif ev.GetEventObject() == self._hazModCB:
                 _glist = [haz for haz in ctrls_data['hazard_models']
                           if haz['hazard_name'] == _haz_sel]
@@ -1164,8 +1163,30 @@ class BymurWxLeftPanel(BymurWxPanel):
                 self._gridCB.Enable(True)
                 if len(self._gridCB.Items) > 0:
                     self._gridCB.SetSelection(0)
+                _grid_sel = self._gridCB.GetValue()
+                _exptimelist = [haz['exposure_time'] for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
+                self._expTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expTimeCB.Items) > 0:
+                    self._expTimeCB.SetSelection(0)
+                self._expTimeCB.Enable(True)
+                #
+                # _glist = [haz for haz in ctrls_data['hazard_models']
+                #           if haz['hazard_name'] == _haz_sel]
+                # self._gridCB.Clear()
+                # self._gridCB.SetValue('')
+                # self._gridCB.AppendItems(list(set([haz['grid_name']
+                #                           for haz in _glist])))
+                # self._gridCB.Enable(True)
+                # if len(self._gridCB.Items) > 0:
+                #     self._gridCB.SetSelection(0)
+                # self._expTimeCB.Clear()
+                # self._expTimeCB.SetValue('')
             elif ev.GetEventObject() == self._gridCB:
                 _exptimelist = [haz['exposure_time'] for haz in
                                     ctrls_data['hazard_models']
