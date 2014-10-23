@@ -6,6 +6,80 @@ import random as rnd
 import os
 
 
+class HazardModel(object):
+    def __init__(self, data_provider, hazard_id):
+        self._hazard_id = hazard_id
+        self._db = data_provider
+        hm = self._db.get_hazard_model_by_id(self._hazard_id)
+        self._hazard_name = hm['hazard_name']
+        self._phenomenon_id = hm['phenomenon_id']
+        self._datagrid_id = hm['datagrid_id']
+        self._exposure_time = float(hm['exposure_time'])
+        self._iml = [float(l) for l in hm['iml']]
+        self._imt = hm['imt']
+        self._date = hm['date']
+        self.statistics = self._db.get_statistics_by_haz(self._hazard_id)
+        self._grid_points = self._db.get_points_by_datagrid_id(self.datagrid_id)
+        self._grid_limits = {'east_min': min([p['easting']
+                                              for p in self._grid_points]),
+                             'east_max': max([p['easting']
+                                              for p in self._grid_points]),
+                             'north_min': min([p['northing']
+                                               for p in self._grid_points]),
+                             'north_max': max([p['easting']
+                                               for p in self._grid_points])}
+        self.curves = {}
+
+    def curves_by_statistics(self, statistic_name='mean'):
+        try:
+            return self.curves[statistic_name]
+        except KeyError:
+            stat_id = self._db.get_statistic_by_value(statistic_name)
+            self.curves[statistic_name] = self._db.get_curves(
+                self.phenomenon_id,
+                self.hazard_id,
+                stat_id)
+        return self.curves[statistic_name]
+
+
+    # TODO: set point e similari
+
+    @property
+    def hazard_id(self):
+        return self._hazard_id
+
+    @property
+    def hazard_name(self):
+        return self._hazard_name
+
+    @property
+    def datagrid_id(self):
+        return self._datagrid_id
+
+    @property
+    def phenomenon_id(self):
+        return self._phenomenon_id
+
+    @property
+    def exposure_time(self):
+        return self._exposure_time
+
+    @property
+    def iml(self):
+        return self._iml
+
+    @property
+    def imt(self):
+        return self._imt
+
+    @property
+    def date(self):
+        return self._date
+
+    @property
+    def grid_points(self):
+        return self._grid_points
+
 
 class BymurCore(object):
     # Default values regardless of hazard model
@@ -266,8 +340,6 @@ class BymurCore(object):
                self.hazard_options['hazard_threshold'])
 
         self.grid_points = self.get_grid_points(self.hazard_description['datagrid_id'])
-
-        #print "hazard_values = %s" % self.hazard_values
 
     def exportRawPoints(self, haz_array):
         export_string = ''
