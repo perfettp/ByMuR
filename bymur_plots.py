@@ -90,6 +90,7 @@ class HazardGraph(BymurPlot):
         y = event.mouseevent.ydata
         ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
         self._click_callback(ind)
+        #self._click_callback(x,y)
 
     def plot(self, hazard_description, points_utm):
         # Prepare matplotlib grid and data
