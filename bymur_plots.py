@@ -52,6 +52,8 @@ mpl.rcParams['font.sans-serif'] = 'Times'
 
 class BymurPlot(object):
     def __init__(self, *args, **kwargs):
+        self.x_points = None
+        self.y_points = None
         self._parent = kwargs.get('parent', None)
         self._figure = pyplot.figure()
         self._canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
@@ -92,12 +94,12 @@ class HazardGraph(BymurPlot):
         self._click_callback(ind)
         #self._click_callback(x,y)
 
-    def plot(self, hazard_description, points_utm):
+    def plot(self, hazard_data):
         # Prepare matplotlib grid and data
         grid_points_number = 256
-        self._points_utm = points_utm
-        self.x_points = [p['point']['easting']*1e-3 for p in self._points_utm]
-        self.y_points = [p['point']['northing']*1e-3 for p in self._points_utm]
+        points_utm = [p['point'] for p in hazard_data]
+        self.x_points = [p['easting']*1e-3 for p in points_utm]
+        self.y_points = [p['northing']*1e-3 for p in points_utm]
         x_vector = np.linspace(min(self.x_points), max(self.x_points), grid_points_number)
         y_vector = np.linspace(min(self.y_points), max(self.y_points), grid_points_number)
         x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
@@ -107,9 +109,9 @@ class HazardGraph(BymurPlot):
                                      top=0.92, wspace=0.35, hspace=0.2)
         self._figure.hold(True)
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
-        self.haz_map = self.plot_hazard_map(hazard_description,
+        self.haz_map = self.plot_hazard_map(hazard_data,
                                             x_mesh, y_mesh,
-                             [p['haz_value'] for p in self._points_utm],
+                             [p['haz_value'] for p in hazard_data],
                              map_limits)
 
         self.haz_point,  = self.haz_map.plot([self.x_points[0]],
@@ -121,7 +123,7 @@ class HazardGraph(BymurPlot):
                                                   zorder=5)
 
         self.prob_map = self.plot_probability_map(x_mesh, y_mesh,
-                                  [p['prob_value'] for p in self._points_utm],
+                                  [p['prob_value'] for p in hazard_data],
                                   map_limits)
 
         self.prob_point,  = self.prob_map.plot([self.x_points[0]],
@@ -134,11 +136,11 @@ class HazardGraph(BymurPlot):
 
         self._canvas.draw()
 
-    def plot_hazard_map(self, hazard_description, x_mesh,
+    def plot_hazard_map(self, hazard_data, x_mesh,
                         y_mesh, z_points,
                  map_limits):
         xmap1, xmap2, ymap1, ymap2 = map_limits
-        haz_bar_label = hazard_description['imt']
+        # haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
@@ -182,7 +184,7 @@ class HazardGraph(BymurPlot):
             boundaries=z_boundaries,
             format='%.3f')
         hazard_bar.set_alpha(1)
-        hazard_bar.set_label(haz_bar_label)
+        #hazard_bar.set_label(haz_bar_label)
         hazard_bar.draw_all()
 
         haz_subplot.set_title("Hazard Map\n", fontsize=9)
@@ -285,39 +287,38 @@ class HazardCurve(BymurPlot):
     def __init__(self, *args, **kwargs):
         super(HazardCurve, self).__init__(*args, **kwargs)
 
-    def plot(self, hazard_options, hazard_description, selected_point,
-             selected_point_curves):
+    def plot(self, hazard, hazard_options,
+             selected_point):
         perc_to_plot = ["10", "50", "90"]
 
         self._figure.clf()
         self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
         self._figure.hold(True)
         self._axes.grid(True)
-        _iml = [float(limit) for limit in hazard_description['iml'].split()]
-        xticks = _iml  + [0]
+
+        xticks = hazard.iml  + [0]
         self._axes.set_xticks(xticks)
         self._axes.set_xlim(left=0,
-                            right=_iml[len(_iml)-1])
+                            right= hazard.iml[len(hazard.iml)-1])
 
         for perc in perc_to_plot:
             perc_key = "percentile"+perc
-            if selected_point_curves[perc_key] is not None:
+            if selected_point.curves[perc_key] is not None:
                 perc_label =  perc + "th Percentile"
-                print "number of _iml elements: %s " % len(_iml)
-                print "number of curve elements: %s " % \
-                        len(selected_point_curves[perc_key].split(','))
-                self._axes.plot(_iml,
+                self._axes.plot(hazard.iml,
                                 [float(y) for  y in
-                                 selected_point_curves[perc_key].split(',')],
+                                 selected_point.curves[
+                                     perc_key].split(',')],
                                 linewidth=1,
                                 alpha=1,
                                 label=perc_label)
 
 
-        if selected_point_curves["mean"] is not None:
-                self._axes.plot(_iml,
+        if selected_point.curves["mean"] is not None:
+                self._axes.plot(hazard.iml,
                                 [float(y) for  y in
-                                 selected_point_curves["mean"].split(',')],
+                                 selected_point.curves["mean"].split(','
+                                                                           '')],
                                  color="#000000",
                                  linewidth=1,
                                  alpha=1,
@@ -341,7 +342,9 @@ class HazardCurve(BymurPlot):
 
 
         self._axes.legend()
-        title = ("Point n." + str(selected_point['index']+ 1) +
+        #TODO: forse dovrei aggiungere un id del punto?
+        title = ("East: " + str(selected_point.easting) +
+                " North: " + str(selected_point.northing) +
                " - Time window = " + str(hazard_options['exp_time']) + " "
                                                                         "years")
         self._axes.set_title(title, fontsize=10)

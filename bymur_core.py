@@ -5,17 +5,79 @@ import math
 import random as rnd
 import os
 
+class HazardPoint(object):
+
+    def __init__(self, core):
+        self._core = core
+        self._hazard = None
+        self._index = None
+        self._curves = None
+        self._easting = None
+        self._northing = None
+        self._haz_value = None
+        self._prob_value = None
+
+    def update(self, hazard, index, hazard_threshold, intensity_treshold):
+        self._hazard = hazard
+        self._index = index
+        self._easting = self._hazard.grid_points[self._index]['easting']
+        self._northing = self._hazard.grid_points[self._index]['northing']
+        self._curves = self._core.db.get_point_all_curves(
+            self._hazard.phenomenon_id,
+            self._hazard.hazard_id,
+            self._hazard.grid_points[self._index]['id'])
+        self._haz_value = self._core.get_haz_value(self._hazard.iml,
+                                                   hazard_threshold,
+                                                   [float(x) for x
+                                                    in self._curves['mean'].split(',')])
+        self._prob_value = self._core.get_prob_value(self._hazard.iml,
+                                                     intensity_treshold,
+                                                     [float(x) for x
+                                                     in self._curves[
+                                                         'mean'].split(',')])
+
+    @property
+    def easting(self):
+        return self._easting
+
+    @property
+    def northing(self):
+        return self._northing
+
+    @property
+    def index(self):
+        return self._index
+
+    @property
+    def curves(self):
+        return self._curves
+
+    @property
+    def haz_value(self):
+        return self._haz_value
+
+    @property
+    def prob_value(self):
+        return self._prob_value
+
 
 class HazardModel(object):
-    def __init__(self, data_provider, hazard_id):
-        self._hazard_id = hazard_id
+    def __init__(self, data_provider, id=None, hazard_name=None, exp_time=None):
         self._db = data_provider
-        hm = self._db.get_hazard_model_by_id(self._hazard_id)
+        if id is not None:
+            hm = self._db.get_hazard_model_by_id(self._hazard_id)
+        elif hazard_name is not None and exp_time is not None:
+            hm = self._db.get_hazard_model_by_name_exptime(hazard_name,
+                                                           exp_time)
+        else:
+            raise Exception("Bad initialization of HazardModel")
+
+        self._hazard_id = hm['hazard_id']
         self._hazard_name = hm['hazard_name']
         self._phenomenon_id = hm['phenomenon_id']
         self._datagrid_id = hm['datagrid_id']
         self._exposure_time = float(hm['exposure_time'])
-        self._iml = [float(l) for l in hm['iml']]
+        self._iml = [float(l) for l in hm['iml'].split()]
         self._imt = hm['imt']
         self._date = hm['date']
         self.statistics = self._db.get_statistics_by_haz(self._hazard_id)
@@ -26,11 +88,11 @@ class HazardModel(object):
                                               for p in self._grid_points]),
                              'north_min': min([p['northing']
                                                for p in self._grid_points]),
-                             'north_max': max([p['easting']
+                             'north_max': max([p['northing']
                                                for p in self._grid_points])}
         self._curves = {}
-        self._selected_point = None
-        self._selected_point_curves = None
+        # self._selected_point = None
+        # self._selected_point_curves = None
 
     def curves_by_statistics(self, statistic_name='mean'):
         try:
@@ -43,22 +105,34 @@ class HazardModel(object):
                 stat_id)
         return self._curves[statistic_name]
 
-    def select_point(self, xpoint, ypoint):
-        xsel = np.float64(xpoint)
-        ysel = np.float64(ypoint)
-        if (self.grid_limits['east_min'] <= xsel <= self.grid_limits['east_max']
-            and self.grid_limits['north_min'] <= ysel <=
-                self.grid_limits['north_max']):
-            distances = np.hypot(xsel-[p['easting'] for p in self.grid_points],
-                                 ysel-[p['northing'] for p in self.grid_points])
-            self._selected_point = self.grid_points[distances.argmin()]
-            self._selected_point_curves = self._db.get_point_all_curves(
-                self.phenomenon_id,
-                self.hazard_id,
-                self._selected_point['id'])
-            return True
-        else:
-            return False
+    # def select_point(self, xpoint, ypoint):
+    #     xsel = np.float64(xpoint)
+    #     ysel = np.float64(ypoint)
+    #     if (self.grid_limits['east_min'] <= xsel <= self.grid_limits['east_max']
+    #         and self.grid_limits['north_min'] <= ysel <=
+    #             self.grid_limits['north_max']):
+    #         distances = np.hypot(xsel-[p['easting'] for p in self.grid_points],
+    #                              ysel-[p['northing'] for p in self.grid_points])
+    #         self._selected_point = self.grid_points[distances.argmin()]
+    #         self._selected_point_curves = self._db.get_point_all_curves(
+    #             self.phenomenon_id,
+    #             self.hazard_id,
+    #             self._selected_point['id'])
+    #         return True
+    #     else:
+    #         return False
+
+    # def select_point_by_index(self, p_index):
+    #     try:
+    #         self._selected_point = self.grid_points[p_index]
+    #         self._selected_point_curves = self._db.get_point_all_curves(
+    #             self.phenomenon_id,
+    #             self.hazard_id,
+    #             self._selected_point['id'])
+    #         return True
+    #     except:
+    #         print "Exception in select_point_by_index"
+    #         return False
 
     @property
     def hazard_id(self):
@@ -104,13 +178,13 @@ class HazardModel(object):
     def curves(self):
         return self._curves
 
-    @property
-    def selected_point(self):
-        return self._selected_point
-
-    @property
-    def selected_point_curves(self):
-        return self._selected_point_curves
+    # @property
+    # def selected_point(self):
+    #     return self._selected_point
+    #
+    # @property
+    # def selected_point_curves(self):
+    #     return self._selected_point_curves
 
 
 class BymurCore(object):
@@ -138,12 +212,13 @@ class BymurCore(object):
         self._ctrls_data = {}
         self._grid_points = []
         self._hazard_options = {}
-        self._hazard_description = None
-        self._hazard_values = None
+        self._hazard = None
+        self._hazard_data = None
+
         self._hazard_curves = None
-        self._hazard_metadata = {}
-        self._selected_point = {}
-        self._selected_point_curves = None
+
+        self._selected_point = HazardPoint(self)
+        # self._selected_point_curves = None
 
     def connectAndFetch(self, **dbDetails):
         if (not self._db) and dbDetails:
@@ -234,45 +309,44 @@ class BymurCore(object):
 
 
     def set_point_by_index(self, index):
-        tmp_point = {}
-        tmp_point['index'] = index
-        tmp_point.update(self.hazard_values[index])
-        tmp_point['curve'] = self.hazard_curves[index]['curve']
-        self.selected_point = tmp_point
-        self.selected_point_curves = self.get_point_curves()
-        return True
+        try:
+            self.selected_point.update(self.hazard, index,
+                                       self.hazard_options['hazard_threshold'],
+                                       self.hazard_options['int_thresh'])
+            # self._selected_point = self.grid_points[index]
+            # self._selected_point_curves = self._db.get_point_all_curves(
+            #     self.hazard.phenomenon_id,
+            #     self.hazard.hazard_id,
+            #     self._selected_point['id'])
+            return True
+        except Exception as e:
+            print "Exception in select_point_by_index: %s" % str(e)
+            return False
+        # return self._hazard.select_point_by_index(index)
 
-    def setPoint(self, xpar, ypar):
-        xsel = np.float64(xpar)
-        ysel = np.float64(ypar)
-        print "xsel %s" % xsel
-        print "ysel %s" % ysel
-        if (xsel >= self.hazard_metadata['east_min']
-            and xsel <= self.hazard_metadata['east_max']
-            and ysel >= self.hazard_metadata['nort_min']
-            and ysel <= self.hazard_metadata['nort_max']):
-            ind = bf.nearest_point_index(xsel, ysel,
-                                         [p['point']['easting']
-                                          for p in self.hazard_values],
-                                         [p['point']['northing']
-                                          for p in self.hazard_values])
-            tmp_point = {}
-            tmp_point['index'] = ind
-            tmp_point.update(self.hazard_values[
-                tmp_point['index']])
-            tmp_point['curve'] = self.hazard_curves[tmp_point['index']]['curve']
-            self.selected_point = tmp_point
-            self.selected_point_curves = self.get_point_curves()
+    def setPoint(self, xpoint, ypoint):
+        # return self._hazard.select_point(xpar, ypar)
+        xsel = np.float64(xpoint)
+        ysel = np.float64(ypoint)
+        if (self.hazard.grid_limits['east_min'] <= xsel <=
+                self.hazard.grid_limits['east_max']
+            and self.hazard.grid_limits['north_min'] <= ysel <=
+                self.hazard.grid_limits['north_max']):
+            distances = np.hypot(xsel-[p['easting'] for p in self.grid_points],
+                                 ysel-[p['northing'] for p in self.grid_points])
+            self.selected_point.update(self.hazard,
+                                       distances.argmin(),
+                                       self.hazard_options['hazard_threshold'],
+                                       self.hazard_options['int_thresh'])
+
+            # self._selected_point = self.grid_points[distances.argmin()]
+            # self._selected_point_curves = self._db.get_point_all_curves(
+            #     self.hazard.phenomenon_id,
+            #     self.hazard.hazard_id,
+            #     self._selected_point['id'])
             return True
         else:
             return False
-
-    def get_point_curves(self):
-        point_data = self._db.get_point_all_curves(
-            self.hazard_description['phenomenon_id'],
-            self.hazard_description['hazard_id'],
-            self.selected_point['point']['id'])
-        return point_data
 
     def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
         y_th = hazard_threshold
@@ -321,39 +395,25 @@ class BymurCore(object):
         return y[len(x) - 1]
 
 
-    def compute_hazard_values(self, hazard_name, exp_time,
+    def compute_hazard_data(self, hazard,
                               intensity_threshold, hazard_threshold,
                               statistic_name='mean'):
 
-        haz_tmp = self._db.get_hazard_model_by_name_exptime(hazard_name,
-                                                            exp_time)
-        haz_tmp['statistics'] = self._db.get_statistics_by_haz(
-            haz_tmp['hazard_id'])
-        self.hazard_description = haz_tmp
-        print "hazard_description %s" % self.hazard_description
-
-        statistic_id = self._db.get_statistic_by_value(statistic_name)
-
-        self.hazard_curves = self._db.get_curves(
-            self.hazard_description['phenomenon_id'],
-            self.hazard_description['hazard_id'],
-            statistic_id)
-        _iml = [float(limit) for limit in
-                self.hazard_description['iml'].split()]
+        self.hazard_data = hazard.curves_by_statistics(statistic_name)
 
         return map((lambda p: dict(zip(['point', 'haz_value',
                                         'prob_value'],
                                        (p['point'],
                                         self.get_haz_value(
-                                            _iml,
+                                            hazard.iml,
                                             hazard_threshold,
                                             p['curve']),
                                         self.get_prob_value(
-                                            _iml,
+                                            hazard.iml,
                                             intensity_threshold,
                                             p['curve'])
                                        )))),
-                   self.hazard_curves)
+                   self.hazard_data)
 
 
     def get_grid_points(self, grid_id):
@@ -369,14 +429,22 @@ class BymurCore(object):
         self.hazard_options = haz_tmp
 
         print "core hazard_options %s " % self.hazard_options
-        self.hazard_values = self.compute_hazard_values(
-            self.hazard_options['hazard_name'],
-            self.hazard_options['exp_time'],
+
+        self._hazard = HazardModel(self._db,
+                                   hazard_name=
+                                   self.hazard_options['hazard_name'],
+                                   exp_time=self.hazard_options['exp_time'])
+
+        # TODO: grid_point should be eliminated from here
+        # TODO: or from
+        self.grid_points = self._hazard.grid_points
+
+        self.hazard_data = self.compute_hazard_data(
+            self._hazard,
             self.hazard_options['int_thresh'],
             self.hazard_options['hazard_threshold'])
 
-        self.grid_points = self.get_grid_points(
-            self.hazard_description['datagrid_id'])
+
 
     def exportRawPoints(self, haz_array):
         export_string = ''
@@ -522,6 +590,10 @@ class BymurCore(object):
         return dict(self._ctrls_defaut.items() + self._ctrls_data.items())
 
     @property
+    def hazard(self):
+        return self._hazard
+
+    @property
     def hazard_options(self):
         return self._hazard_options
 
@@ -530,49 +602,13 @@ class BymurCore(object):
         self._hazard_options = data
 
     @property
-    def hazard_description(self):
-        return self._hazard_description
+    def hazard_data(self):
+        return self._hazard_data
 
-    @hazard_description.setter
-    def hazard_description(self, data):
-        self._hazard_description = data
-
-    @property
-    def hazard_metadata(self):
-        return self._hazard_metadata
-
-    @hazard_metadata.setter
-    def hazard_metadata(self, data):
-        self._hazard_metadata = data
-
-    @property
-    def hazard_curves(self):
-        return self._hazard_curves
-
-    @hazard_curves.setter
-    def hazard_curves(self, values):
-        self._hazard_curves = values
-
-    @property
-    def hazard_values(self):
-        return self._hazard_values
-
-    @hazard_values.setter
-    def hazard_values(self, data):
-        print "hazard_values setter"
-        self._hazard_values = data
-        self._hazard_metadata['east_min'] = min([p['point']['easting']
-                                                 for p in self._hazard_values])
-        self._hazard_metadata['east_max'] = max([p['point']['easting']
-                                                 for p in self._hazard_values])
-        self._hazard_metadata['nort_min'] = min([p['point']['northing']
-                                                 for p in self._hazard_values])
-        self._hazard_metadata['nort_max'] = max([p['point']['northing']
-                                                 for p in self._hazard_values])
-
-    @property
-    def hazard_metadata(self):
-        return self._hazard_metadata
+    @hazard_data.setter
+    def hazard_data(self, data):
+        print "hazard_data setter"
+        self._hazard_data = data
 
     @property
     def selected_point(self):

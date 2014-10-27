@@ -797,16 +797,15 @@ class BymurWxMapPanel(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxMapPanel, self).updateView(**kwargs)
-        self._map.plot(wx.GetTopLevelParent(self).hazard_description,
-                       wx.GetTopLevelParent(self).hazard_values)
+        self._map.plot(wx.GetTopLevelParent(self).hazard_data)
         self.Enable(True)
 
     def updatePoint(self, **kwargs):
         if wx.GetTopLevelParent(self).selected_point is not None:
             self._map.selected_point = (wx.GetTopLevelParent(self).
-                                        selected_point['point']['easting']*1e-3,
+                                        selected_point.easting * 1e-3,
                                         wx.GetTopLevelParent(self).
-                                        selected_point['point']['northing']*1e-3)
+                                        selected_point.northing * 1e-3)
 
     @property
     def title(self):
@@ -833,11 +832,9 @@ class BymurWxNBHazPage(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxNBHazPage, self).updateView(**kwargs)
-        # TODO: fix these references
-        self._map.plot(wx.GetTopLevelParent(self).hazard_options,
-                       wx.GetTopLevelParent(self).hazard_description,
-                       wx.GetTopLevelParent(self).selected_point,
-                       wx.GetTopLevelParent(self).selected_point_curves)
+        self._map.plot(wx.GetTopLevelParent(self).hazard,
+                       wx.GetTopLevelParent(self).hazard_options,
+                       wx.GetTopLevelParent(self).selected_point)
         self.Enable(True)
 
     @property
@@ -1207,12 +1204,12 @@ class BymurWxLeftPanel(BymurWxPanel):
 
     def updatePointInterval(self):
         self._pointEastSC.SetRange(
-            minVal=wx.GetTopLevelParent(self).hazard_metadata['east_min'],
-            maxVal=wx.GetTopLevelParent(self).hazard_metadata['east_max']
+            minVal=wx.GetTopLevelParent(self).hazard.grid_limits['east_min'],
+            maxVal=wx.GetTopLevelParent(self).hazard.grid_limits['east_max']
             )
         self._pointNortSC.SetRange(
-            minVal=wx.GetTopLevelParent(self).hazard_metadata['nort_min'],
-            maxVal=wx.GetTopLevelParent(self).hazard_metadata['nort_max']
+            minVal=wx.GetTopLevelParent(self).hazard.grid_limits['north_min'],
+            maxVal=wx.GetTopLevelParent(self).hazard.grid_limits['north_max']
             )
 
 
@@ -1361,10 +1358,10 @@ class BymurWxView(wx.Frame):
         super(BymurWxView, self).__init__(*args, **kwargs)
 
         self._ctrls_data = {}
+        self._hazard = None
+        self._hazard_data = None
         self._hazard_options = {}
-        self._hazard_description = None
-        self._hazard_metadata = None
-        self._hazard_values = None
+
         self._selected_point = None
         self._selected_point_curves = None
         self._grid_points = None
@@ -1579,6 +1576,23 @@ class BymurWxView(wx.Frame):
         self._ctrls_data = data
 
     @property
+    def hazard(self):
+        return self._hazard
+
+    @hazard.setter
+    def hazard(self, haz):
+        self._hazard = haz
+        self.leftPanel.updatePointInterval()
+
+    @property
+    def hazard_data(self):
+        return self._hazard_data
+
+    @hazard_data.setter
+    def hazard_data(self, data):
+        self._hazard_data = data
+
+    @property
     def hazard_options(self):
         return self._hazard_options
 
@@ -1587,53 +1601,28 @@ class BymurWxView(wx.Frame):
         self._hazard_options = data
 
     @property
-    def hazard_description(self):
-        return self._hazard_description
-
-    @hazard_description.setter
-    def hazard_description(self, data):
-        self._hazard_description = data
-        
-    @property
-    def hazard_metadata(self):
-        return self._hazard_metadata
-
-    @hazard_metadata.setter
-    def hazard_metadata(self, data):
-        self._hazard_metadata = data
-        self.leftPanel.updatePointInterval()
-
-    @property
-    def hazard_values(self):
-        return self._hazard_values
-
-    @hazard_values.setter
-    def hazard_values(self, data):
-        self._hazard_values = data
-
-    @property
     def selected_point(self):
         return self._selected_point
 
     @selected_point.setter
     def selected_point(self, data):
+        print "bymur selected_point"
+        print data
         self._selected_point = data
-        print data['point']
-        # self.leftPanel.updatePointSel(easting=str(data['point']['easting']),
-        #                            northing=str(data['point']['northing']))
-        self.leftPanel.updatePointData(easting=str(data['point']['easting']),
-                                   northing=str(data['point']['northing']),
-                                   haz_value=str(data['haz_value']),
-                                   prob_value=str(data['prob_value']))
+        self.leftPanel.updatePointData(
+            easting=str(self.selected_point.easting),
+            northing=str(self.selected_point.northing),
+            haz_value=str(self.selected_point.haz_value),
+            prob_value=str(self.selected_point.prob_value))
 
-    @property
-    def selected_point_curves(self):
-        return self._selected_point_curves
-
-    @selected_point_curves.setter
-    def selected_point_curves(self, data):
-        self._selected_point_curves = data
-        
+    # @property
+    # def selected_point_curves(self):
+    #     return self._selected_point_curves
+    #
+    # @selected_point_curves.setter
+    # def selected_point_curves(self, data):
+    #     self._selected_point_curves = data
+    #
     @property
     def grid_points(self):
         return self._grid_points
