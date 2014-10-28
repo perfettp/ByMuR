@@ -1280,8 +1280,11 @@ class BymurWxMenu(wx.MenuBar):
         self.menuFile = wx.Menu()
         menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
         self._menu_actions[menuItemTmp.GetId()] = self._controller.connect_db
-        # menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
-        # self._menu_actions[menuItemTmp.GetId()] = self._controller.connectDB
+        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Close database '
+                                                      'connection')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.close_db
+        menuItemTmp.Enable(False)
+        self._db_actions.append(menuItemTmp)
         self.menuFile.AppendSeparator()
         self.menuFile.Append(wx.ID_CLOSE, '&Quit')
         self._menu_actions[wx.ID_CLOSE] = self._controller.quit

@@ -43,7 +43,7 @@ class BymurController(object):
                                              kind="BYMUR_CONFIRM",
                                              caption="Please confirm this action")
             if confirmation:
-                self.closeDB()
+                self.close_db()
             else:
                 return
 
@@ -64,21 +64,6 @@ class BymurController(object):
                                        message=str(e),
                                        kind="BYMUR_ERROR",
                                        caption="Error")
-        # else:
-        #     try:
-        #         bf.SpawnThread(
-        #             self.wxframe,
-        #             bf.wxBYMUR_UPDATE_CTRLS,
-        #             self._core.connectAndFetch, {},
-        #             callback=self.set_ctrls_data,
-        #             wait_msg="Loading database...")
-        #         self.wxframe.dbLoaded = True
-        #     except Exception as e:
-        #         bf.showMessage(parent=self.wxframe,
-        #                                debug=self._exception_debug,
-        #                                message=str(e),
-        #                                kind="BYMUR_ERROR",
-        #                                caption="Error")
 
     def createDB(self):
         if self._core.db:
@@ -88,7 +73,7 @@ class BymurController(object):
                                              kind="BYMUR_CONFIRM",
                                              caption="Please confirm this action")
             if confirmation:
-                self.closeDB()
+                self.close_db()
             else:
                 return
         dialogResult = self._wxframe.showDlg("BymurDBCreateDlg",
@@ -111,15 +96,15 @@ class BymurController(object):
                                        kind="BYMUR_ERROR",
                                        caption="Error")
 
-    def closeDB(self):
-        self._core.closeDB()
+    def close_db(self):
+        self._core.close_db()
         self._ctrls_data = {}
         self._hazard_options = {}
         bf.fire_event(self.wxframe, bf.wxBYMUR_DB_CLOSED)
 
     def quit(self):
         print "Close"
-        self._core.closeDB()
+        self._core.close_db()
         self.wxframe.Close()
 
     def loadGrid(self):
