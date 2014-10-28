@@ -485,6 +485,7 @@ class BymurLoadGridDlg(wx.Dialog):
 class BymurDBCreateDlg(wx.Dialog):
     def __init__(self, *args, **kwargs):
         self._title = "Create ByMuR database"
+        print "kwargs: %s " % kwargs
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
         self._localData = {'db_host': kwargs.pop('db_host', ''),
@@ -509,31 +510,11 @@ class BymurDBCreateDlg(wx.Dialog):
         self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
         self._sizer.Add(self._gridSizer)
 
-        self._geoBoxSizer = BymurGeoBoxSizer(parent=self,
-                                             label="Geographical grid "
-                                                   "data",
-                                             **self._localGeoDefaults)
-        self._gridSizer.Add(self._geoBoxSizer, flag=wx.EXPAND,
-                            pos=(0, 0), span=(1, 1))
-
-        self._mapBoxSizer = BymurMapBoxSizer(parent=self,
-                                             label="Backgroud image map and "
-                                                   "limits (UTM",
-                                             **self._localMapDefaults)
-        self._gridSizer.Add(self._mapBoxSizer, flag=wx.EXPAND,
-                            pos=(1, 0), span=(1, 1))
-
-        self._hazBoxSizer = BymurHazBoxSizer(parent=self,
-                                             label="Hazard",
-                                             **self._localHazDefaults)
-        self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
-                            pos=(0, 1), span=(1, 1))
-
         self._dbBoxSizer = BymurDBBoxSizer(parent=self,
                                            label="Database details",
                                            **self._localData)
         self._gridSizer.Add(self._dbBoxSizer, flag=wx.EXPAND,
-                            pos=(1, 1), span=(1, 1))
+                            pos=(0, 0), span=(1, 1))
 
         self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
                         flag=wx.ALL | wx.ALIGN_CENTER, border=10)
@@ -548,14 +529,6 @@ class BymurDBCreateDlg(wx.Dialog):
             self._localData['db_user'] = self._dbBoxSizer.dbUser
             self._localData['db_password'] = self._dbBoxSizer.dbPassword
             self._localData['db_name'] = self._dbBoxSizer.dbName
-            self._localData['grid_path'] = self._geoBoxSizer.gridPath
-            self._localData['northing_min'] = self._mapBoxSizer.latMin
-            self._localData['northing_max'] = self._mapBoxSizer.latMax
-            self._localData['easting_min'] = self._mapBoxSizer.lonMin
-            self._localData['easting_max'] = self._mapBoxSizer.lonMax
-            self._localData['map_path'] = self._mapBoxSizer.mapPath
-            self._localData['haz_path'] = self._hazBoxSizer.hazPath
-            self._localData['haz_perc'] = self._hazBoxSizer.hazPerc
         elif (result == wx.ID_CANCEL):
             result = 0
         else:

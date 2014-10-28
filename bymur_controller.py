@@ -21,18 +21,7 @@ class BymurController(object):
                         'db_port': '3306',
                         'db_user': '***REMOVED***',
                         'db_password': '***REMOVED***',
-                        # 'db_name': 'bymurDB',
-                        'db_name': 'paoloDB',
-                        'grid_path': os.path.join(_basedir, "data",
-                                                  "naples-grid.txt"),
-                        'northing_min': 4449200,
-                        'northing_max': 4569800,
-                        'easting_min': 375300,
-                        'easting_max': 508500,
-                        'map_path': os.path.join(_basedir, "data",
-                                                 "naples_gmaps.png"),
-                        'haz_path': os.path.join(_basedir, "hazards"),
-                        'haz_perc': "10:90:10"
+                        'db_name': '***REMOVED***',
     }
 
 
@@ -100,7 +89,7 @@ class BymurController(object):
             self.wxframe.busy = True
             try:
                 bf.SpawnThread(self.wxframe,
-                               bf.wxBYMUR_UPDATE_DIALOG,
+                               bf.wxBYMUR_DB_CONNECTED,
                                          self._core.createDB,
                                          self._createDBDetails,
                                          self.set_ctrls_data,
