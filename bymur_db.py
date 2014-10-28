@@ -37,7 +37,168 @@ import bymur_functions as bf
 
 class BymurDB(object):
     _sql_schema = """
+SET FOREIGN_KEY_CHECKS=0;
+SET SQL_MODE="NO_AUTO_VALUE_ON_ZERO";
+SET time_zone = "+00:00";
 
+DROP TABLE IF EXISTS `datagrids`;
+CREATE TABLE IF NOT EXISTS `datagrids` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=7 ;
+
+DROP TABLE IF EXISTS `grid_points`;
+CREATE TABLE IF NOT EXISTS `grid_points` (
+  `id_datagrid` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  PRIMARY KEY (`id_datagrid`,`id_point`),
+  KEY `fk_grid_points_1` (`id_datagrid`),
+  KEY `fk_grid_points_2` (`id_point`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+DROP TABLE IF EXISTS `hazard_models`;
+CREATE TABLE IF NOT EXISTS `hazard_models` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `id_phenomenon` int(11) NOT NULL,
+  `id_datagrid` int(11) NOT NULL,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  `exposure_time` varchar(10) COLLATE utf8_bin DEFAULT NULL,
+  `iml` mediumtext COLLATE utf8_bin,
+  `imt` varchar(45) COLLATE utf8_bin DEFAULT NULL,
+  `date` date DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  KEY `fk_hazard_models_1_idx` (`id_datagrid`),
+  KEY `fk_hazard_models_2_idx` (`id_phenomenon`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=44 ;
+
+DROP TABLE IF EXISTS `hazmodel_statistics`;
+CREATE TABLE IF NOT EXISTS `hazmodel_statistics` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_statistic`),
+  KEY `fk_hazmodels_statistics_1` (`id_hazard_model`),
+  KEY `fk_hazmodels_statistics_2` (`id_statistic`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+DROP TABLE IF EXISTS `hazmodel_volcanos`;
+CREATE TABLE IF NOT EXISTS `hazmodel_volcanos` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_volcano` int(11) NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_volcano`),
+  KEY `fk_hazmodel_volcano_1` (`id_hazard_model`),
+  KEY `fk_hazmodel_volcano_2` (`id_volcano`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+DROP TABLE IF EXISTS `phenomena`;
+CREATE TABLE IF NOT EXISTS `phenomena` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=10 ;
+
+DROP TABLE IF EXISTS `points`;
+CREATE TABLE IF NOT EXISTS `points` (
+  `id` bigint(20) NOT NULL AUTO_INCREMENT,
+  `easting` bigint(20) NOT NULL,
+  `northing` bigint(20) NOT NULL,
+  `zone_number` tinyint(4) DEFAULT NULL,
+  `zone_letter` char(1) COLLATE utf8_bin DEFAULT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `coords` (`easting`,`northing`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=206903 ;
+
+DROP TABLE IF EXISTS `seismic_data`;
+CREATE TABLE IF NOT EXISTS `seismic_data` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`),
+  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`),
+  KEY `fk_seismic_data_1` (`id_hazard_model`),
+  KEY `fk_seismic_data_2` (`id_point`),
+  KEY `fk_seismic_data_4` (`id_statistic`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+DROP TABLE IF EXISTS `statistics`;
+CREATE TABLE IF NOT EXISTS `statistics` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB  DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=152 ;
+
+DROP TABLE IF EXISTS `tsunamic_data`;
+CREATE TABLE IF NOT EXISTS `tsunamic_data` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`),
+  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`),
+  KEY `fk_tsunamic_data_1` (`id_hazard_model`),
+  KEY `fk_tsunamic_data_2_idx` (`id_point`),
+  KEY `fk_tsunamic_data_3_idx` (`id_statistic`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+DROP TABLE IF EXISTS `volcanic_data`;
+CREATE TABLE IF NOT EXISTS `volcanic_data` (
+  `id_hazard_model` int(11) NOT NULL,
+  `id_point` bigint(20) NOT NULL,
+  `id_statistic` int(11) NOT NULL,
+  `hazard_curve` mediumtext COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id_hazard_model`,`id_point`,`id_statistic`),
+  KEY `index_haz_grid_stat` (`id_hazard_model`,`id_statistic`),
+  KEY `fk_volcanic_data_3_idx` (`id_statistic`),
+  KEY `fk_volcanic_data_2` (`id_point`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin;
+
+DROP TABLE IF EXISTS `volcanos`;
+CREATE TABLE IF NOT EXISTS `volcanos` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `name` varchar(45) COLLATE utf8_bin NOT NULL,
+  PRIMARY KEY (`id`),
+  UNIQUE KEY `name_UNIQUE` (`name`)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8 COLLATE=utf8_bin AUTO_INCREMENT=1 ;
+
+ALTER TABLE `grid_points`
+  ADD CONSTRAINT `fk_grid_points_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_grid_points_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+ALTER TABLE `hazard_models`
+  ADD CONSTRAINT `fk_hazard_models_1` FOREIGN KEY (`id_datagrid`) REFERENCES `datagrids` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazard_models_2` FOREIGN KEY (`id_phenomenon`) REFERENCES `phenomena` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+ALTER TABLE `hazmodel_statistics`
+  ADD CONSTRAINT `fk_hazmodels_statistics_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodels_statistics_2` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+ALTER TABLE `hazmodel_volcanos`
+  ADD CONSTRAINT `fk_hazmodel_volcano_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_hazmodel_volcano_2` FOREIGN KEY (`id_volcano`) REFERENCES `volcanos` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+ALTER TABLE `seismic_data`
+  ADD CONSTRAINT `fk_seismic_data_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_seismic_data_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_seismic_data_3` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+ALTER TABLE `tsunamic_data`
+  ADD CONSTRAINT `fk_tsunamic_data_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_tsunamic_data_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_tsunamic_data_3` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+
+ALTER TABLE `volcanic_data`
+  ADD CONSTRAINT `fk_volcanic_data_1` FOREIGN KEY (`id_hazard_model`) REFERENCES `hazard_models` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_volcanic_data_2` FOREIGN KEY (`id_point`) REFERENCES `points` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION,
+  ADD CONSTRAINT `fk_volcanic_data_3` FOREIGN KEY (`id_statistic`) REFERENCES `statistics` (`id`) ON DELETE NO ACTION ON UPDATE NO ACTION;
+SET FOREIGN_KEY_CHECKS=1;
+
+INSERT INTO `phenomena` (`name`) VALUES('SEISMIC');
+INSERT INTO `phenomena` (`name`) VALUES('TSUNAMIC');
+INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     """
 
     def __init__(self, **kwargs):
@@ -45,21 +206,48 @@ class BymurDB(object):
         Connecting to database
         """
         try:
-            self._connection = mdb.connect(host=kwargs.pop('db_host',
-                                                           '***REMOVED***'),
-                                           port=int(kwargs.pop('db_port',
-                                                               3306)),
-                                           user=kwargs.pop('db_user',
-                                                           '***REMOVED***'),
-                                           passwd=kwargs.pop('db_password',
-                                                             '***REMOVED***'),
-                                           db=kwargs.pop('db_name',
-                                                         'bymurDB-dev'))
+            if kwargs.get('db_name') is None:
+                print "Creating db!"
+                self._connection = mdb.connect(host=kwargs.pop('db_host',
+                                                       '***REMOVED***'),
+                                       port=int(kwargs.pop('db_port',
+                                                           3306)),
+                                       user=kwargs.pop('db_user',
+                                                       '***REMOVED***'),
+                                       passwd=kwargs.pop('db_password',
+                                                         '***REMOVED***'))
+            else:
+                print "Connecting db!"
+                self._connection = mdb.connect(host=kwargs.pop('db_host',
+                                                               '***REMOVED***'),
+                                               port=int(kwargs.pop('db_port',
+                                                                   3306)),
+                                               user=kwargs.pop('db_user',
+                                                               '***REMOVED***'),
+                                               passwd=kwargs.pop('db_password',
+                                                                 '***REMOVED***'),
+                                               db=kwargs.pop('db_name',
+                                                             'bymurDB-dev'))
             self._connection.autocommit(True)
             self._cursor = self._connection.cursor()
-
         except:
             raise
+
+    def create(self, dbname):
+        print "db.create"
+        print "dbname %s" % dbname
+        # using manual escape to avoid unsupported quoting
+        sqlquery = "CREATE DATABASE %s"
+        sqlquery %= mdb.escape_string(dbname)
+        self._cursor.execute(sqlquery)
+        print "use"
+        sqlquery = "USE %s"
+        sqlquery %= mdb.escape_string(dbname)
+        self._cursor.execute(sqlquery)
+        print "import"
+        for sql in self._sql_schema.split(";"):
+            self._cursor.execute(sql)
+            self.commit()
 
     def commit(self):
         self._connection.commit()
@@ -443,11 +631,6 @@ class BymurDB(object):
                                    (x[0], x[1], x[2], x[3], x[4]))),
                           ([float(a) for a in x[5].split(',')]))))
                 for x in self._cursor.fetchall()]
-
-    def create(self):
-        # TODO: create DB for real!
-        print "create"
-
 
     def load_grid(self, datagridfile_path):
         datagrid_name, datagrid_ext = os.path.splitext(os.path.basename(

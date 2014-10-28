@@ -215,26 +215,24 @@ class BymurCore(object):
         """
 
         """
-
-        # TODO: prima di creare un nuovo database devo chiudere quello
-        # eventualmente aperto. Dopo averlo creato devo chiedere se voglio
-        # caricarne i dati
-
-        print "createDB"
+        print "core.createDB"
         if self._db:
             raise Exception("You need to close the open db first!")
 
         self._db = db.BymurDB(db_host=createDBDetails['db_host'],
                               db_port=createDBDetails['db_port'],
                               db_user=createDBDetails['db_user'],
-                              db_password=createDBDetails['db_password'],
-                              db_name=createDBDetails['db_name'])
+                              db_password=createDBDetails['db_password']
+                              )
 
-        self.db.create()
+# db_name=createDBDetails['db_name']
+        self.db.create(createDBDetails['db_name'])
 
-        self.db.add_data(createDBDetails['haz_path'],
-                         createDBDetails['haz_perc'],
-                         createDBDetails['grid_path'])
+        self._ctrls_data = self.get_controls_data()
+
+        # self.db.add_data(createDBDetails['haz_path'],
+        #                  createDBDetails['haz_perc'],
+        #                  createDBDetails['grid_path'])
 
         # TODO: add a dialog for successfull creation
 
