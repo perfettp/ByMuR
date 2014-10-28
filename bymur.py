@@ -1278,8 +1278,8 @@ class BymurWxMenu(wx.MenuBar):
 
         # File menu and items
         self.menuFile = wx.Menu()
-        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Load database')
-        self._menu_actions[menuItemTmp.GetId()] = self._controller.loadDB
+        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.connect_db
         # menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
         # self._menu_actions[menuItemTmp.GetId()] = self._controller.connectDB
         self.menuFile.AppendSeparator()

@@ -35,40 +35,50 @@ class BymurController(object):
             raise
         self._hazard_options = {}
 
-    def loadDB(self):
-        if (not self._core.db):
-            dialogResult = self._wxframe.showDlg("BymurDBLoadDlg",
+    def connect_db(self):
+        if self._core.db:
+            msg = "Close connected database?"
+            confirmation = bf.showMessage(parent=self.wxframe,
+                                             message=msg,
+                                             kind="BYMUR_CONFIRM",
+                                             caption="Please confirm this action")
+            if confirmation:
+                self.closeDB()
+            else:
+                return
+
+        dialogResult = self._wxframe.showDlg("BymurDBLoadDlg",
                                              **self._dbDetails)
-            if dialogResult:
-                self._dbDetails.update(dialogResult)
-                try:
-                    bf.SpawnThread(self.wxframe,
-                        bf.wxBYMUR_DB_CONNECTED,
-                        self._core.connectAndFetch,
-                        self._dbDetails,
-                        callback=self.set_ctrls_data,
-                        wait_msg="Loading database...")
-                except Exception as e:
-                    bf.showMessage(parent=self.wxframe,
-                                           debug=self._exception_debug,
-                                           message=str(e),
-                                           kind="BYMUR_ERROR",
-                                           caption="Error")
-        else:
+        if dialogResult:
+            self._dbDetails.update(dialogResult)
             try:
-                bf.SpawnThread(
-                    self.wxframe,
-                    bf.wxBYMUR_UPDATE_CTRLS,
-                    self._core.connectAndFetch, {},
+                bf.SpawnThread(self.wxframe,
+                    bf.wxBYMUR_DB_CONNECTED,
+                    self._core.connectAndFetch,
+                    self._dbDetails,
                     callback=self.set_ctrls_data,
                     wait_msg="Loading database...")
-                self.wxframe.dbLoaded = True
             except Exception as e:
                 bf.showMessage(parent=self.wxframe,
                                        debug=self._exception_debug,
                                        message=str(e),
                                        kind="BYMUR_ERROR",
                                        caption="Error")
+        # else:
+        #     try:
+        #         bf.SpawnThread(
+        #             self.wxframe,
+        #             bf.wxBYMUR_UPDATE_CTRLS,
+        #             self._core.connectAndFetch, {},
+        #             callback=self.set_ctrls_data,
+        #             wait_msg="Loading database...")
+        #         self.wxframe.dbLoaded = True
+        #     except Exception as e:
+        #         bf.showMessage(parent=self.wxframe,
+        #                                debug=self._exception_debug,
+        #                                message=str(e),
+        #                                kind="BYMUR_ERROR",
+        #                                caption="Error")
 
     def createDB(self):
         if self._core.db:
