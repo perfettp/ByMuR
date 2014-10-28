@@ -1208,6 +1208,32 @@ class BymurWxLeftPanel(BymurWxPanel):
             maxVal=wx.GetTopLevelParent(self).hazard.grid_limits['north_max']
             )
 
+    def clearCtrls(self):
+        self._phenCB.Clear()
+        self._phenCB.SetItems([])
+        self._phenCB.SetValue('')
+        self._phenCB.Enable(False)
+
+        self._hazModCB.Clear()
+        self._hazModCB.SetItems([])
+        self._hazModCB.SetValue('')
+        self._hazModCB.Enable(False)
+
+        self._retPerText.SetValue('')
+        self._retPerText.Enable(False)
+
+        self._intThresText.SetValue('')
+        self._intThresText.Enable(False)
+
+        self._gridCB.Clear()
+        self._gridCB.SetValue('')
+        self._gridCB.SetItems([])
+        self._gridCB.Enable(False)
+
+        self._expTimeCB.Clear()
+        self._expTimeCB.SetItems([])
+        self._expTimeCB.SetValue('')
+        self._expTimeCB.Enable(False)
 
     @property
     def ctrlsBoxTitle(self):
@@ -1252,10 +1278,13 @@ class BymurWxMenu(wx.MenuBar):
 
         # File menu and items
         self.menuFile = wx.Menu()
-        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Load database')
-        self._menu_actions[menuItemTmp.GetId()] = self._controller.loadDB
-        # menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
-        # self._menu_actions[menuItemTmp.GetId()] = self._controller.connectDB
+        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.connect_db
+        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Close database '
+                                                      'connection')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.close_db
+        menuItemTmp.Enable(False)
+        self._db_actions.append(menuItemTmp)
         self.menuFile.AppendSeparator()
         self.menuFile.Append(wx.ID_CLOSE, '&Quit')
         self._menu_actions[wx.ID_CLOSE] = self._controller.quit
@@ -1370,6 +1399,7 @@ class BymurWxView(wx.Frame):
         self.Bind(bf.BYMUR_UPDATE_CTRLS, self.OnBymurEvent)
         self.Bind(bf.BYMUR_THREAD_CLOSED, self.OnBymurEvent)
         self.Bind(bf.BYMUR_DB_CONNECTED, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_DB_CLOSED, self.OnBymurEvent)
 
         # Menu
         self.menuBar = BymurWxMenu(controller=self._controller)
@@ -1394,10 +1424,18 @@ class BymurWxView(wx.Frame):
         self.SetSizer(self.mainSizer)
         self.SetSize((950, 750))
 
+    def reset(self):
+        self._ctrls_data = {}
+        self._hazard = None
+        self._hazard_data = None
+        self._hazard_options = {}
+        self._selected_point = None
+
     def refresh(self):
         wx.SafeYield()
         self.Refresh()
         self.Update()
+
 
     def updateView(self, **kwargs):
         print "Main WxFrame"
@@ -1489,6 +1527,13 @@ class BymurWxView(wx.Frame):
             print "bf.wxBYMUR_DB_CONNECTED"
             self.dbConnected = True
             self.leftPanel.updateCtrls()
+        elif event.GetEventType() == bf.wxBYMUR_DB_CLOSED:
+            self.dbConnected = False
+            self.reset()
+            self.leftPanel.clearCtrls()
+            self.leftPanel.clearPoint()
+            self.rightPanel.curvesPanel.clear()
+            self.rightPanel.mapPanel.clear()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
             print "bf.wxBYMUR_UPDATE_CTRLS"
             self.leftPanel.updateCtrls()
@@ -1499,8 +1544,6 @@ class BymurWxView(wx.Frame):
             print "bf.wxBYMUR_UPDATE_ALL"
             self.leftPanel.updateCtrls(event)
             self.leftPanel.updatePointInterval()
-            # self.leftPanel.updatePointSel(event)
-            # self.leftPanel.updatePointData()
             self.leftPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
             self.rightPanel.mapPanel.clear()

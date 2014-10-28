@@ -175,9 +175,6 @@ class BymurCore(object):
         self._hazard_options = {}
         self._hazard = None
         self._hazard_data = None
-
-        self._hazard_curves = None
-
         self._selected_point = HazardPoint(self)
 
 
@@ -195,7 +192,7 @@ class BymurCore(object):
 
     # TODO: devo implementare un reset dei pannelli
 
-    def closeDB(self):
+    def close_db(self):
         print "close"
         if self._db:
             try:
@@ -203,6 +200,11 @@ class BymurCore(object):
                 self._db = None
             except:
                 raise
+                self._ctrls_data = {}
+                self._grid_points = []
+                self._hazard_options = {}
+                self._hazard = None
+                self._hazard_data = None
 
     def dropDBTables(self):
         try:
@@ -222,18 +224,9 @@ class BymurCore(object):
         self._db = db.BymurDB(db_host=createDBDetails['db_host'],
                               db_port=createDBDetails['db_port'],
                               db_user=createDBDetails['db_user'],
-                              db_password=createDBDetails['db_password']
-                              )
-
-# db_name=createDBDetails['db_name']
+                              db_password=createDBDetails['db_password'])
         self.db.create(createDBDetails['db_name'])
-
         self._ctrls_data = self.get_controls_data()
-
-        # self.db.add_data(createDBDetails['haz_path'],
-        #                  createDBDetails['haz_perc'],
-        #                  createDBDetails['grid_path'])
-
         # TODO: add a dialog for successfull creation
 
     def addDBData(self, **addDBData):

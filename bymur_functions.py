@@ -47,6 +47,7 @@ wxBYMUR_UPDATE_ALL = wx.NewEventType()
 wxBYMUR_UPDATE_POINT = wx.NewEventType()
 wxBYMUR_THREAD_CLOSED = wx.NewEventType()
 wxBYMUR_DB_CONNECTED = wx.NewEventType()
+wxBYMUR_DB_CLOSED = wx.NewEventType()
 BYMUR_UPDATE_CURVE = wx.PyEventBinder(wxBYMUR_UPDATE_CURVE)
 BYMUR_UPDATE_MAP = wx.PyEventBinder(wxBYMUR_UPDATE_MAP)
 BYMUR_UPDATE_DIALOG = wx.PyEventBinder(wxBYMUR_UPDATE_DIALOG)
@@ -55,6 +56,7 @@ BYMUR_UPDATE_ALL = wx.PyEventBinder(wxBYMUR_UPDATE_ALL)
 BYMUR_UPDATE_POINT = wx.PyEventBinder(wxBYMUR_UPDATE_POINT)
 BYMUR_THREAD_CLOSED = wx.PyEventBinder(wxBYMUR_THREAD_CLOSED)
 BYMUR_DB_CONNECTED = wx.PyEventBinder(wxBYMUR_DB_CONNECTED)
+BYMUR_DB_CLOSED = wx.PyEventBinder(wxBYMUR_DB_CLOSED)
 
 
 class BymurUpdateEvent(wx.PyCommandEvent):
