@@ -155,32 +155,31 @@ class BymurController(object):
                                caption="Error")
 
 
-    def dropDBTables(self):
+    def drop_tables(self):
         print "dropDBTables"
-        msg = "Are you really sure you want to delete all tables in the " \
+        if self._core.db:
+            msg = "Are you really sure you want to delete all tables in the " \
              "database?"
-        confirmation = bf.showMessage(parent=self.wxframe,
+            confirmation = bf.showMessage(parent=self.wxframe,
                                              message=msg,
                                              kind="BYMUR_CONFIRM",
                                              caption="Please confirm this action")
-        if confirmation:
-            try:
-                self.wxframe.busymsg = "Dropping tables..."
-                self.wxframe.busy = True
-                self._core.dropDBTables()
-                txt = "Tables deleted"
-                bf.showMessage(parent=self.wxframe,
-                                       message=txt,
-                                       kind="BYMUR_INFO",
-                                       caption="Info")
-            except Exception as e:
-                bf.showMessage(parent=self.wxframe,
-                                       message=str(e),
-                                       debug=self._exception_debug,
-                                       kind="BYMUR_ERROR",
-                                       caption="Error")
-            finally:
-                self.wxframe.busy = False
+            if confirmation:
+                try:
+                    bf.SpawnThread(self.wxframe,
+                                   bf.wxBYMUR_DB_CLOSED,
+                                   self._core.drop_tables,
+                                   {},
+                                   self.close_db,
+                                   wait_msg="Dropping tables...")
+                except Exception as e:
+                    bf.showMessage(parent=self.wxframe,
+                                   message=str(e),
+                                   debug=self._exception_debug,
+                                   kind="BYMUR_ERROR",
+                                   caption="Error")
+            else:
+                return
 
     def exportASCII(self):
         self.wxframe.saveFile(self._basedir, self._core.exportRawPoints)

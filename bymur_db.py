@@ -237,7 +237,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         print "db.create"
         print "dbname %s" % dbname
         # using manual escape to avoid unsupported quoting
-        sqlquery = "CREATE DATABASE %s"
+        sqlquery = "CREATE DATABASE IF NOT EXISTS %s"
         sqlquery %= mdb.escape_string(dbname)
         self._cursor.execute(sqlquery)
         print "use"
@@ -723,10 +723,16 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
 
     def drop_tables(self):
         query = "SHOW TABLES"
+        self._cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
         self._cursor.execute(query)
         tables = self._cursor.fetchall()
-        query = "DROP TABLE %s"
-        self._cursor.executemany(query, tables)
+        print tables
+        for tab in tables:
+            query = "DROP TABLE %s"
+            query %= tab[0]
+            print query
+            self._cursor.execute(query)
+        self._cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
 
     def close(self):
         self._connection.close()

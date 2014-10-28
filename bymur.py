@@ -1305,7 +1305,7 @@ class BymurWxMenu(wx.MenuBar):
         self._db_actions.append(menuItemTmp)
         menuItemTmp.Enable(False)
         self._menu_actions[
-            menuItemTmp.GetId()] = self._controller.dropDBTables
+            menuItemTmp.GetId()] = self._controller.drop_tables
         self.Append(self.menuDB, '&DataBase')
 
         # Grid menu

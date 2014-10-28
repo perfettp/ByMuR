@@ -206,7 +206,7 @@ class BymurCore(object):
                 self._hazard = None
                 self._hazard_data = None
 
-    def dropDBTables(self):
+    def drop_tables(self, **kwargs):
         try:
             self._db.drop_tables()
         except:
