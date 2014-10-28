@@ -91,8 +91,6 @@ class HazardModel(object):
                              'north_max': max([p['northing']
                                                for p in self._grid_points])}
         self._curves = {}
-        # self._selected_point = None
-        # self._selected_point_curves = None
 
     def curves_by_statistics(self, statistic_name='mean'):
         try:
@@ -104,35 +102,6 @@ class HazardModel(object):
                 self.hazard_id,
                 stat_id)
         return self._curves[statistic_name]
-
-    # def select_point(self, xpoint, ypoint):
-    #     xsel = np.float64(xpoint)
-    #     ysel = np.float64(ypoint)
-    #     if (self.grid_limits['east_min'] <= xsel <= self.grid_limits['east_max']
-    #         and self.grid_limits['north_min'] <= ysel <=
-    #             self.grid_limits['north_max']):
-    #         distances = np.hypot(xsel-[p['easting'] for p in self.grid_points],
-    #                              ysel-[p['northing'] for p in self.grid_points])
-    #         self._selected_point = self.grid_points[distances.argmin()]
-    #         self._selected_point_curves = self._db.get_point_all_curves(
-    #             self.phenomenon_id,
-    #             self.hazard_id,
-    #             self._selected_point['id'])
-    #         return True
-    #     else:
-    #         return False
-
-    # def select_point_by_index(self, p_index):
-    #     try:
-    #         self._selected_point = self.grid_points[p_index]
-    #         self._selected_point_curves = self._db.get_point_all_curves(
-    #             self.phenomenon_id,
-    #             self.hazard_id,
-    #             self._selected_point['id'])
-    #         return True
-    #     except:
-    #         print "Exception in select_point_by_index"
-    #         return False
 
     @property
     def hazard_id(self):
@@ -178,14 +147,6 @@ class HazardModel(object):
     def curves(self):
         return self._curves
 
-    # @property
-    # def selected_point(self):
-    #     return self._selected_point
-    #
-    # @property
-    # def selected_point_curves(self):
-    #     return self._selected_point_curves
-
 
 class BymurCore(object):
     # Default values regardless of hazard model
@@ -218,7 +179,7 @@ class BymurCore(object):
         self._hazard_curves = None
 
         self._selected_point = HazardPoint(self)
-        # self._selected_point_curves = None
+
 
     def connectAndFetch(self, **dbDetails):
         if (not self._db) and dbDetails:
@@ -291,7 +252,6 @@ class BymurCore(object):
     def get_controls_data(self):
         ret = {}
         hazard_models = self.db.get_hazard_models_list()
-        # [{'id_phenomenon', 'phenomenon_name', 'haz_id', 'haz_name'}]
         for ind, hazard in enumerate(hazard_models):
             haz_tmp = hazard
             if haz_tmp['phenomenon_name'] == 'VOLCANIC':
@@ -313,19 +273,12 @@ class BymurCore(object):
             self.selected_point.update(self.hazard, index,
                                        self.hazard_options['hazard_threshold'],
                                        self.hazard_options['int_thresh'])
-            # self._selected_point = self.grid_points[index]
-            # self._selected_point_curves = self._db.get_point_all_curves(
-            #     self.hazard.phenomenon_id,
-            #     self.hazard.hazard_id,
-            #     self._selected_point['id'])
             return True
         except Exception as e:
             print "Exception in select_point_by_index: %s" % str(e)
             return False
-        # return self._hazard.select_point_by_index(index)
 
     def setPoint(self, xpoint, ypoint):
-        # return self._hazard.select_point(xpar, ypar)
         xsel = np.float64(xpoint)
         ysel = np.float64(ypoint)
         if (self.hazard.grid_limits['east_min'] <= xsel <=
@@ -338,12 +291,6 @@ class BymurCore(object):
                                        distances.argmin(),
                                        self.hazard_options['hazard_threshold'],
                                        self.hazard_options['int_thresh'])
-
-            # self._selected_point = self.grid_points[distances.argmin()]
-            # self._selected_point_curves = self._db.get_point_all_curves(
-            #     self.hazard.phenomenon_id,
-            #     self.hazard.hazard_id,
-            #     self._selected_point['id'])
             return True
         else:
             return False

@@ -114,6 +114,7 @@ class HazardXMLModel(object):
             print "%s is not a valid XSD file" % self._xsd_file
             raise Exception(str(e))
 
+        # TODO: check why this test fail here and not in the validator
         # try:
         #     with open(filename, 'r') as f:
         #         etree.fromstring(f.read(), xmlparser)

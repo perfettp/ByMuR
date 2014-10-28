@@ -94,7 +94,11 @@ class HazardGraph(BymurPlot):
         self._click_callback(ind)
         #self._click_callback(x,y)
 
-    def plot(self, hazard_data):
+    def clear(self):
+        self._figure.clf()
+        self._canvas.draw()
+
+    def plot(self, hazard,  hazard_data):
         # Prepare matplotlib grid and data
         grid_points_number = 256
         points_utm = [p['point'] for p in hazard_data]
@@ -109,10 +113,9 @@ class HazardGraph(BymurPlot):
                                      top=0.92, wspace=0.35, hspace=0.2)
         self._figure.hold(True)
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
-        self.haz_map = self.plot_hazard_map(hazard_data,
-                                            x_mesh, y_mesh,
+        self.haz_map = self.plot_hazard_map(x_mesh, y_mesh,
                              [p['haz_value'] for p in hazard_data],
-                             map_limits)
+                             map_limits, hazard)
 
         self.haz_point,  = self.haz_map.plot([self.x_points[0]],
                                                   [self.y_points[0]],
@@ -136,11 +139,10 @@ class HazardGraph(BymurPlot):
 
         self._canvas.draw()
 
-    def plot_hazard_map(self, hazard_data, x_mesh,
-                        y_mesh, z_points,
-                 map_limits):
+    def plot_hazard_map(self, x_mesh, y_mesh, z_points,
+                 map_limits, hazard):
         xmap1, xmap2, ymap1, ymap2 = map_limits
-        # haz_bar_label = hazard.imt
+        haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
@@ -184,7 +186,7 @@ class HazardGraph(BymurPlot):
             boundaries=z_boundaries,
             format='%.3f')
         hazard_bar.set_alpha(1)
-        #hazard_bar.set_label(haz_bar_label)
+        hazard_bar.set_label(haz_bar_label)
         hazard_bar.draw_all()
 
         haz_subplot.set_title("Hazard Map\n", fontsize=9)
@@ -343,8 +345,7 @@ class HazardCurve(BymurPlot):
 
         self._axes.legend()
         #TODO: forse dovrei aggiungere un id del punto?
-        title = ("East: " + str(selected_point.easting) +
-                " North: " + str(selected_point.northing) +
+        title = ("Point index: " + str(selected_point.index) +
                " - Time window = " + str(hazard_options['exp_time']) + " "
                                                                         "years")
         self._axes.set_title(title, fontsize=10)
@@ -355,6 +356,9 @@ class HazardCurve(BymurPlot):
         # self.axes.axis([0,1,0,1])
         self._canvas.draw()
 
+    def clear(self):
+        self._figure.clf()
+        self._canvas.draw()
 
 class VulnCurve(BymurPlot):
     def __init__(self, *args, **kwargs):
