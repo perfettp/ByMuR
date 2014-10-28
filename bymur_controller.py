@@ -78,7 +78,7 @@ class BymurController(object):
                                              kind="BYMUR_CONFIRM",
                                              caption="Please confirm this action")
             if confirmation:
-                self._core.closeDB()
+                self.closeDB()
             else:
                 return
         dialogResult = self._wxframe.showDlg("BymurDBCreateDlg",
@@ -100,6 +100,12 @@ class BymurController(object):
                                        debug=self._exception_debug,
                                        kind="BYMUR_ERROR",
                                        caption="Error")
+
+    def closeDB(self):
+        self._core.closeDB()
+        self._ctrls_data = {}
+        self._hazard_options = {}
+        bf.fire_event(self.wxframe, bf.wxBYMUR_DB_CLOSED)
 
     def quit(self):
         print "Close"

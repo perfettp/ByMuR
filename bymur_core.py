@@ -175,9 +175,6 @@ class BymurCore(object):
         self._hazard_options = {}
         self._hazard = None
         self._hazard_data = None
-
-        self._hazard_curves = None
-
         self._selected_point = HazardPoint(self)
 
 
@@ -203,6 +200,11 @@ class BymurCore(object):
                 self._db = None
             except:
                 raise
+                self._ctrls_data = {}
+                self._grid_points = []
+                self._hazard_options = {}
+                self._hazard = None
+                self._hazard_data = None
 
     def dropDBTables(self):
         try:
