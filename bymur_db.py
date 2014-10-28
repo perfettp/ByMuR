@@ -337,6 +337,7 @@ class BymurDB(object):
             WHERE `haz_mod`.`id`= %s
         """
         sqlquery %= str(haz_id)
+        print sqlquery
         self._cursor.execute(sqlquery)
         return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
                          'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],

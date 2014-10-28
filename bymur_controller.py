@@ -251,47 +251,33 @@ class BymurController(object):
 
     def pick_point(self, index):
         if self._core.set_point_by_index(index):
-            self.set_selected_point()
-            self.set_selected_point_curves()
             bf.fire_event(self.wxframe, bf.wxBYMUR_UPDATE_POINT)
 
 
     def onPointSelect(self, easting, northing):
         if self._core.setPoint(easting, northing):
-            self.set_selected_point()
-            self.set_selected_point_curves()
             bf.fire_event(self.wxframe, bf.wxBYMUR_UPDATE_POINT)
 
     def update_hazard_data(self):
+        self.set_hazard()
+        self.set_hazard_data()
         self.set_hazard_options()
-        self.set_hazard_description()
-        self.set_hazard_metadata()
-        self.set_hazard_values()
-        self.set_grid_points()
+        self.set_selected_point()
 
     def set_ctrls_data(self):
         self.wxframe.ctrls_data = self._core.ctrls_data
 
+    def set_hazard(self):
+        self.wxframe.hazard = self._core.hazard
+
     def set_hazard_options(self):
         self.wxframe.hazard_options = self._core.hazard_options
 
-    def set_hazard_description(self):
-        self.wxframe.hazard_description = self._core.hazard_description
+    def set_hazard_data(self):
+        self.wxframe.hazard_data = self._core.hazard_data
 
-    def set_hazard_metadata(self):
-        self.wxframe.hazard_metadata = self._core.hazard_metadata
-        
-    def set_hazard_values(self):
-        self.wxframe.hazard_values = self._core.hazard_values
-
-    def set_grid_points(self):
-        self.wxframe.grid_points = self._core.grid_points
-        
     def set_selected_point(self):
         self.wxframe.selected_point = self._core.selected_point
-
-    def set_selected_point_curves(self):
-        self.wxframe.selected_point_curves = self._core.selected_point_curves
 
     def refresh(self):
         self._wxframe.refresh()
