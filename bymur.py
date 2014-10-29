@@ -176,49 +176,81 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
     _haz_dict = {}
 
     def __init__(self, *args, **kwargs):
-        data = kwargs.pop('data', {})
+        ctrls_data = kwargs.pop('data', {})
+        print ctrls_data
         super(BymurEnsBoxSizer, self).__init__(*args, **kwargs)
         self._ensBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
         self.Add(self._ensBoxGrid)
         self._hazLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND,
                                        label=self._hazText)
-        self._ensBoxGrid.Add(self._hazLabel, flag=wx.EXPAND, pos=(0, 0),
-                             span=(2, 4))
-        grid_row = 2
-        for i in range(len(data['model'])):
-            haz_item = {'name': data['model'][i],
-                        'checkbox': wx.CheckBox(self._parent,
-                                                wx.ID_ANY,
-                                                label=data['model'][i]),
-                        'text': wx.TextCtrl(self._parent, wx.ID_ANY),
-                        'dtime': data['dtime'][i],
-            }
-            print data['dtime'][i]
-            haz_item['text'].SetValue("1")
-            haz_item['text'].Enable(False)
-            haz_item['checkbox'].Bind(wx.EVT_CHECKBOX, self.checkItem)
+        grid_row = 0
+        self._ensBoxGrid.Add(self._hazLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(2, 6))
 
-            self._ensBoxGrid.Add(haz_item['checkbox'],
-                                 flag=wx.EXPAND,
-                                 pos=(grid_row, 0), span=(1, 3))
-            self._ensBoxGrid.Add(haz_item['text'],
-                                 flag=wx.EXPAND,
-                                 pos=(grid_row, 3), span=(1, 1))
-
-            self._haz_array.append(haz_item)
-            self._haz_dict[data['model'][i]] = haz_item
-            grid_row += 1
-
-        self._ensBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+        grid_row += 3
+        self._ensPhenLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
                                            style=wx.EXPAND,
-                                           label=self._intText),
-                             flag=wx.EXPAND, pos=(grid_row, 0), span=(1, 3))
-        self._intCB = wx.ComboBox(self._parent, wx.ID_ANY, choices=[],
-                                  style=wx.CB_READONLY)
-        self._intCB.Enable(False)
-        self._ensBoxGrid.Add(self._intCB, flag=wx.EXPAND,
-                             pos=(grid_row, 3), span=(1, 1))
+                                           label="Choose phenomena")
+        self._ensBoxGrid.Add(self._ensPhenLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensPhenCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensPhenCB.AppendItems(list(set([haz['phenomenon_name']
+                                              for haz in
+                                              ctrls_data['hazard_models']])))
+        self._ensPhenCB.Enable(True)
+        self._ensPhenCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensPhenCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._ensExpTimeLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose exposure time")
+        self._ensBoxGrid.Add(self._ensExpTimeLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensExpTimeCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensExpTimeCB.Enable(False)
+        self._ensExpTimeCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensExpTimeCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+        
+        grid_row += 1
+        self._ensGridLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose grid")
+        self._ensBoxGrid.Add(self._ensGridLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensGridCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensGridCB.Enable(False)
+        self._ensGridCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensGridCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 2
+        self._ensHaz = []
+        for i in range(1, 5):
+            hazEntry = {}
+            hazEntry['checkbox'] = wx.CheckBox(self._parent,  wx.ID_ANY)
+            self._ensBoxGrid.Add(hazEntry['checkbox'], flag=wx.EXPAND,
+                                 pos=(grid_row+i, 0), span=(1, 1))
+            hazEntry['combobox'] = wx.ComboBox(self._parent,wx.ID_ANY,
+                                               style=wx.CB_READONLY)
+            hazEntry['combobox'].Enable(False)
+            self._ensBoxGrid.Add(hazEntry['combobox'], flag=wx.EXPAND,
+                             pos=(grid_row+i, 1), span=(1, 4))
+            hazEntry['textctrl'] = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                               style=wx.TE_PROCESS_ENTER)
+            hazEntry['textctrl'].Enable(False)
+            self._ensBoxGrid.Add(hazEntry['textctrl'], flag=wx.EXPAND,
+                             pos=(grid_row+i, 5), span=(1, 1))
+            self._ensHaz.append(hazEntry)
+
+    def updateEnsemble(self, event):
+        pass
 
     def checkItem(self, event):
         self._haz_dict[event.GetEventObject().GetLabelText()]['text']. \
@@ -644,10 +676,12 @@ class BymurEnsembleDlg(wx.Dialog):
     _ensBoxSizer = None
 
     def __init__(self, *args, **kwargs):
+        # print "kwargs %s " % kwargs
         self._title = kwargs.pop('title', '')
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
         self._localData = kwargs.pop('data', {})
+        # print "data %s " % self._localData
         super(BymurEnsembleDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
 
@@ -1334,6 +1368,7 @@ class BymurWxMenu(wx.MenuBar):
         self.menuAnalysis = wx.Menu()
         menuItemTmp = self.menuAnalysis.Append(wx.ID_ANY,
                                                'Create &Ensemble hazard')  # original method was openEnsembleFr
+        self._db_actions.append(menuItemTmp)
         self._menu_actions[
             menuItemTmp.GetId()] = self._controller.create_ensemble
         self._map_actions.append(menuItemTmp)

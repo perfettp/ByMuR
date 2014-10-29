@@ -203,7 +203,7 @@ class BymurController(object):
 
         print "openEnsemble"
         dialogResult = self._wxframe.showDlg("BymurEnsembleDlg",
-                                             **self._core.data)
+                                             **{'data': self._core.ctrls_data})
         if dialogResult:
             self.get_gui().busymsg = "Creating ensemble hazard..."
             self.get_gui().busy = True
