@@ -5,6 +5,7 @@ import math
 import random as rnd
 import os
 
+
 class HazardPoint(object):
     """Describe data of a point in a HazardModel."""
 
@@ -556,7 +557,20 @@ class BymurCore(object):
         return export_string
 
 
-    def defEnsembleHaz(self, **_localEnsembleDetails):
+    def defEnsembleHaz(self, **local_data):
+        _haz_models = [HazardModel(self.db,
+                                   hazard_name=haz['hazard_name'],
+                                   exp_time=local_data['ensExpTime'])
+                       for haz in local_data['ensHaz']]
+        _haz_weights = np.array([float(haz['weight'])
+                                 for haz in local_data['ensHaz']])
+        _haz_weights /= _haz_weights.sum()
+
+        print "haz_models_id %s" % [h.hazard_id for h in _haz_models]
+        print "haz_weights %s" % _haz_weights
+        return
+
+
         # TODO: this function is not correct at all!!
         haz_len = len(_localEnsembleDetails['components'])
         for i in range(haz_len):
