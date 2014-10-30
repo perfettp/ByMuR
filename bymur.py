@@ -1673,7 +1673,7 @@ class BymurWxApp(wx.App):
 
 if __name__ == "__main__":
     core = bymur_core.BymurCore()
-    control = bymur_controller.BymurController(core=core)
+    control = bymur_controller.BymurController(core)
     app = BymurWxApp(redirect=False, controller=control,
                      basedir = control.basedir)
     app.MainLoop()

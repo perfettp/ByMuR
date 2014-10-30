@@ -6,34 +6,37 @@ import bymur_functions as bf
 class BymurController(object):
     _exception_debug = False
     _basedir = os.getcwd()
-    _dbDetails = {'db_host': '***REMOVED***',
-                  'db_port': '3306',
-                  'db_user': '***REMOVED***',
-                  'db_password': '***REMOVED***',
-                  'db_name': 'bymurDB-utm-fix'
-    }
+    _dbDetails = dict(db_host='***REMOVED***', db_port='3306',
+                      db_user='***REMOVED***', db_password='***REMOVED***',
+                      db_name='bymurDB-utm-fix')
 
     _addDBDataDetails = dict()
 
-    _createDBDetails = {'db_host': '***REMOVED***',
-                        'db_port': '3306',
-                        'db_user': '***REMOVED***',
-                        'db_password': '***REMOVED***',
-                        'db_name': '***REMOVED***',
-    }
+    _createDBDetails = dict(db_host='***REMOVED***', db_port='3306',
+                            db_user='***REMOVED***', db_password='***REMOVED***',
+                            db_name='***REMOVED***')
 
+    def __init__(self, core):
+        """
+        Initialize BymurController object
 
-    def __init__(self, *args, **kwargs):
-        self._ctrls_data = {}
-        self._wxframe = kwargs.pop('wxframe', None)
-        self._wxapp = kwargs.pop('wxapp', None)
-        try:
-            self._core = kwargs.pop('core')
-        except Exception as e:
-            raise
+        :param core: bymur_core.BymurCore
+        :raise: Exception
+        """
+        self._ctrls_data = dict()
+        self._wxframe = None
+        self._wxapp =None
+        if core is None:
+            raise Exception("core cannot be None")
+        self._core = core
         self._hazard_options = {}
 
     def connect_db(self):
+        """
+
+
+        :return:
+        """
         if self._core.db:
             msg = "Close connected database?"
             confirmation = bf.showMessage(parent=self.wxframe,
@@ -52,7 +55,7 @@ class BymurController(object):
             try:
                 bf.SpawnThread(self.wxframe,
                     bf.wxBYMUR_DB_CONNECTED,
-                    self._core.connectAndFetch,
+                    self._core.load_db,
                     self._dbDetails,
                     callback=self.set_ctrls_data,
                     wait_msg="Loading database...")

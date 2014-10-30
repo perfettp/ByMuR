@@ -8,6 +8,11 @@ import os
 class HazardPoint(object):
 
     def __init__(self, core):
+        """
+
+        :rtype : bymur_core.HazardPoint
+        :type core: bymur_core.BymurCore
+        """
         self._core = core
         self._hazard = None
         self._index = None
@@ -18,6 +23,13 @@ class HazardPoint(object):
         self._prob_value = None
 
     def update(self, hazard, index, hazard_threshold, intensity_treshold):
+        """
+
+        :type hazard: bymur_core.HazardModel
+        :type hazard_threshold: float
+        :type intensity_treshold: float
+
+        """
         self._hazard = hazard
         self._index = index
         self._easting = self._hazard.grid_points[self._index]['easting']
@@ -63,9 +75,16 @@ class HazardPoint(object):
 
 class HazardModel(object):
     def __init__(self, data_provider, id=None, hazard_name=None, exp_time=None):
+        """
+
+        :type data_provider: bymur_db.BymurDB
+        :type id: int
+        :type hazard_name: str
+        :type exp_time: float
+        """
         self._db = data_provider
         if id is not None:
-            hm = self._db.get_hazard_model_by_id(self._hazard_id)
+            hm = self._db.get_hazard_model_by_id(id)
         elif hazard_name is not None and exp_time is not None:
             hm = self._db.get_hazard_model_by_name_exptime(hazard_name,
                                                            exp_time)
@@ -93,6 +112,12 @@ class HazardModel(object):
         self._curves = {}
 
     def curves_by_statistics(self, statistic_name='mean'):
+        """
+
+        :type statistic_name: str
+        :return: list of dict {'point': {}, 'curve':[]}
+        """
+
         try:
             return self._curves[statistic_name]
         except KeyError:
@@ -168,6 +193,10 @@ class BymurCore(object):
     }
 
     def __init__(self):
+        """
+
+
+        """
         self._db = None
         self._db_details = None
         self._ctrls_data = {}
@@ -177,8 +206,7 @@ class BymurCore(object):
         self._hazard_data = None
         self._selected_point = HazardPoint(self)
 
-
-    def connectAndFetch(self, **dbDetails):
+    def load_db(self, **dbDetails):
         if (not self._db) and dbDetails:
             self.connectDB(**dbDetails)
         self._ctrls_data = self.get_controls_data()
