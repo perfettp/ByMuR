@@ -767,9 +767,9 @@ class BymurWxMapPanel(BymurWxPanel):
         print "file %s" %  os.path.join(wx.GetTopLevelParent(self).basedir,
                                      "./data/naples_gmaps.png")
         self._map = bymur_plots.HazardGraph(parent=self,
-                                click_callback=self._controller.pick_point,
-                                imgfile = os.path.join(wx.GetTopLevelParent(
-                                    self).basedir,"./data/naples_gmaps.png"))
+                            click_callback=self._controller.pick_point_by_index,
+                            imgfile = os.path.join(wx.GetTopLevelParent(
+                                self).basedir,"./data/naples_gmaps.png"))
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
@@ -949,7 +949,7 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._retPerText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
                                        style=wx.TE_PROCESS_ENTER)
         self._retPerText.Enable(False)
-        self.Bind(wx.EVT_TEXT_ENTER, self._controller.updateParameters,
+        self.Bind(wx.EVT_TEXT_ENTER, self._controller.update_hazard_options,
                   self._retPerText)
         self._retPerLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
         self._ctrlsSizer.Add(self._retPerLabel, pos=(vpos, 0), span=(1, 2),
@@ -964,7 +964,7 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._intThresText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
                                          style=wx.TE_PROCESS_ENTER)
         self._intThresText.Enable(False)
-        self.Bind(wx.EVT_TEXT_ENTER, self._controller.updateParameters,
+        self.Bind(wx.EVT_TEXT_ENTER, self._controller.update_hazard_options,
                   self._intThresText)
         self._intThresLabelBis = wx.StaticText(self, wx.ID_ANY, '[0-1]')
         self._ctrlsSizer.Add(self._intThresLabel, pos=(vpos, 0), span=(1, 2),
@@ -989,7 +989,7 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._updateButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
                                        'Update Map',
                                        size=(-1, -1))
-        self.Bind(wx.EVT_BUTTON, self._controller.updateParameters,
+        self.Bind(wx.EVT_BUTTON, self._controller.update_hazard_options,
                   self._updateButton)
         self._ctrlsSizer.Add(self._updateButton, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(3, 4))
@@ -1069,8 +1069,8 @@ class BymurWxLeftPanel(BymurWxPanel):
         # self.Enable(False)
 
     def pointCoordsSel(self, ev):
-        self._controller.onPointSelect(self._pointEastSC.GetValue(),
-                                       self._pointNortSC.GetValue())
+        self._controller.pick_point_by_coordinates(self._pointEastSC.GetValue(),
+                                                   self._pointNortSC.GetValue())
 
     def clearPoint(self):
         self._pointEastSC.SetValueString('')
@@ -1294,11 +1294,11 @@ class BymurWxMenu(wx.MenuBar):
         self.menuDB = wx.Menu()
         menuItemTmp = self.menuDB.Append(wx.ID_ANY,
                                          '&Create DataBase (DB)')
-        self._menu_actions[menuItemTmp.GetId()] = self._controller.createDB
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.create_db
         menuItemTmp = self.menuDB.Append(wx.ID_ANY, '&Add Data to DB')
         self._db_actions.append(menuItemTmp)
         self._menu_actions[
-            menuItemTmp.GetId()] = self._controller.addDBData
+            menuItemTmp.GetId()] = self._controller.add_data
         menuItemTmp.Enable(False)
         self.menuDB.AppendSeparator()
         menuItemTmp = self.menuDB.Append(wx.ID_ANY, '&Drop All DB Tables')
@@ -1314,7 +1314,7 @@ class BymurWxMenu(wx.MenuBar):
                                          '&Load grid file')
         menuItemTmp.Enable(False)
         self._db_actions.append(menuItemTmp)
-        self._menu_actions[menuItemTmp.GetId()] = self._controller.loadGrid
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.load_grid
         self.Append(self.menuGrid, '&Grid')
 
         # Plot menu and items
@@ -1335,7 +1335,7 @@ class BymurWxMenu(wx.MenuBar):
         menuItemTmp = self.menuAnalysis.Append(wx.ID_ANY,
                                                'Create &Ensemble hazard')  # original method was openEnsembleFr
         self._menu_actions[
-            menuItemTmp.GetId()] = self._controller.openEnsemble
+            menuItemTmp.GetId()] = self._controller.create_ensemble
         self._map_actions.append(menuItemTmp)
         menuItemTmp.Enable(False)
         self.Append(self.menuAnalysis, '&Analysis')
@@ -1663,9 +1663,9 @@ class BymurWxApp(wx.App):
                             basedir = self._basedir,
                             title="ByMuR - Refactoring")
 
-        self._controller.SetWxFrame(frame)
+        self._controller.set_gui(frame)
 
-        self._controller._wxframe = frame
+        # self._controller._wxframe = frame
 
         frame.Show(True)
         return True
