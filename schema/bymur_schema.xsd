@@ -1,0 +1,123 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+
+        xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        xmlns:gml="http://www.opengis.net/gml"
+        xmlns:nrml="http://openquake.org/xmlns/nrml/0.4"
+        elementFormDefault="qualified"
+        xml:lang="en">
+
+    <xs:import namespace="http://www.opengis.net/gml"
+               schemaLocation="./oq-nrmlib/gml/gmlsf.xsd"/>
+    <xs:import namespace="http://openquake.org/xmlns/nrml/0.4"
+               schemaLocation="./oq-nrmlib/nrml.xsd"/>
+
+    <xs:element name="hazardResult">
+        <xs:complexType>
+            <xs:sequence>
+                <xs:choice minOccurs="0" maxOccurs="1">
+                    <xs:element name="volcano">
+                        <xs:complexType>
+                            <xs:attribute name="volcanoName" type="xs:string"/>
+                        </xs:complexType>
+                    </xs:element>
+                    <xs:element name="tsunami">
+                        <xs:complexType>
+                            <xs:attribute name="tsunamiName" type="xs:string"/>
+                        </xs:complexType>
+                    </xs:element>
+                </xs:choice>
+                <xs:element name="completeness" minOccurs="0" maxOccurs="1">
+                    <xs:complexType>
+                        <xs:attribute name="TypeComple" type="xs:string"/>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="model" minOccurs="1" maxOccurs="1">
+                    <xs:complexType>
+                        <xs:attribute name="Model" type="xs:string"/>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="timeterm" minOccurs="1" maxOccurs="1">
+                    <xs:complexType>
+                        <xs:attribute name="deltaT">
+                            <xs:simpleType>
+                                <xs:restriction base="xs:string">
+                                    <xs:pattern value="[0-9]{1,3}yr"/>
+                                </xs:restriction>
+                            </xs:simpleType>
+                        </xs:attribute>
+                    </xs:complexType>
+                </xs:element>
+                <xs:element name="hazardCurveField" minOccurs="1" maxOccurs="1">
+                    <xs:complexType>
+                        <xs:sequence>
+                            <xs:element name="IML" minOccurs="1"
+                                        maxOccurs="1">
+                                <xs:complexType>
+                                    <xs:simpleContent>
+                                        <xs:extension base="gml:doubleList">
+                                            <xs:attribute name="IMT"
+                                                          type="xs:string"
+                                                          use="required"/>
+                                        </xs:extension>
+                                    </xs:simpleContent>
+                                </xs:complexType>
+                            </xs:element>
+                            <xs:element name="HCNode" minOccurs="1"
+                                        maxOccurs="unbounded">
+                                <xs:complexType>
+                                    <xs:sequence>
+                                        <xs:element name="site" minOccurs="1"
+                                                    maxOccurs="1">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element
+                                                            name="gmlPoint"
+                                                            minOccurs="1"
+                                                            maxOccurs="1">
+                                                        <xs:complexType>
+                                                            <xs:sequence>
+                                                                <xs:element
+                                                                        name="gmlpos"
+                                                                        type="gml:doubleList"/>
+                                                            </xs:sequence>
+                                                        </xs:complexType>
+                                                    </xs:element>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                        <xs:element name="hazardCurve"
+                                                    minOccurs="1" maxOccurs="1">
+                                            <xs:complexType>
+                                                <xs:sequence>
+                                                    <xs:element name="poE"
+                                                                type="nrml:NormalizedDoubleList"
+                                                                minOccurs="1"
+                                                                maxOccurs="1"/>
+                                                </xs:sequence>
+                                            </xs:complexType>
+                                        </xs:element>
+                                    </xs:sequence>
+                                </xs:complexType>
+                            </xs:element>
+                        </xs:sequence>
+
+                        <xs:attribute name="statistics" use="optional">
+                            <xs:simpleType>
+                                <xs:restriction base="xs:string">
+                                    <xs:enumeration value="mean"/>
+                                    <xs:enumeration value="percentile"/>
+                                </xs:restriction>
+                            </xs:simpleType>
+                        </xs:attribute>
+                        <xs:attribute name="percentileValue"
+                                      type="nrml:PositiveDoubleType"
+                                      use="optional"/>
+                    </xs:complexType>
+                </xs:element>
+            </xs:sequence>
+        </xs:complexType>
+    </xs:element>
+</xs:schema>
+
+
