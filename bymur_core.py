@@ -316,7 +316,7 @@ class BymurCore(object):
             raise
 
 
-    def createDB(self, **createDBDetails):
+    def create_db(self, **createDBDetails):
         """ Create a new database.
 
         Create database if it doesn't exist yet. If a database with the given
@@ -338,7 +338,7 @@ class BymurCore(object):
         self._ctrls_data = self.get_controls_data()
         # TODO: add a dialog for successfull creation
 
-    def addDBData(self, **addDBData):
+    def add_data(self, **addDBData):
         """
         Read data from XML files and add to database.
 
@@ -352,7 +352,7 @@ class BymurCore(object):
                          addDBData['phenomenon'])
         self._ctrls_data = self.get_controls_data()
 
-    def loadGrid(self, **gridData):
+    def load_grid(self, **gridData):
         """
         Read grid from file and add it to database.
 
