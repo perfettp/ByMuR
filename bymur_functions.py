@@ -129,6 +129,7 @@ class HazardXMLModel(object):
         self._filename = filename
         self._volcano = ''
         self._model_name = ''
+        self._hazard_model_name = ''
         self._iml_thresholds = []
         self._iml_imt = ''
         self._exp_time = ''
@@ -168,7 +169,7 @@ class HazardXMLModel(object):
                     # print "volcano: %s" % self._volcano
                 elif element.tag == 'model':
                     self._model_name = element.get('Model')
-                    # print "model: %s" % self._model_name
+                    self._hazard_model_name = element.text.strip()
                     element.clear()
                 elif element.tag == 'timeterm':
                     self._exp_time = float(element.get('deltaT').strip('yr'))
@@ -211,6 +212,10 @@ class HazardXMLModel(object):
     @property
     def model_name(self):
         return self._model_name
+
+    @property
+    def hazard_model_name(self):
+        return self._hazard_model_name
 
     @property
     def iml_thresholds(self):
