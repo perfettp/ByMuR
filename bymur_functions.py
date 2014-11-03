@@ -102,10 +102,12 @@ class BymurThread(threading.Thread):
 
 
 class HazardXMLModel(object):
+    _basedir = os.path.dirname(__file__)
+    _schemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
-    def __init__(self, filename, phenomenon,
-                 xsd="/hades/dev/bymur/schema/bymur_schema.xsd"):
+    def __init__(self, filename, phenomenon, xsd=_schemafile):
         self._xsd_file = xsd
+        print "schema path %s" % self._xsd_file
         print "%s > itializing file: %s " % (self.__class__.__name__,
                                              filename)
         try:
