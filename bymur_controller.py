@@ -4,8 +4,8 @@ import bymur_functions as bf
 
 class BymurController(object):
     """BymurController is in charge of application logic.
-    Updating both the core and the graphical interface to reflect current
-    state and exchange data between them.
+    Update both the core and the graphical interface to reflect the current
+    application state and exchange data.
     """
 
     _exception_debug = False
@@ -284,7 +284,7 @@ class BymurController(object):
         :param northing: bigint
         """
 
-        if self._core.setPoint(easting, northing):
+        if self._core.set_point_by_coordinates(easting, northing):
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
     def set_gui(self, frame):
