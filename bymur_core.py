@@ -6,8 +6,13 @@ import random as rnd
 import os
 
 class HazardPoint(object):
+    """Describe data of a point in a HazardModel."""
 
     def __init__(self, core):
+        """
+        :rtype : bymur_core.HazardPoint
+        :type core: bymur_core.BymurCore
+        """
         self._core = core
         self._hazard = None
         self._index = None
@@ -18,6 +23,14 @@ class HazardPoint(object):
         self._prob_value = None
 
     def update(self, hazard, index, hazard_threshold, intensity_treshold):
+        """
+        Update object to keep track of current selected point.
+
+        :type hazard: bymur_core.HazardModel
+        :type hazard_threshold: float
+        :type intensity_treshold: float
+
+        """
         self._hazard = hazard
         self._index = index
         self._easting = self._hazard.grid_points[self._index]['easting']
@@ -38,34 +51,77 @@ class HazardPoint(object):
 
     @property
     def easting(self):
+        """
+        Return point easting.
+
+        :return: bigint
+        """
         return self._easting
 
     @property
     def northing(self):
+        """
+        Return point northing.
+
+        :return: bigint
+        """
         return self._northing
 
     @property
     def index(self):
+        """
+        Return grid point index.
+
+        :return: bigint
+        """
         return self._index
 
     @property
     def curves(self):
+        """
+        Return all point data curves.
+
+        :return: list of dict{'statistic':{}, 'curve':{}}
+        """
         return self._curves
 
     @property
     def haz_value(self):
+        """
+        Return point hazard value.
+
+        :return: float
+        """
         return self._haz_value
 
     @property
     def prob_value(self):
+        """
+        Return point probability value.
+
+        :return: float
+        """
         return self._prob_value
 
 
 class HazardModel(object):
+    """
+    Rapresentation of an Hazard model, read from data_provider and
+    exposed as PythonObject.
+
+    """
+
     def __init__(self, data_provider, id=None, hazard_name=None, exp_time=None):
+        """
+        :type data_provider: bymur_db.BymurDB
+        :type id: int
+        :type hazard_name: str
+        :type exp_time: float
+        """
+
         self._db = data_provider
         if id is not None:
-            hm = self._db.get_hazard_model_by_id(self._hazard_id)
+            hm = self._db.get_hazard_model_by_id(id)
         elif hazard_name is not None and exp_time is not None:
             hm = self._db.get_hazard_model_by_name_exptime(hazard_name,
                                                            exp_time)
@@ -93,6 +149,13 @@ class HazardModel(object):
         self._curves = {}
 
     def curves_by_statistics(self, statistic_name='mean'):
+        """
+        Return all points and corrisponding data curve for specified statistic.
+
+        :type statistic_name: str
+        :return: list of dict {'point': {}, 'curve':[]}
+        """
+
         try:
             return self._curves[statistic_name]
         except KeyError:
@@ -105,50 +168,81 @@ class HazardModel(object):
 
     @property
     def hazard_id(self):
+        """Return harzard model id. """
+
         return self._hazard_id
 
     @property
     def hazard_name(self):
+        """Return harzard model name. """
+
         return self._hazard_name
 
     @property
     def datagrid_id(self):
+        """Return associated datagrid id."""
+
         return self._datagrid_id
 
     @property
     def phenomenon_id(self):
+        """Return associated phenonmenon id."""
+
         return self._phenomenon_id
 
     @property
     def exposure_time(self):
+        """Return associated exposure time."""
+
         return self._exposure_time
 
     @property
     def iml(self):
+        """Return associad intensity threshold list."""
+
         return self._iml
 
     @property
     def imt(self):
+        """Return associated unit measure for hazard."""
+
         return self._imt
 
     @property
     def date(self):
+        """Return date (not yer used)."""
+
         return self._date
 
     @property
     def grid_points(self):
+        """Return the associated grid points list."""
+
         return self._grid_points
 
     @property
     def grid_limits(self):
+        """Return associated grid easting and northing min/max."""
+
         return self._grid_limits
 
     @property
     def curves(self):
+        """
+        Return all data curves defined for all grid point in the
+        hazard grid.
+        """
+
         return self._curves
 
 
 class BymurCore(object):
+    """
+    BymurCore object contain the model of ByMuR. It is in charge of organize
+    hazard internals rapresentation and operations. All the values are
+    calculated by methods defined inside this class.
+    """
+
     # Default values regardless of hazard model
     _ctrls_defaut = {
         'SEISMIC': {
@@ -177,13 +271,20 @@ class BymurCore(object):
         self._hazard_data = None
         self._selected_point = HazardPoint(self)
 
+    def load_db(self, **dbDetails):
+        """ Connect database and load hazard models data."""
 
-    def connectAndFetch(self, **dbDetails):
         if (not self._db) and dbDetails:
-            self.connectDB(**dbDetails)
+            self.connect_db(**dbDetails)
         self._ctrls_data = self.get_controls_data()
 
-    def connectDB(self, **dbDetails):
+    def connect_db(self, **dbDetails):
+        """
+        Connect database.
+
+        :param dbDetails: dict(db_host= str, db_port= str,
+                      db_user= str, db_password= str, db_name= str)
+        """
         self._db_details = dbDetails
         try:
             self._db = db.BymurDB(**self._db_details)
@@ -193,7 +294,8 @@ class BymurCore(object):
     # TODO: devo implementare un reset dei pannelli
 
     def close_db(self):
-        print "close"
+        """ Close database connection. """
+
         if self._db:
             try:
                 self._db.close()
@@ -207,14 +309,21 @@ class BymurCore(object):
                 self._hazard_data = None
 
     def drop_tables(self, **kwargs):
+        """ Drop all tables in currently open database."""
         try:
             self._db.drop_tables()
         except:
             raise
 
 
-    def createDB(self, **createDBDetails):
-        """
+    def create_db(self, **createDBDetails):
+        """ Create a new database.
+
+        Create database if it doesn't exist yet. If a database with the given
+        name is already present, populate it with tables.
+
+        :param dbDetails: dict(db_host= str, db_port= str,
+                      db_user= str, db_password= str, db_name= str)
 
         """
         print "core.createDB"
@@ -229,18 +338,34 @@ class BymurCore(object):
         self._ctrls_data = self.get_controls_data()
         # TODO: add a dialog for successfull creation
 
-    def addDBData(self, **addDBData):
+    def add_data(self, **addDBData):
+        """
+        Read data from XML files and add to database.
+
+        :param addDBData: dict(haz_files = list(str), phenomenon = str,
+        datagrid_name = str)
+
+        """
+
         self.db.add_data(addDBData['datagrid_name'],
                          addDBData['haz_files'],
                          addDBData['phenomenon'])
         self._ctrls_data = self.get_controls_data()
 
-    def loadGrid(self, **gridData):
+    def load_grid(self, **gridData):
+        """
+        Read grid from file and add it to database.
+
+        :param gridData: dict(basedir=str, filepath=str)
+        """
+
         print "core loadGrid: %s" % gridData
         filepath = gridData.pop('filepath', None)
         return self.db.load_grid(filepath)
 
     def get_controls_data(self):
+        """ Read hazard models data from database. """
+
         ret = {}
         hazard_models = self.db.get_hazard_models_list()
         for ind, hazard in enumerate(hazard_models):
@@ -259,7 +384,38 @@ class BymurCore(object):
         return ret
 
 
+    def updateModel(self, **ctrls_options):
+
+        """Update HazardModel reflecting selected options. """
+        print "ctrls_options %s" % ctrls_options
+        haz_tmp = ctrls_options
+        haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time'] /
+                                                   haz_tmp['ret_per'])
+        self.hazard_options = haz_tmp
+
+        print "core hazard_options %s " % self.hazard_options
+
+        self._hazard = HazardModel(self._db,
+                                   hazard_name=
+                                   self.hazard_options['hazard_name'],
+                                   exp_time=self.hazard_options['exp_time'])
+
+        # TODO: grid_point should be eliminated from here
+        # TODO: or from
+        self.grid_points = self._hazard.grid_points
+
+        self.hazard_data = self._compute_hazard_data(
+            self._hazard,
+            self.hazard_options['int_thresh'],
+            self.hazard_options['hazard_threshold'])
+
+
     def set_point_by_index(self, index):
+        """
+        Set selected point by index in model.
+
+        :param index: bigint
+        """
         try:
             self.selected_point.update(self.hazard, index,
                                        self.hazard_options['hazard_threshold'],
@@ -269,7 +425,15 @@ class BymurCore(object):
             print "Exception in select_point_by_index: %s" % str(e)
             return False
 
-    def setPoint(self, xpoint, ypoint):
+
+    def set_point_by_coordinates(self, xpoint, ypoint):
+        """
+        Set selected point by coordinates in model.
+
+        :param xpoint: bigint
+        :param ypoint: bigint
+        """
+
         xsel = np.float64(xpoint)
         ysel = np.float64(ypoint)
         if (self.hazard.grid_limits['east_min'] <= xsel <=
@@ -287,6 +451,14 @@ class BymurCore(object):
             return False
 
     def get_haz_value(self, int_thresh_list, hazard_threshold, curve):
+        """
+        Calculate and return hazard value interpolation.
+
+        :type int_thresh_list: list of float
+        :type hazard_threshold: float
+        :type curve: list of float
+        :return: float
+        """
         y_th = hazard_threshold
         y = curve
         x = int_thresh_list
@@ -310,6 +482,14 @@ class BymurCore(object):
         return x[len(x) - 1]
 
     def get_prob_value(self, int_thresh_list, intensity_threshold, curve):
+        """
+        Calculate and probability hazard value interpolation.
+
+        :type int_thresh_list: list of float
+        :type intensity_threshold: float
+        :type curve: list of float
+        :return: float
+        """
         x_th = intensity_threshold
         y = curve
         x = int_thresh_list
@@ -333,10 +513,19 @@ class BymurCore(object):
         return y[len(x) - 1]
 
 
-    def compute_hazard_data(self, hazard,
+    def _compute_hazard_data(self, hazard,
                               intensity_threshold, hazard_threshold,
                               statistic_name='mean'):
 
+        """
+        Calculate hazard statistics interpolations for every point.
+
+        :type hazard: bymur_core.HazardModel
+        :type intensity_threshold: float
+        :type hazard_threshold: float
+        :type statistic_name: str
+        :return: list of dict(point: {}, haz_value: float, prob_value: float)
+        """
         self.hazard_data = hazard.curves_by_statistics(statistic_name)
 
         return map((lambda p: dict(zip(['point', 'haz_value',
@@ -354,34 +543,8 @@ class BymurCore(object):
                    self.hazard_data)
 
 
-    def get_grid_points(self, grid_id):
-        return self.db.get_points_by_datagrid_id(grid_id)
-
-
-    def updateModel(self, **ctrls_options):
-
-        print "ctrls_options %s" % ctrls_options
-        haz_tmp = ctrls_options
-        haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time'] /
-                                                   haz_tmp['ret_per'])
-        self.hazard_options = haz_tmp
-
-        print "core hazard_options %s " % self.hazard_options
-
-        self._hazard = HazardModel(self._db,
-                                   hazard_name=
-                                   self.hazard_options['hazard_name'],
-                                   exp_time=self.hazard_options['exp_time'])
-
-        # TODO: grid_point should be eliminated from here
-        # TODO: or from
-        self.grid_points = self._hazard.grid_points
-
-        self.hazard_data = self.compute_hazard_data(
-            self._hazard,
-            self.hazard_options['int_thresh'],
-            self.hazard_options['hazard_threshold'])
-
+    # def _get_grid_points(self, grid_id):
+    #     return self.db.get_points_by_datagrid_id(grid_id)
 
 
     def exportRawPoints(self, haz_array):

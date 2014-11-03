@@ -581,6 +581,10 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                        points, curves)
 
     def get_point_all_curves(self, phenomenon_id, hazard_id, point_id):
+        """
+
+        :rtype : object
+        """
         phenomenon = self.get_phenomenon_by_id(phenomenon_id)
         if phenomenon['name'] == 'VOLCANIC':
             table_name = "volcanic_data"
