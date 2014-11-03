@@ -119,12 +119,12 @@ class HazardXMLModel(object):
             raise Exception(str(e))
 
         # TODO: check why this test fail here and not in the validator
-        # try:
-        #     with open(filename, 'r') as f:
-        #         etree.fromstring(f.read(), xmlparser)
-        # except Exception as e:
-        #     print "%s is not a valid XML file" % filename
-        #     raise Exception(str(e))
+        try:
+            with open(filename, 'r') as f:
+                etree.fromstring(f.read(), xmlparser)
+        except Exception as e:
+            print "%s is not a valid XML file" % filename
+            raise Exception(str(e))
 
         self._filename = filename
         self._volcano = ''
