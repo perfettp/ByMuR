@@ -13,9 +13,7 @@ class BymurController(object):
                   'db_name': 'bymurDB-utm-fix'
     }
 
-    _addDBDataDetails = {
-        'haz_path': os.path.join(_basedir, "hazards")
-    }
+    _addDBDataDetails = dict()
 
     _createDBDetails = {'db_host': '***REMOVED***',
                         'db_port': '3306',
@@ -131,20 +129,23 @@ class BymurController(object):
 
     def addDBData(self):
         print "addDBData"
-        self._addDBDataDetails['grid_list'] = [d['datagrid_name']
+        print "_addDBDetails %s" % self._addDBDataDetails
+        _localDBDataDetails = self._addDBDataDetails.copy()
+        _localDBDataDetails['grid_list'] = [d['datagrid_name']
                                                for d in
                                                self._core.db.get_datagrids_list()]
-        self._addDBDataDetails['phenomena_list'] = [p['phenomenon_name'] for p
+        _localDBDataDetails['phenomena_list'] = [p['phenomenon_name'] for p
                                                    in  self._core.db.get_phenomena_list()]
+        print "_localDBDataDetails %s" % _localDBDataDetails
         dialogResult = self._wxframe.showDlg("BymurAddDBDataDlg",
-                                                       **self._addDBDataDetails)
+                                                       **_localDBDataDetails)
         if dialogResult:
-            self._addDBDataDetails.update(dialogResult)
+            _localDBDataDetails.update(dialogResult)
             try:
                 bf.SpawnThread(self.wxframe,
                                bf.wxBYMUR_UPDATE_DIALOG,
                                self._core.addDBData,
-                               self._addDBDataDetails,
+                               _localDBDataDetails,
                                self.set_ctrls_data,
                                wait_msg="Adding data to database...")
             except Exception as e:
