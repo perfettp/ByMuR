@@ -678,10 +678,16 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             # Now insert hazard, after this other
             # many-to-many relationship
             print "DB > Creating hazarm_models entry"
+            if fileXmlModel.hazard_model_name != '':
+                _name = fileXmlModel.hazard_model_name
+            else:
+                _name = fileXmlModel.model_name
+
+            print "_name = %s" % _name
             hazard_model_id = self.insert_id_hazard_model(
                 phenomenon_id,
                 datagrid_id,
-                fileXmlModel.model_name,
+                _name,
                 fileXmlModel.exp_time,
                 fileXmlModel.iml_thresholds,
                 fileXmlModel.iml_imt)
