@@ -588,24 +588,32 @@ class BymurCore(object):
 
         # Instantiate HazardModels and fetch all curves for all
         # defined statistics
-        _haz_models = [HazardModel(self.db,
+        _haz_models = [{'model': HazardModel(self.db,
                                    hazard_name=haz['hazard_name'],
-                                   exp_time=local_data['ensExpTime'])
+                                   exp_time=local_data['ensExpTime'])}
                        for haz in local_data['ensHaz']]
         for haz in _haz_models:
-                haz.fetch_all_points_data()
+                haz['model'].fetch_all_points_data()
+                haz['stats_labels'] = [stat['name'][len('percentile'):]
+                        for stat in haz['model'].statistics
+                        if stat['name'] != 'mean']
+                haz['yvalues'] = np.sort(np.array([float(s)/100 for s in haz[
+                    'stats_labels']]))
 
         # Parse and normalize hazards weight
         _haz_weights = np.array([float(haz['weight'])
                                  for haz in local_data['ensHaz']])
         _haz_weights /= _haz_weights.sum()
+        for i_haz in range(len(_haz_models)):
+            _haz_models[i_haz]['weight'] = _haz_weights[i_haz]
 
-        print "haz_models_id %s" % [h.hazard_id for h in _haz_models]
-        print "haz_weights %s" % _haz_weights
+        print "haz_models_id %s" % [h['model'].hazard_id for h in _haz_models]
+        print "haz_weights %s" % [h['weight'] for h in _haz_models]
+        print "haz_stats %s" % [h['stats_labels'] for h in _haz_models]
+        print "haz_yvalues %s" % [h['yvalues'] for h in _haz_models]
 
         # Generate random sample points
         _samples = np.random.uniform(0, 1, self.ens_sample_number)
-        print local_data['ensIMLThresh']
 
         # point_curves structure
         # point_curves = [ {point_id,
@@ -629,29 +637,24 @@ class BymurCore(object):
         #                 ]
 
         point_curves = []
-        for i_point in range(len(_haz_models[0].grid_points)):
+        for i_point in range(len(_haz_models[0]['model'].grid_points)):
             p_tmp = dict()
-            p_tmp['point_id'] = _haz_models[0].grid_points[i_point]['id']
+            p_tmp['point_id'] = _haz_models[0]['model'].grid_points[i_point]['id']
             p_tmp['point_data'] = dict()
             for haz in _haz_models:
                 _haz_point_data = []
-                stats_shorts = [stat['name'][len('percentile'):]
-                        for stat in haz.statistics if stat['name'] != 'mean']
-                # print [float(s)/100 for s in stats_shorts]
                 for i_thresh in range(len(local_data['ensIMLThresh'])):
                     _thresh_data = []
-                    for stat in stats_shorts:
+                    for stat in haz['stats_labels']:
                         _thresh_data.append(
-                            haz.points_data[i_point]['point_data']
+                            haz['model'].points_data[i_point]['point_data']
                             [stat][i_thresh])
                     _haz_point_data.append(_thresh_data)
-                p_tmp['point_data'][haz.hazard_id] =\
+                p_tmp['point_data'][haz['model'].hazard_id] =\
                     np.sort(np.array(_haz_point_data))
             point_curves.append(p_tmp)
         print "Esempio di dati per un punto %s" % point_curves[0]
-        print point_curves[1000]['point_data'][_haz_models[0].hazard_id][0]
-
-
+        print point_curves[1000]['point_data'][_haz_models[0]['model'].hazard_id][0]
 
 
 
