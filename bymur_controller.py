@@ -205,16 +205,16 @@ class BymurController(object):
         dialogResult = self._wxframe.showDlg("BymurEnsembleDlg",
                                              **{'data': self._core.ctrls_data})
         if dialogResult:
-            self.get_gui().busymsg = "Creating ensemble hazard..."
-            self.get_gui().busy = True
             try:
-                self._core.defEnsembleHaz(**dialogResult)
-                # bf.showMessage(parent=self.wxframe,
-                #                        message="This is function is not "
-                #                                "implemented yet",
-                #                        kind="BYMUR_INFO",
-                #                        caption="Ensemble hazard definition")
-                # self.wxframe.leftPanel.updateView(**self._core.data)
+                dialogResult['ensIMLThresh'] = [float(thresh) for thresh in
+                                        dialogResult['ensIMLThresh'].split()]
+                bf.SpawnThread(self.get_gui(),
+                               bf.wxBYMUR_UPDATE_DIALOG,
+                               self._core.defEnsembleHaz,
+                               dialogResult,
+                               self._set_ctrls_data,
+                               wait_msg="Creating ensemble hazard...")
+                # self._core.defEnsembleHaz(**dialogResult)
             except Exception as e:
                 bf.showMessage(parent=self.get_gui(),
                                message=str(e),

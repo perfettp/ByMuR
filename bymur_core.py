@@ -148,6 +148,16 @@ class HazardModel(object):
                              'north_max': max([p['northing']
                                                for p in self._grid_points])}
         self._curves = {}
+        self._points_data = []
+
+    def fetch_all_points_data(self):
+        self._points_data = self._db.get_points_all_data(self.phenomenon_id,
+                                                    self.hazard_id,
+                                                    self.grid_points)
+        # print len(self._points_data)
+        # print self._points_data[0]
+
+
 
     def curves_by_statistics(self, statistic_name='mean'):
         """
@@ -160,6 +170,7 @@ class HazardModel(object):
         try:
             return self._curves[statistic_name]
         except KeyError:
+            print "HazardModel fetching statistic %s curves " % statistic_name
             stat_id = self._db.get_statistic_by_value(statistic_name)
             self._curves[statistic_name] = self._db.get_curves(
                 self.phenomenon_id,
@@ -236,6 +247,11 @@ class HazardModel(object):
 
         return self._curves
 
+    @property
+    def points_data(self):
+        """ Return all points data as list of dict. """
+        return self._points_data
+
 
 class BymurCore(object):
     """
@@ -261,6 +277,8 @@ class BymurCore(object):
         'basedir': os.getcwd(),
         # TODO: da eliminare quando scarichero' le mappe
     }
+
+    ens_sample_number = 1000
 
     def __init__(self):
         self._db = None
@@ -556,21 +574,88 @@ class BymurCore(object):
                                              haz_array[i])
         return export_string
 
+    def _comulative_prob(self, hazard, threshold_index):
+        pass
+        _comulative = list()
+        # devo escludere la media
+        # for key in hazard.curves.keys():
+        #     for point in hazard.c
+        #     _comulative.append(hazard.curves[key]['curve'][threshold_index])
+
+
 
     def defEnsembleHaz(self, **local_data):
+
+        # Instantiate HazardModels and fetch all curves for all
+        # defined statistics
         _haz_models = [HazardModel(self.db,
                                    hazard_name=haz['hazard_name'],
                                    exp_time=local_data['ensExpTime'])
                        for haz in local_data['ensHaz']]
+        for haz in _haz_models:
+                haz.fetch_all_points_data()
+
+        # Parse and normalize hazards weight
         _haz_weights = np.array([float(haz['weight'])
                                  for haz in local_data['ensHaz']])
         _haz_weights /= _haz_weights.sum()
 
         print "haz_models_id %s" % [h.hazard_id for h in _haz_models]
         print "haz_weights %s" % _haz_weights
+
+        # Generate random sample points
+        _samples = np.random.uniform(0, 1, self.ens_sample_number)
+        print local_data['ensIMLThresh']
+
+        # point_curves structure
+        # point_curves = [ {point_id,
+        #                   point_data: {hazard_1: [ [soglia1percentile1,
+        #                                             soglia1percentile2,
+        #                                              ...               ],
+        #                                            [soglia2percentile1,
+        #                                             soglia2percentile2,
+        #                                             ...               ]
+        #                                           ],
+        #                                hazard_2: [ [soglia1percentile1,
+        #                                           .....]
+        #                                },...},
+        #                   {point_id,
+        #                   point_data: {hazard_1: [ [soglia1percentile1,
+        #                                             soglia1percentile2,
+        #                               hazard_1: [ [soglia1percentile1,
+        #                                            soglia1percentile2,
+        #                                            ...               ],
+        #                               },
+        #                 ]
+
+        point_curves = []
+        for i_point in range(len(_haz_models[0].grid_points)):
+            p_tmp = dict()
+            p_tmp['point_id'] = _haz_models[0].grid_points[i_point]['id']
+            p_tmp['point_data'] = dict()
+            for haz in _haz_models:
+                _haz_point_data = []
+                stats_shorts = [stat['name'][len('percentile'):]
+                        for stat in haz.statistics if stat['name'] != 'mean']
+                # print [float(s)/100 for s in stats_shorts]
+                for i_thresh in range(len(local_data['ensIMLThresh'])):
+                    _thresh_data = []
+                    for stat in stats_shorts:
+                        _thresh_data.append(
+                            haz.points_data[i_point]['point_data']
+                            [stat][i_thresh])
+                    _haz_point_data.append(_thresh_data)
+                p_tmp['point_data'][haz.hazard_id] =\
+                    np.sort(np.array(_haz_point_data))
+            point_curves.append(p_tmp)
+        print "Esempio di dati per un punto %s" % point_curves[0]
+        print point_curves[1000]['point_data'][_haz_models[0].hazard_id][0]
+
+
+
+
+
         return
-
-
         # TODO: this function is not correct at all!!
         haz_len = len(_localEnsembleDetails['components'])
         for i in range(haz_len):

@@ -302,7 +302,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         sqlquery = """ SELECT `p`.`id`, `p`.`easting`, `p`.`northing`,
             `p`.`zone_number`,  `p`.`zone_letter`
             FROM `points` p LEFT JOIN `grid_points` gp ON  p.`id`=gp.`id_point`
-            WHERE gp.`id_datagrid`= %s
+            WHERE gp.`id_datagrid`= %s ORDER BY `p`.`id`
         """
         sqlquery %= str(datagrid_id)
         self._cursor.execute(sqlquery)
@@ -606,6 +606,22 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         self._cursor.execute(query)
         res = self._cursor.fetchall()
         return dict(res)
+
+
+    def get_points_all_data(self, phenomenon_id, hazard_model_id, points):
+        _res = list()
+        for p in points:
+            data = self.get_point_all_curves(phenomenon_id,
+                                             hazard_model_id,
+                                             p['id'])
+            _point_data = dict(zip([stat[len("percentile"):]
+                                    for stat in data.keys() if stat != "mean"],
+                                    [[float(x) for x in val.split(',')]
+                                        for val in data.values()]))
+            _res.append(dict(zip(['point_id', 'point_data'],
+                                 [p['id'], _point_data])))
+        return _res
+
 
     def get_curves(self, phenomenon_id, hazard_model_id, stat_id):
         phenomenon = self.get_phenomenon_by_id(phenomenon_id)
