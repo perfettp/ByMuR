@@ -4,6 +4,7 @@ import numpy as np  # ma lo uso solo per sqrt?
 import math
 import random as rnd
 import os
+import scipy.interpolate as interpolate
 
 
 class HazardPoint(object):
@@ -156,8 +157,6 @@ class HazardModel(object):
                                                     self.grid_points)
         # print len(self._points_data)
         # print self._points_data[0]
-
-
 
     def curves_by_statistics(self, statistic_name='mean'):
         """
@@ -643,14 +642,7 @@ class BymurCore(object):
         #                                hazard_2: [ [soglia1percentile1,
         #                                           .....]
         #                                },...},
-        #                   {point_id,
-        #                   point_data: {hazard_1: [ [soglia1percentile1,
-        #                                             soglia1percentile2,
-        #                               hazard_1: [ [soglia1percentile1,
-        #                                            soglia1percentile2,
-        #                                            ...               ],
-        #                               },
-        #                 ]
+        #                   {point_id,...
 
         # For every point 'p', every hazard component 'h', every threshold 't'
         # build an array point_curves[p_index]['point_data'][h_index][t_index]
@@ -681,24 +673,35 @@ class BymurCore(object):
 
         # For every point, for every threshold, sample data
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
-            haz_ind = 0
-            sample_index = 0
-            point_ensemble_hazard = dict()
-            point_ens_samples = []
-            while sample_index < self.ens_sample_number:
-                for haz_sample_i in range(_haz_models[haz_ind]['sample_numbers']):
-                    y_value = _samples[sample_index]
-                    point_ens_samples.append(self.sample())
-                    sample_index += 1
-                haz_ind += 1
-            point_ensemble_hazard['samples'] = point_ens_samples
-            point_ensemble_hazard['percentiles'] = \
-                np.percentile(point_ens_samples, self.ens_percentiles)
-            point_ensemble_hazard['mean'] =  np.mean(point_ens_samples)
+            point_data = point_curves[i_point]['point_data']
+            point_ensemble_hazard = []
+            for i_thresh in range(len(local_data['ensIMLThresh'])):
+                haz_ind = 0
+                sample_index = 0
+                ens_thresh_haz = dict()
+                ens_thresh_haz['samples'] = np.array([])
+                while sample_index < self.ens_sample_number:
+                    inv_cdf = interpolate.interp1d(
+                        point_data[_haz_models[haz_ind]['model'].hazard_id][
+                            i_thresh],
+                        _haz_models[haz_ind]['y_percentiles'],
+                        bounds_error=False)
+                    point_ens_samples = \
+                        inv_cdf(_samples[sample_index:sample_index+
+                                    _haz_models[haz_ind]['samples_number']])
+                    sample_index += _haz_models[haz_ind]['samples_number']
+                    haz_ind += 1
+                    ens_thresh_haz['samples'] = np.append(
+                        ens_thresh_haz['samples'],
+                        point_ens_samples)
+                ens_thresh_haz['percentiles'] = \
+                    np.percentile(point_ens_samples, self.ens_percentiles)
+                ens_thresh_haz['mean'] =  np.mean(point_ens_samples)
+                point_ensemble_hazard.append(ens_thresh_haz)
+            point_curves[i_point]['point_data']['ensemble'] = \
+                point_ensemble_hazard
 
-
-
-
+        print point_curves[1000]['point_data']['ensemble']
 
 
 
