@@ -279,6 +279,7 @@ class BymurCore(object):
     }
 
     ens_sample_number = 1000
+    ens_percentiles = np.arange(5,100,5)
 
     def __init__(self):
         self._db = None
@@ -597,23 +598,38 @@ class BymurCore(object):
                 haz['stats_labels'] = [stat['name'][len('percentile'):]
                         for stat in haz['model'].statistics
                         if stat['name'] != 'mean']
-                haz['yvalues'] = np.sort(np.array([float(s)/100 for s in haz[
-                    'stats_labels']]))
+                haz['y_percentiles'] = np.sort(np.array(
+                    [float(s)/100 for s in haz['stats_labels']]))
 
         # Parse and normalize hazards weight
-        _haz_weights = np.array([float(haz['weight'])
+        _haz_weights = np.array([np.float(haz['weight'])
                                  for haz in local_data['ensHaz']])
         _haz_weights /= _haz_weights.sum()
         for i_haz in range(len(_haz_models)):
             _haz_models[i_haz]['weight'] = _haz_weights[i_haz]
+            _haz_models[i_haz]['samples_number'] = np.int(np.rint(
+                _haz_weights[i_haz] * np.float(self.ens_sample_number)))
+
+        # Make sure samples_number sum is self.ens_sample_number adjusting
+        # hazard samples number if needed
+        _sum_diff = self.ens_sample_number - \
+                np.int(np.sum([haz['samples_number'] for haz in _haz_models]))
+        while _sum_diff != 0:
+            haz_ind = np.random.random_integers(0, len(_haz_models)-1)
+            if _sum_diff < 0:
+                _haz_models[haz_ind]['samples_number'] -= 1
+            else:
+                _haz_models[haz_ind]['samples_number'] += 1
+            _sum_diff = self.ens_sample_number - \
+                np.int(np.sum([haz['samples_number'] for haz in _haz_models]))
 
         print "haz_models_id %s" % [h['model'].hazard_id for h in _haz_models]
         print "haz_weights %s" % [h['weight'] for h in _haz_models]
+        print "samples_number %s , sum %s" % ([h['samples_number'] for h in
+                                       _haz_models],
+                    np.array([h['samples_number'] for h in _haz_models]).sum())
         print "haz_stats %s" % [h['stats_labels'] for h in _haz_models]
-        print "haz_yvalues %s" % [h['yvalues'] for h in _haz_models]
-
-        # Generate random sample points
-        _samples = np.random.uniform(0, 1, self.ens_sample_number)
+        print "haz_y_percentiles %s" % [h['y_percentiles'] for h in _haz_models]
 
         # point_curves structure
         # point_curves = [ {point_id,
@@ -636,6 +652,9 @@ class BymurCore(object):
         #                               },
         #                 ]
 
+        # For every point 'p', every hazard component 'h', every threshold 't'
+        # build an array point_curves[p_index]['point_data'][h_index][t_index]
+        # containing values of all percentiles stored in database
         point_curves = []
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
             p_tmp = dict()
@@ -655,6 +674,31 @@ class BymurCore(object):
             point_curves.append(p_tmp)
         print "Esempio di dati per un punto %s" % point_curves[0]
         print point_curves[1000]['point_data'][_haz_models[0]['model'].hazard_id][0]
+
+
+        # Generate random sample points
+        _samples = np.random.uniform(0, 1, self.ens_sample_number)
+
+        # For every point, for every threshold, sample data
+        for i_point in range(len(_haz_models[0]['model'].grid_points)):
+            haz_ind = 0
+            sample_index = 0
+            point_ensemble_hazard = dict()
+            point_ens_samples = []
+            while sample_index < self.ens_sample_number:
+                for haz_sample_i in range(_haz_models[haz_ind]['sample_numbers']):
+                    y_value = _samples[sample_index]
+                    point_ens_samples.append(self.sample())
+                    sample_index += 1
+                haz_ind += 1
+            point_ensemble_hazard['samples'] = point_ens_samples
+            point_ensemble_hazard['percentiles'] = \
+                np.percentile(point_ens_samples, self.ens_percentiles)
+            point_ensemble_hazard['mean'] =  np.mean(point_ens_samples)
+
+
+
+
 
 
 
