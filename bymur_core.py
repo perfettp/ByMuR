@@ -664,8 +664,8 @@ class BymurCore(object):
                 p_tmp['point_data'][haz['model'].hazard_id] =\
                     np.sort(np.array(_haz_point_data))
             point_curves.append(p_tmp)
-        print "Esempio di dati per un punto %s" % point_curves[0]
-        print point_curves[1000]['point_data'][_haz_models[0]['model'].hazard_id][0]
+        # print "Esempio di dati per un punto %s" % point_curves[0]
+        # print point_curves[1000]['point_data'][_haz_models[0]['model'].hazard_id][0]
 
 
         # Generate random sample points
@@ -682,9 +682,9 @@ class BymurCore(object):
                 ens_thresh_haz['samples'] = np.array([])
                 while sample_index < self.ens_sample_number:
                     inv_cdf = interpolate.interp1d(
+                        _haz_models[haz_ind]['y_percentiles'],
                         point_data[_haz_models[haz_ind]['model'].hazard_id][
                             i_thresh],
-                        _haz_models[haz_ind]['y_percentiles'],
                         bounds_error=False)
                     point_ens_samples = \
                         inv_cdf(_samples[sample_index:sample_index+
