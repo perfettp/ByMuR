@@ -695,13 +695,14 @@ class BymurCore(object):
                         ens_thresh_haz['samples'],
                         point_ens_samples)
                 ens_thresh_haz['percentiles'] = \
-                    np.percentile(point_ens_samples, self.ens_percentiles)
-                ens_thresh_haz['mean'] =  np.mean(point_ens_samples)
+                    np.nanpercentile(ens_thresh_haz['samples'],
+                                  self.ens_percentiles)
+                ens_thresh_haz['mean'] =  np.nanmean(ens_thresh_haz['samples'])
                 point_ensemble_hazard.append(ens_thresh_haz)
             point_curves[i_point]['point_data']['ensemble'] = \
                 point_ensemble_hazard
 
-        print point_curves[1000]['point_data']['ensemble']
+        print point_curves[1000]['point_data']['ensemble'][7]
 
 
 
