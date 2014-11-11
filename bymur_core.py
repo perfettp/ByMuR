@@ -845,7 +845,7 @@ class BymurCore(object):
             ensemble_points_data.append(p_tmp)
 
         new_ensemble.points_data = ensemble_points_data
-        print new_ensemble.points_data[1000]
+        # print new_ensemble.points_data[1000]
 
         stat_tmp = [str(int(x)).zfill(2) for x in self.ens_percentiles]
         stat_tmp.append("mean")
