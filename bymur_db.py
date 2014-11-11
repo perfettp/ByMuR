@@ -415,7 +415,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                 percentile_value):
         sqlquery = "SELECT id FROM statistics WHERE name = '{0}'"
         if percentile_value != '0':
-            statistic_name = statistic + str(percentile_value)
+            statistic_name = statistic + str(percentile_value).zfill(2)
         else:
             statistic_name = statistic
 

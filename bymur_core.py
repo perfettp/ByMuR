@@ -111,6 +111,7 @@ class EnsembleModel(object):
         self._hazard_name = hazard_name
         self._exposure_time = exposure_time
         self._phenomenon_name = phen_name
+        self._statistics = None
         self._datagrid_id = None
         self._points_data = None
         self._iml = None
@@ -129,6 +130,21 @@ class EnsembleModel(object):
                 self.imt)
 
         print "new hazard_model_id %s" % hazard_model_id
+
+        for stat in self._statistics:
+            if stat != 'mean':
+                stat_id = self._db.insert_id_statistic('percentile', stat)
+            else:
+                stat_id = self._db.insert_id_statistic(stat,'0')
+
+            self._db.insert_hazard_statistic_rel(hazard_model_id, stat_id)
+
+            self._db.insert_hazard_data(self.phenomenon,hazard_model_id,
+                                        stat_id,
+                                        [ point['point_id']
+                                          for point in self.points_data],
+                                        [ point['point_data'][stat]
+                                          for point in self.points_data])
 
 
 
@@ -167,6 +183,14 @@ class EnsembleModel(object):
     @imt.setter
     def imt(self, imt):
         self._imt = imt
+
+    @property
+    def statistics(self):
+        return self._statistics
+
+    @statistics.setter
+    def statistics(self, stat_list):
+        self._statistics = stat_list
 
     @property
     def points_data(self):
@@ -768,7 +792,8 @@ class BymurCore(object):
         # Generate random sample points
         _samples = np.random.uniform(0, 1, self.ens_sample_number)
 
-        # For every point, for every threshold, sample data
+        # For every point, for every threshold, sample data, calculate
+        # percentiles and mean, store values in point_curves array
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
             point_data = point_curves[i_point]['point_data']
             point_ensemble_hazard = []
@@ -801,6 +826,8 @@ class BymurCore(object):
 
         # print point_curves[1000]['point_data']['ensemble'][7]
 
+        # Transform point_curves array in a structure compatible with
+        # points_data as returned(taken) from HazardModel(EsembleModel) class
         ensemble_points_data = list()
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
             p_tmp = dict()
@@ -808,9 +835,9 @@ class BymurCore(object):
             p_tmp['point_data'] = dict()
 
             for i_perc in range(len(self.ens_percentiles)):
-                p_tmp['point_data'][str(self.ens_percentiles[i_perc])] = \
-                [_thresh_data['percentiles'][i_perc] for _thresh_data in
-                 point_curves[i_point]['point_data']['ensemble']]
+                p_tmp['point_data'][str(self.ens_percentiles[i_perc]).zfill(2)]\
+                    = [_thresh_data['percentiles'][i_perc] for _thresh_data in
+                       point_curves[i_point]['point_data']['ensemble']]
 
             p_tmp['point_data']['mean'] = [_thresh_data['mean']
                                                for _thresh_data in
@@ -819,6 +846,11 @@ class BymurCore(object):
 
         new_ensemble.points_data = ensemble_points_data
         print new_ensemble.points_data[1000]
+
+        stat_tmp = [str(int(x)).zfill(2) for x in self.ens_percentiles]
+        stat_tmp.append("mean")
+        new_ensemble.statistics = stat_tmp
+
 
         new_ensemble.save()
 
