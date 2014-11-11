@@ -105,6 +105,78 @@ class HazardPoint(object):
         """
         return self._prob_value
 
+class EnsembleModel(object):
+    def __init__(self, hazard_name, exposure_time, phen_name, db):
+        self._db = db
+        self._hazard_name = hazard_name
+        self._exposure_time = exposure_time
+        self._phenomenon_name = phen_name
+        self._datagrid_id = None
+        self._points_data = None
+        self._iml = None
+        self._imt = None
+
+    def save(self):
+        phenomenon_id = self._db.insert_id_phenomenon(self._phenomenon_name)
+        print " new hazard phenomenon name: %s , id: %s" \
+              % (self._phenomenon_name, phenomenon_id)
+        hazard_model_id = self._db.insert_id_hazard_model(
+                phenomenon_id,
+                self.datagrid_id,
+                self.hazard_name,
+                self.exposure_time,
+                " ".join([str(x) for x in self.iml]),
+                self.imt)
+
+        print "new hazard_model_id %s" % hazard_model_id
+
+
+
+    @property
+    def hazard_name(self):
+        return self._hazard_name
+
+    @property
+    def exposure_time(self):
+        return self._exposure_time
+
+    @property
+    def datagrid_id(self):
+        return self._datagrid_id
+
+    @datagrid_id.setter
+    def datagrid_id(self, grid_id):
+        self._datagrid_id = grid_id
+
+    @property
+    def phenomenon(self):
+        return self._phenomenon_name
+
+    @property
+    def iml(self):
+        return self._iml
+
+    @iml.setter
+    def iml(self, iml_thresholds):
+        self._iml = iml_thresholds
+
+    @property
+    def imt(self):
+        return self._imt
+
+    @imt.setter
+    def imt(self, imt):
+        self._imt = imt
+
+    @property
+    def points_data(self):
+        return self._points_data
+
+    @points_data.setter
+    def points_data(self, data):
+        self._points_data = data
+
+
 
 class HazardModel(object):
     """
@@ -155,6 +227,7 @@ class HazardModel(object):
         self._points_data = self._db.get_points_all_data(self.phenomenon_id,
                                                     self.hazard_id,
                                                     self.grid_points)
+        print self._points_data[1000]
         # print len(self._points_data)
         # print self._points_data[0]
 
@@ -592,6 +665,7 @@ class BymurCore(object):
                                    hazard_name=haz['hazard_name'],
                                    exp_time=local_data['ensExpTime'])}
                        for haz in local_data['ensHaz']]
+
         for haz in _haz_models:
                 haz['model'].fetch_all_points_data()
                 haz['stats_labels'] = [stat['name'][len('percentile'):]
@@ -608,6 +682,29 @@ class BymurCore(object):
             _haz_models[i_haz]['weight'] = _haz_weights[i_haz]
             _haz_models[i_haz]['samples_number'] = np.int(np.rint(
                 _haz_weights[i_haz] * np.float(self.ens_sample_number)))
+
+
+        # Extract some metadata on new ensemble hazard definition and
+        # istantiate new object
+        ensemble_data = dict()
+        ensemble_data['hazard_name'] = "_".join([haz['model'].hazard_name + \
+                                         "-" + str(np.around(haz['weight'],
+                                                       decimals=2))
+                                        for haz in _haz_models])
+        ensemble_data['exposure_time'] = local_data['ensExpTime']
+        ensemble_data['iml_thresholds'] = local_data['ensIMLThresh']
+        ensemble_data['grid_name'] = local_data['ensGrid']
+
+        ensemble_data['imt'] = _haz_models[0]['model'].imt
+
+        print "Ensemble data: %s" % ensemble_data
+        new_ensemble = EnsembleModel(ensemble_data['hazard_name'],
+                                     ensemble_data['exposure_time'],
+                                     local_data['ensPhen'],
+                                     self.db)
+        new_ensemble.datagrid_id = _haz_models[0]['model'].datagrid_id
+        new_ensemble.iml = ensemble_data['iml_thresholds']
+        new_ensemble.imt = ensemble_data['imt']
 
         # Make sure samples_number sum is self.ens_sample_number adjusting
         # hazard samples number if needed
@@ -702,9 +799,28 @@ class BymurCore(object):
             point_curves[i_point]['point_data']['ensemble'] = \
                 point_ensemble_hazard
 
-        print point_curves[1000]['point_data']['ensemble'][7]
+        # print point_curves[1000]['point_data']['ensemble'][7]
 
+        ensemble_points_data = list()
+        for i_point in range(len(_haz_models[0]['model'].grid_points)):
+            p_tmp = dict()
+            p_tmp['point_id'] = point_curves[i_point]['point_id']
+            p_tmp['point_data'] = dict()
 
+            for i_perc in range(len(self.ens_percentiles)):
+                p_tmp['point_data'][str(self.ens_percentiles[i_perc])] = \
+                [_thresh_data['percentiles'][i_perc] for _thresh_data in
+                 point_curves[i_point]['point_data']['ensemble']]
+
+            p_tmp['point_data']['mean'] = [_thresh_data['mean']
+                                               for _thresh_data in
+                                point_curves[i_point]['point_data']['ensemble']]
+            ensemble_points_data.append(p_tmp)
+
+        new_ensemble.points_data = ensemble_points_data
+        print new_ensemble.points_data[1000]
+
+        new_ensemble.save()
 
         return
         # TODO: this function is not correct at all!!
