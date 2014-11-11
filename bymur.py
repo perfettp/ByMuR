@@ -176,76 +176,240 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
     _haz_dict = {}
 
     def __init__(self, *args, **kwargs):
-        data = kwargs.pop('data', {})
+        self.ctrls_data = kwargs.pop('data', {})
+        # print self.ctrls_data
+        self._available_haz_list = []
         super(BymurEnsBoxSizer, self).__init__(*args, **kwargs)
         self._ensBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
         self.Add(self._ensBoxGrid)
         self._hazLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND,
                                        label=self._hazText)
-        self._ensBoxGrid.Add(self._hazLabel, flag=wx.EXPAND, pos=(0, 0),
-                             span=(2, 4))
-        grid_row = 2
-        for i in range(len(data['model'])):
-            haz_item = {'name': data['model'][i],
-                        'checkbox': wx.CheckBox(self._parent,
-                                                wx.ID_ANY,
-                                                label=data['model'][i]),
-                        'text': wx.TextCtrl(self._parent, wx.ID_ANY),
-                        'dtime': data['dtime'][i],
-            }
-            print data['dtime'][i]
-            haz_item['text'].SetValue("1")
-            haz_item['text'].Enable(False)
-            haz_item['checkbox'].Bind(wx.EVT_CHECKBOX, self.checkItem)
+        grid_row = 0
+        self._ensBoxGrid.Add(self._hazLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(2, 6))
 
-            self._ensBoxGrid.Add(haz_item['checkbox'],
-                                 flag=wx.EXPAND,
-                                 pos=(grid_row, 0), span=(1, 3))
-            self._ensBoxGrid.Add(haz_item['text'],
-                                 flag=wx.EXPAND,
-                                 pos=(grid_row, 3), span=(1, 1))
-
-            self._haz_array.append(haz_item)
-            self._haz_dict[data['model'][i]] = haz_item
-            grid_row += 1
-
-        self._ensBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+        grid_row += 3
+        self._ensPhenLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
                                            style=wx.EXPAND,
-                                           label=self._intText),
-                             flag=wx.EXPAND, pos=(grid_row, 0), span=(1, 3))
-        self._intCB = wx.ComboBox(self._parent, wx.ID_ANY, choices=[],
-                                  style=wx.CB_READONLY)
-        self._intCB.Enable(False)
-        self._ensBoxGrid.Add(self._intCB, flag=wx.EXPAND,
-                             pos=(grid_row, 3), span=(1, 1))
+                                           label="Choose phenomena")
+        self._ensBoxGrid.Add(self._ensPhenLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensPhenCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensPhenCB.AppendItems(list(set([haz['phenomenon_name']
+                                              for haz in
+                                              self.ctrls_data['hazard_models']])))
+        self._ensPhenCB.Enable(True)
+        self._ensPhenCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensPhenCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+
+        grid_row += 1
+        self._ensGridLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose grid")
+        self._ensBoxGrid.Add(self._ensGridLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensGridCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensGridCB.Enable(False)
+        self._ensGridCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensGridCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._ensExpTimeLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose exposure time")
+        self._ensBoxGrid.Add(self._ensExpTimeLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensExpTimeCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensExpTimeCB.Enable(False)
+        self._ensExpTimeCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensExpTimeCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+
+        self._ensHaz = []
+        for i in range(1, 5):
+            grid_row += 1
+            hazEntry = {}
+            hazEntry['checkbox'] = wx.CheckBox(self._parent,  wx.ID_ANY)
+            hazEntry['checkbox'].Bind(wx.EVT_CHECKBOX, self.checkItem)
+            self._ensBoxGrid.Add(hazEntry['checkbox'], flag=wx.EXPAND,
+                                 pos=(grid_row, 0), span=(1, 1))
+            hazEntry['combobox'] = wx.ComboBox(self._parent,wx.ID_ANY,
+                                               style=wx.CB_READONLY)
+            hazEntry['combobox'].Enable(False)
+            hazEntry['combobox'].Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+            self._ensBoxGrid.Add(hazEntry['combobox'], flag=wx.EXPAND,
+                             pos=(grid_row, 1), span=(1, 4))
+            hazEntry['textctrl'] = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                               style=wx.TE_PROCESS_ENTER)
+            hazEntry['textctrl'].Enable(False)
+            self._ensBoxGrid.Add(hazEntry['textctrl'], flag=wx.EXPAND,
+                             pos=(grid_row, 5), span=(1, 1))
+            self._ensHaz.append(hazEntry)
+
+        grid_row += 1
+        self._ensIMLThreshLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose thresholds list")
+        self._ensBoxGrid.Add(self._ensIMLThreshLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensIMLThreshCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensIMLThreshCBDefaults = ['Choose thresholds list...']
+        self._ensIMLThreshCB.SetItems(self._ensIMLThreshCBDefaults)
+        self._ensIMLThreshCB.SetSelection(0)
+        self._ensIMLThreshCB.Enable(False)
+        self._ensIMLThreshCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensIMLThreshCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+    def updateEnsemble(self, ev=None):
+        if (ev is None):  # First data load
+            print "ensBoxSizer, event none"
+        elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
+            _phen_name = self._ensPhenCB.GetStringSelection()
+            _exptime_sel = self._ensExpTimeCB.GetValue()
+            _grid_sel = self._ensGridCB.GetValue()
+            if ev.GetEventObject() == self._ensPhenCB:
+                _glist = [haz for haz in  self.ctrls_data['hazard_models']
+                          if haz['phenomenon_name'] == _phen_name]
+                self._ensGridCB.Clear()
+                self._ensGridCB.SetValue('')
+                self._ensGridCB.AppendItems(list(set([haz['grid_name']
+                                          for haz in _glist])))
+                self._ensGridCB.Enable(True)
+                if len(self._ensGridCB.Items) > 0:
+                    self._ensGridCB.SetSelection(0)
+                _grid_sel = self._ensGridCB.GetValue()
+                _exptimelist = [haz['exposure_time'] for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._ensExpTimeCB.Clear()
+                self._ensExpTimeCB.SetValue('')
+                self._ensExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._ensExpTimeCB.Items) > 0:
+                    self._ensExpTimeCB.SetSelection(0)
+                self._ensExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._ensGridCB:
+                _exptimelist = [haz['exposure_time'] for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._ensExpTimeCB.Clear()
+                self._ensExpTimeCB.SetValue('')
+                self._ensExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._ensExpTimeCB.Items) > 0:
+                    self._ensExpTimeCB.SetSelection(0)
+                self._ensExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._ensExpTimeCB:
+                pass
+            _phen_name = self._ensPhenCB.GetStringSelection()
+            _exptime_sel = self._ensExpTimeCB.GetValue()
+            _grid_sel = self._ensGridCB.GetValue()
+            self._available_haz_list = [haz['hazard_name'] for haz in
+                                self.ctrls_data['hazard_models']
+                                if (haz['phenomenon_name'] == _phen_name
+                                    and haz['grid_name'] == _grid_sel
+                                    and haz['exposure_time'] ==_exptime_sel)]
+            for ensHaz in self._ensHaz:
+                if (ensHaz['combobox'].GetStringSelection()
+                    not in self._available_haz_list) :
+                    ensHaz['combobox'].Clear()
+                    ensHaz['combobox'].SetValue('')
+                    ensHaz['combobox'].Enable(False)
+                    ensHaz['checkbox'].SetValue(False)
+                    ensHaz['textctrl'].SetValue('')
+                    ensHaz['textctrl'].Enable(False)
+                ensHaz['combobox'].AppendItems(self._available_haz_list)
+
+            self._update_thresh_list(_phen_name, _grid_sel, _exptime_sel)
+
 
     def checkItem(self, event):
-        self._haz_dict[event.GetEventObject().GetLabelText()]['text']. \
-            Enable(event.IsChecked())
-        dtshared = []
-        for k in self._haz_dict:
-            if self._haz_dict[k]['checkbox'].IsChecked():
-                dtshared.append(self._haz_dict[k]['dtime'])
-        if len(dtshared) > 1:
-            dtime_shared = list(set(dtshared[0]) & set(dtshared[1]))
-            for j in range(2, len(dtshared)):
-                dtime_shared = list(set(dtime_shared) & set(dtshared[j]))
-            self._intCB.SetItems(dtime_shared)
-            self._intCB.Enable(True)
+        _phen_name = self._ensPhenCB.GetStringSelection()
+        _exptime_sel = self._ensExpTimeCB.GetValue()
+        _grid_sel = self._ensGridCB.GetValue()
+        print _phen_name
+        print _exptime_sel
+        print _grid_sel
+        print event.GetId()
+        print self._ensHaz[0]['checkbox'].GetId()
+        for hazEntry in self._ensHaz:
+            if hazEntry['checkbox'].GetId() == event.GetId():
+                if event.IsChecked():
+                    hazEntry['combobox'].Enable(True)
+                    hazEntry['textctrl'].Enable(True)
+                    hazEntry['textctrl'].SetValue('1.0')
+                else:
+                    hazEntry['combobox'].Enable(False)
+                    hazEntry['combobox'].SetSelection(0)
+                    hazEntry['textctrl'].Enable(False)
+                    hazEntry['textctrl'].SetValue('')
+        self._update_thresh_list(_phen_name, _grid_sel, _exptime_sel)
+
+    def _update_thresh_list(self, phen_name, grid_sel, exptime_sel):
+        self._available_thresh_list = list(set([haz['iml'] for haz in
+                        self.ctrls_data['hazard_models']
+                            if ( haz['hazard_name'] in
+                                [ensHaz['combobox'].GetStringSelection()
+                                 for ensHaz in self._ensHaz
+                                if ensHaz['combobox'].IsEnabled()]
+                                and haz['phenomenon_name'] == phen_name
+                                and haz['grid_name'] == grid_sel
+                                and haz['exposure_time'] == exptime_sel)]))
+
+        _iml_sel = self._ensIMLThreshCB.GetStringSelection()
+        self._ensIMLThreshCB.SetItems(self._ensIMLThreshCBDefaults)
+        self._ensIMLThreshCB.AppendItems(self._available_thresh_list)
+        if _iml_sel in self._available_thresh_list:
+            self._ensIMLThreshCB.SetStringSelection(_iml_sel)
         else:
-            self._intCB.Enable(False)
+            self._ensIMLThreshCB.SetSelection(0)
+        self._ensIMLThreshCB.Enable(True)
 
     @property
-    def hazArray(self):
-        return self._haz_array
+    def ensPhen(self):
+        return self._ensPhenCB.GetStringSelection()
 
     @property
-    def dtimeShared(self):
-        if self._intCB.GetSelection() == wx.NOT_FOUND:
-            raise Exception("Time interval is not selected!")
-        return self._intCB.GetString(self._intCB.GetSelection())
+    def ensGrid(self):
+        return self._ensGridCB.GetValue()
 
+    @property
+    def ensExpTime(self):
+        return self._ensExpTimeCB.GetValue()
+
+    @property
+    def ensHaz(self):
+        res = []
+        for hazEntry in self._ensHaz:
+            if hazEntry['checkbox'].IsChecked():
+                haz_tmp = {'hazard_name':
+                               hazEntry['combobox'].GetStringSelection(),
+                           'weight': float(hazEntry['textctrl'].GetValue())}
+                res.append(haz_tmp)
+                # for haz in self.ctrls_data['hazard_models']:
+                #     if haz['hazard_name'] == hazEntry[
+                #         'combobox'].GetStringSelection():
+
+        return res
+
+    @property
+    def ensIMLThresh(self):
+        if self._ensIMLThreshCB.GetSelection() > 0:
+            return self._ensIMLThreshCB.GetStringSelection()
+        else:
+            return None
 
 class BymurMapBoxSizer(BymurStaticBoxSizer):
     def __init__(self, *args, **kwargs):
@@ -640,14 +804,15 @@ class BymurDBLoadDlg(wx.Dialog):
 
 
 class BymurEnsembleDlg(wx.Dialog):
-    _ensembleDetails = {}
-    _ensBoxSizer = None
+
 
     def __init__(self, *args, **kwargs):
+        self._ensBoxSizer = None
         self._title = kwargs.pop('title', '')
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
         self._localData = kwargs.pop('data', {})
+        # print "data %s " % self._localData
         super(BymurEnsembleDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
 
@@ -666,43 +831,24 @@ class BymurEnsembleDlg(wx.Dialog):
 
         self.SetTitle(self._title)
 
-    def ShowModal(self, *args, **kwargs):
-        result = super(BymurEnsembleDlg, self).ShowModal(*args, **kwargs)
+    def ShowModal(self, **kwargs):
+        result = super(BymurEnsembleDlg, self).ShowModal(**kwargs)
         if (result == wx.ID_OK):
             result = 1
-            ensLocalDetails = {
-                'dtime': 0,
-                'components': []
+            self._localData = { 'ensHaz': self._ensBoxSizer.ensHaz,
+                                'ensPhen': self._ensBoxSizer.ensPhen,
+                                'ensGrid': self._ensBoxSizer.ensGrid,
+                                'ensExpTime': self._ensBoxSizer.ensExpTime,
+                                'ensIMLThresh': self._ensBoxSizer.ensIMLThresh
             }
-            for i in range(len(self._ensBoxSizer.hazArray)):
-                if self._ensBoxSizer.hazArray[i]['checkbox'].IsChecked():
-                    ens_item = {
-                        'index': i,
-                        'name': self._ensBoxSizer.hazArray[i]['name'],
-                        'weight': float(
-                            self._ensBoxSizer.hazArray[i]['text'].GetValue())
-                    }
-                    ensLocalDetails['components'].append(ens_item)
-            if len(ensLocalDetails['components']) < 2:
-                bf.showMessage(parent=self, kind="BYMUR_ERROR",
-                               caption="Error defining ensemble hazard",
-                               message="Attention: at least 2 hazard should be "
-                                       "selected!")
+            if self._localData['ensIMLThresh'] is None:
                 result = -1
-            else:
-                try:
-                    ensLocalDetails['dtime'] = self._ensBoxSizer.dtimeShared
-                    self._ensembleDetails = ensLocalDetails
-                except Exception as e:
-                    bf.showMessage(parent=self, kind="BYMUR_ERROR",
-                                   caption="Error defining ensemble hazard",
-                                   message=str(e))
-                    result = -1
+            print "Ensemble parameters %s" % self._localData
         elif (result == wx.ID_CANCEL):
             result = 0
         else:
             result = -1
-        return (result, self._ensembleDetails)
+        return (result, self._localData)
 
 
 class BymurWxPanel(wx.Panel):
@@ -1334,6 +1480,7 @@ class BymurWxMenu(wx.MenuBar):
         self.menuAnalysis = wx.Menu()
         menuItemTmp = self.menuAnalysis.Append(wx.ID_ANY,
                                                'Create &Ensemble hazard')  # original method was openEnsembleFr
+        self._db_actions.append(menuItemTmp)
         self._menu_actions[
             menuItemTmp.GetId()] = self._controller.create_ensemble
         self._map_actions.append(menuItemTmp)

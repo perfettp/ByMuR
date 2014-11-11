@@ -8,7 +8,8 @@
 ```sh
 sudo apt-get install python-pip python-virtualenv virtualenvwrapper \
         python-wxgtk2.8 build-essentials libpng-dev libmysqlclient-dev \
-        python-dev libfreetype6-dev libxml2-dev libxslt-dev
+        python-dev libfreetype6-dev libxml2-dev libxslt-dev \
+        libatlas-base-dev gfortran
 
 ```
 Tested on Debian 6.0.9, Ubuntu 12.04 and 14.04, packages name could change 

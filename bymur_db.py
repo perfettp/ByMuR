@@ -234,17 +234,17 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             raise
 
     def create(self, dbname):
-        print "db.create"
-        print "dbname %s" % dbname
+        # print "db.create"
+        # print "dbname %s" % dbname
         # using manual escape to avoid unsupported quoting
         sqlquery = "CREATE DATABASE IF NOT EXISTS %s"
         sqlquery %= mdb.escape_string(dbname)
         self._cursor.execute(sqlquery)
-        print "use"
+        # print "use"
         sqlquery = "USE %s"
         sqlquery %= mdb.escape_string(dbname)
         self._cursor.execute(sqlquery)
-        print "import"
+        # print "import"
         for sql in self._sql_schema.split(";"):
             self._cursor.execute(sql)
             self.commit()
@@ -302,7 +302,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         sqlquery = """ SELECT `p`.`id`, `p`.`easting`, `p`.`northing`,
             `p`.`zone_number`,  `p`.`zone_letter`
             FROM `points` p LEFT JOIN `grid_points` gp ON  p.`id`=gp.`id_point`
-            WHERE gp.`id_datagrid`= %s
+            WHERE gp.`id_datagrid`= %s ORDER BY `p`.`id`
         """
         sqlquery %= str(datagrid_id)
         self._cursor.execute(sqlquery)
@@ -415,7 +415,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                 percentile_value):
         sqlquery = "SELECT id FROM statistics WHERE name = '{0}'"
         if percentile_value != '0':
-            statistic_name = statistic + str(percentile_value)
+            statistic_name = statistic + str(percentile_value).zfill(2)
         else:
             statistic_name = statistic
 
@@ -525,7 +525,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             WHERE `haz_mod`.`id`= %s
         """
         sqlquery %= str(haz_id)
-        print sqlquery
+        # print sqlquery
         self._cursor.execute(sqlquery)
         return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
                          'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],
@@ -560,8 +560,8 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         elif phenomenon == 'TSUNAMIC':
             table_name = "tsunamic_data"
 
-        points_idlist = self.get_pointsid_list_by_coords(points)
-        point_curve_map = zip(points_idlist,
+
+        point_curve_map = zip(points,
                               [", ".join(map(str, x)) for x in curves])
         sqlquery = """
                     INSERT IGNORE INTO `{0}` (id_hazard_model,
@@ -606,6 +606,22 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         self._cursor.execute(query)
         res = self._cursor.fetchall()
         return dict(res)
+
+
+    def get_points_all_data(self, phenomenon_id, hazard_model_id, points):
+        _res = list()
+        for p in points:
+            data = self.get_point_all_curves(phenomenon_id,
+                                             hazard_model_id,
+                                             p['id'])
+            _point_data = dict(zip([stat[len("percentile"):]
+                                    for stat in data.keys() if stat != "mean"],
+                                    [[float(x) for x in val.split(',')]
+                                        for val in data.values()]))
+            _res.append(dict(zip(['point_id', 'point_data'],
+                                 [p['id'], _point_data])))
+        return _res
+
 
     def get_curves(self, phenomenon_id, hazard_model_id, stat_id):
         phenomenon = self.get_phenomenon_by_id(phenomenon_id)
@@ -723,10 +739,12 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                 len(fileXmlModel.points_values)
             )
 
+            points_idlist = self.get_pointsid_list_by_coords(
+                fileXmlModel.points_coords)
             self.insert_hazard_data(fileXmlModel.phenomenon,
                                     hazard_model_id,
                                     stat_id,
-                                    fileXmlModel.points_coords,
+                                    points_idlist,
                                     fileXmlModel.points_values)
             del fileXmlModel
         return True

@@ -4,6 +4,8 @@ import numpy as np  # ma lo uso solo per sqrt?
 import math
 import random as rnd
 import os
+import scipy.interpolate as interpolate
+
 
 class HazardPoint(object):
     """Describe data of a point in a HazardModel."""
@@ -103,6 +105,102 @@ class HazardPoint(object):
         """
         return self._prob_value
 
+class EnsembleModel(object):
+    def __init__(self, hazard_name, exposure_time, phen_name, db):
+        self._db = db
+        self._hazard_name = hazard_name
+        self._exposure_time = exposure_time
+        self._phenomenon_name = phen_name
+        self._statistics = None
+        self._datagrid_id = None
+        self._points_data = None
+        self._iml = None
+        self._imt = None
+
+    def save(self):
+        phenomenon_id = self._db.insert_id_phenomenon(self._phenomenon_name)
+        print " new hazard phenomenon name: %s , id: %s" \
+              % (self._phenomenon_name, phenomenon_id)
+        hazard_model_id = self._db.insert_id_hazard_model(
+                phenomenon_id,
+                self.datagrid_id,
+                self.hazard_name,
+                self.exposure_time,
+                " ".join([str(x) for x in self.iml]),
+                self.imt)
+
+        print "new hazard_model_id %s" % hazard_model_id
+
+        for stat in self._statistics:
+            if stat != 'mean':
+                stat_id = self._db.insert_id_statistic('percentile', stat)
+            else:
+                stat_id = self._db.insert_id_statistic(stat,'0')
+
+            self._db.insert_hazard_statistic_rel(hazard_model_id, stat_id)
+
+            self._db.insert_hazard_data(self.phenomenon,hazard_model_id,
+                                        stat_id,
+                                        [ point['point_id']
+                                          for point in self.points_data],
+                                        [ point['point_data'][stat]
+                                          for point in self.points_data])
+
+
+
+    @property
+    def hazard_name(self):
+        return self._hazard_name
+
+    @property
+    def exposure_time(self):
+        return self._exposure_time
+
+    @property
+    def datagrid_id(self):
+        return self._datagrid_id
+
+    @datagrid_id.setter
+    def datagrid_id(self, grid_id):
+        self._datagrid_id = grid_id
+
+    @property
+    def phenomenon(self):
+        return self._phenomenon_name
+
+    @property
+    def iml(self):
+        return self._iml
+
+    @iml.setter
+    def iml(self, iml_thresholds):
+        self._iml = iml_thresholds
+
+    @property
+    def imt(self):
+        return self._imt
+
+    @imt.setter
+    def imt(self, imt):
+        self._imt = imt
+
+    @property
+    def statistics(self):
+        return self._statistics
+
+    @statistics.setter
+    def statistics(self, stat_list):
+        self._statistics = stat_list
+
+    @property
+    def points_data(self):
+        return self._points_data
+
+    @points_data.setter
+    def points_data(self, data):
+        self._points_data = data
+
+
 
 class HazardModel(object):
     """
@@ -147,6 +245,15 @@ class HazardModel(object):
                              'north_max': max([p['northing']
                                                for p in self._grid_points])}
         self._curves = {}
+        self._points_data = []
+
+    def fetch_all_points_data(self):
+        self._points_data = self._db.get_points_all_data(self.phenomenon_id,
+                                                    self.hazard_id,
+                                                    self.grid_points)
+        print self._points_data[1000]
+        # print len(self._points_data)
+        # print self._points_data[0]
 
     def curves_by_statistics(self, statistic_name='mean'):
         """
@@ -159,6 +266,7 @@ class HazardModel(object):
         try:
             return self._curves[statistic_name]
         except KeyError:
+            print "HazardModel fetching statistic %s curves " % statistic_name
             stat_id = self._db.get_statistic_by_value(statistic_name)
             self._curves[statistic_name] = self._db.get_curves(
                 self.phenomenon_id,
@@ -235,6 +343,11 @@ class HazardModel(object):
 
         return self._curves
 
+    @property
+    def points_data(self):
+        """ Return all points data as list of dict. """
+        return self._points_data
+
 
 class BymurCore(object):
     """
@@ -260,6 +373,9 @@ class BymurCore(object):
         'basedir': os.getcwd(),
         # TODO: da eliminare quando scarichero' le mappe
     }
+
+    ens_sample_number = 1000
+    ens_percentiles = np.arange(5,100,5)
 
     def __init__(self):
         self._db = None
@@ -379,8 +495,8 @@ class BymurCore(object):
 
         ret['hazard_models'] = hazard_models
         ret['phenomena'] = self.db.get_phenomena_list()
-        print "hazard_models %s:" % ret['hazard_models']
-        print "phenomena %s " % ret['phenomena']
+        # print "hazard_models %s:" % ret['hazard_models']
+        # print "phenomena %s " % ret['phenomena']
         return ret
 
 
@@ -555,8 +671,190 @@ class BymurCore(object):
                                              haz_array[i])
         return export_string
 
+    def _comulative_prob(self, hazard, threshold_index):
+        pass
+        _comulative = list()
+        # devo escludere la media
+        # for key in hazard.curves.keys():
+        #     for point in hazard.c
+        #     _comulative.append(hazard.curves[key]['curve'][threshold_index])
 
-    def defEnsembleHaz(self, **_localEnsembleDetails):
+
+
+    def defEnsembleHaz(self, **local_data):
+
+        # Instantiate HazardModels and fetch all curves for all
+        # defined statistics
+        _haz_models = [{'model': HazardModel(self.db,
+                                   hazard_name=haz['hazard_name'],
+                                   exp_time=local_data['ensExpTime'])}
+                       for haz in local_data['ensHaz']]
+
+        for haz in _haz_models:
+                haz['model'].fetch_all_points_data()
+                haz['stats_labels'] = [stat['name'][len('percentile'):]
+                        for stat in haz['model'].statistics
+                        if stat['name'] != 'mean']
+                haz['y_percentiles'] = np.sort(np.array(
+                    [float(s)/100 for s in haz['stats_labels']]))
+
+        # Parse and normalize hazards weight
+        _haz_weights = np.array([np.float(haz['weight'])
+                                 for haz in local_data['ensHaz']])
+        _haz_weights /= _haz_weights.sum()
+        for i_haz in range(len(_haz_models)):
+            _haz_models[i_haz]['weight'] = _haz_weights[i_haz]
+            _haz_models[i_haz]['samples_number'] = np.int(np.rint(
+                _haz_weights[i_haz] * np.float(self.ens_sample_number)))
+
+
+        # Extract some metadata on new ensemble hazard definition and
+        # istantiate new object
+        ensemble_data = dict()
+        ensemble_data['hazard_name'] = "_".join([haz['model'].hazard_name + \
+                                         "-" + str(np.around(haz['weight'],
+                                                       decimals=2))
+                                        for haz in _haz_models])
+        ensemble_data['exposure_time'] = local_data['ensExpTime']
+        ensemble_data['iml_thresholds'] = local_data['ensIMLThresh']
+        ensemble_data['grid_name'] = local_data['ensGrid']
+
+        ensemble_data['imt'] = _haz_models[0]['model'].imt
+
+        print "Ensemble data: %s" % ensemble_data
+        new_ensemble = EnsembleModel(ensemble_data['hazard_name'],
+                                     ensemble_data['exposure_time'],
+                                     local_data['ensPhen'],
+                                     self.db)
+        new_ensemble.datagrid_id = _haz_models[0]['model'].datagrid_id
+        new_ensemble.iml = ensemble_data['iml_thresholds']
+        new_ensemble.imt = ensemble_data['imt']
+
+        # Make sure samples_number sum is self.ens_sample_number adjusting
+        # hazard samples number if needed
+        _sum_diff = self.ens_sample_number - \
+                np.int(np.sum([haz['samples_number'] for haz in _haz_models]))
+        while _sum_diff != 0:
+            haz_ind = np.random.random_integers(0, len(_haz_models)-1)
+            if _sum_diff < 0:
+                _haz_models[haz_ind]['samples_number'] -= 1
+            else:
+                _haz_models[haz_ind]['samples_number'] += 1
+            _sum_diff = self.ens_sample_number - \
+                np.int(np.sum([haz['samples_number'] for haz in _haz_models]))
+
+        print "haz_models_id %s" % [h['model'].hazard_id for h in _haz_models]
+        print "haz_weights %s" % [h['weight'] for h in _haz_models]
+        print "samples_number %s , sum %s" % ([h['samples_number'] for h in
+                                       _haz_models],
+                    np.array([h['samples_number'] for h in _haz_models]).sum())
+        print "haz_stats %s" % [h['stats_labels'] for h in _haz_models]
+        print "haz_y_percentiles %s" % [h['y_percentiles'] for h in _haz_models]
+
+        # point_curves structure
+        # point_curves = [ {point_id,
+        #                   point_data: {hazard_1: [ [soglia1percentile1,
+        #                                             soglia1percentile2,
+        #                                              ...               ],
+        #                                            [soglia2percentile1,
+        #                                             soglia2percentile2,
+        #                                             ...               ]
+        #                                           ],
+        #                                hazard_2: [ [soglia1percentile1,
+        #                                           .....]
+        #                                },...},
+        #                   {point_id,...
+
+        # For every point 'p', every hazard component 'h', every threshold 't'
+        # build an array point_curves[p_index]['point_data'][h_index][t_index]
+        # containing values of all percentiles stored in database
+        point_curves = []
+        for i_point in range(len(_haz_models[0]['model'].grid_points)):
+            p_tmp = dict()
+            p_tmp['point_id'] = _haz_models[0]['model'].grid_points[i_point]['id']
+            p_tmp['point_data'] = dict()
+            for haz in _haz_models:
+                _haz_point_data = []
+                for i_thresh in range(len(local_data['ensIMLThresh'])):
+                    _thresh_data = []
+                    for stat in haz['stats_labels']:
+                        _thresh_data.append(
+                            haz['model'].points_data[i_point]['point_data']
+                            [stat][i_thresh])
+                    _haz_point_data.append(_thresh_data)
+                p_tmp['point_data'][haz['model'].hazard_id] =\
+                    np.sort(np.array(_haz_point_data))
+            point_curves.append(p_tmp)
+        # print "Esempio di dati per un punto %s" % point_curves[0]
+        # print point_curves[1000]['point_data'][_haz_models[0]['model'].hazard_id][0]
+
+
+        # Generate random sample points
+        _samples = np.random.uniform(0, 1, self.ens_sample_number)
+
+        # For every point, for every threshold, sample data, calculate
+        # percentiles and mean, store values in point_curves array
+        for i_point in range(len(_haz_models[0]['model'].grid_points)):
+            point_data = point_curves[i_point]['point_data']
+            point_ensemble_hazard = []
+            for i_thresh in range(len(local_data['ensIMLThresh'])):
+                haz_ind = 0
+                sample_index = 0
+                ens_thresh_haz = dict()
+                ens_thresh_haz['samples'] = np.array([])
+                while sample_index < self.ens_sample_number:
+                    inv_cdf = interpolate.interp1d(
+                        _haz_models[haz_ind]['y_percentiles'],
+                        point_data[_haz_models[haz_ind]['model'].hazard_id][
+                            i_thresh],
+                        bounds_error=False)
+                    point_ens_samples = \
+                        inv_cdf(_samples[sample_index:sample_index+
+                                    _haz_models[haz_ind]['samples_number']])
+                    sample_index += _haz_models[haz_ind]['samples_number']
+                    haz_ind += 1
+                    ens_thresh_haz['samples'] = np.append(
+                        ens_thresh_haz['samples'],
+                        point_ens_samples)
+                ens_thresh_haz['percentiles'] = \
+                    np.nanpercentile(ens_thresh_haz['samples'],
+                                  self.ens_percentiles)
+                ens_thresh_haz['mean'] =  np.nanmean(ens_thresh_haz['samples'])
+                point_ensemble_hazard.append(ens_thresh_haz)
+            point_curves[i_point]['point_data']['ensemble'] = \
+                point_ensemble_hazard
+
+        # print point_curves[1000]['point_data']['ensemble'][7]
+
+        # Transform point_curves array in a structure compatible with
+        # points_data as returned(taken) from HazardModel(EsembleModel) class
+        ensemble_points_data = list()
+        for i_point in range(len(_haz_models[0]['model'].grid_points)):
+            p_tmp = dict()
+            p_tmp['point_id'] = point_curves[i_point]['point_id']
+            p_tmp['point_data'] = dict()
+
+            for i_perc in range(len(self.ens_percentiles)):
+                p_tmp['point_data'][str(self.ens_percentiles[i_perc]).zfill(2)]\
+                    = [_thresh_data['percentiles'][i_perc] for _thresh_data in
+                       point_curves[i_point]['point_data']['ensemble']]
+
+            p_tmp['point_data']['mean'] = [_thresh_data['mean']
+                                               for _thresh_data in
+                                point_curves[i_point]['point_data']['ensemble']]
+            ensemble_points_data.append(p_tmp)
+
+        new_ensemble.points_data = ensemble_points_data
+        # print new_ensemble.points_data[1000]
+
+        stat_tmp = [str(int(x)).zfill(2) for x in self.ens_percentiles]
+        stat_tmp.append("mean")
+        new_ensemble.statistics = stat_tmp
+
+
+        new_ensemble.save()
+
+        return
         # TODO: this function is not correct at all!!
         haz_len = len(_localEnsembleDetails['components'])
         for i in range(haz_len):
