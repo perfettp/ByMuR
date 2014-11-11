@@ -167,7 +167,7 @@ class HazardXMLModel(object):
                     self._volcano = element.get('volcanoName')
                     element.clear()
                     # print "volcano: %s" % self._volcano
-                elif element.tag == 'model':
+                elif element.tag == 'hazardModel':
                     self._model_name = element.get('Model')
                     self._hazard_model_name = element.text.strip()
                     element.clear()
