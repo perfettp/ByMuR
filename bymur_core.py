@@ -711,10 +711,11 @@ class BymurCore(object):
         # Extract some metadata on new ensemble hazard definition and
         # istantiate new object
         ensemble_data = dict()
-        ensemble_data['hazard_name'] = "_".join([haz['model'].hazard_name + \
-                                         "-" + str(np.around(haz['weight'],
-                                                       decimals=2))
-                                        for haz in _haz_models])
+        # ensemble_data['hazard_name'] = "_".join([haz['model'].hazard_name + \
+        #                                  "-" + str(np.around(haz['weight'],
+        #                                                decimals=2))
+        #                                 for haz in _haz_models])
+        ensemble_data['hazard_name'] = local_data['ensName']
         ensemble_data['exposure_time'] = local_data['ensExpTime']
         ensemble_data['iml_thresholds'] = local_data['ensIMLThresh']
         ensemble_data['grid_name'] = local_data['ensGrid']

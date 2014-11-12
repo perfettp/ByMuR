@@ -270,6 +270,18 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
         self._ensBoxGrid.Add(self._ensIMLThreshCB, flag=wx.EXPAND,
                              pos=(grid_row, 2), span=(1, 4))
 
+        grid_row += 1
+        self._ensNameLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose ensemble "
+                                                 "hazard name")
+        self._ensBoxGrid.Add(self._ensNameLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 3))
+        self._ensNameText = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                  style=wx.TE_PROCESS_ENTER)
+        self._ensBoxGrid.Add(self._ensNameText, flag=wx.EXPAND,
+                             pos=(grid_row, 3), span=(1, 3))
+
     def updateEnsemble(self, ev=None):
         if (ev is None):  # First data load
             print "ensBoxSizer, event none"
@@ -410,6 +422,11 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
             return self._ensIMLThreshCB.GetStringSelection()
         else:
             return None
+
+    @property
+    def ensName(self):
+        return self._ensNameText.GetValue()
+
 
 class BymurMapBoxSizer(BymurStaticBoxSizer):
     def __init__(self, *args, **kwargs):
@@ -839,9 +856,12 @@ class BymurEnsembleDlg(wx.Dialog):
                                 'ensPhen': self._ensBoxSizer.ensPhen,
                                 'ensGrid': self._ensBoxSizer.ensGrid,
                                 'ensExpTime': self._ensBoxSizer.ensExpTime,
-                                'ensIMLThresh': self._ensBoxSizer.ensIMLThresh
+                                'ensIMLThresh': self._ensBoxSizer.ensIMLThresh,
+                                'ensName': self._ensBoxSizer.ensName,
             }
             if self._localData['ensIMLThresh'] is None:
+                result = -1
+            if self._localData['ensName'] is '':
                 result = -1
             print "Ensemble parameters %s" % self._localData
         elif (result == wx.ID_CANCEL):
