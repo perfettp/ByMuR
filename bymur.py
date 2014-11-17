@@ -492,7 +492,20 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
         self._expHazModelCB.Enable(False)
         # self._expHazModelCB.Bind(wx.EVT_COMBOBOX, self.update)
         self._expHazGrid.Add(self._expHazModelCB, flag=wx.EXPAND,
-                             pos=(grid_row, 2), span=(1, 3))
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._expHazDirButton = wx.Button(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND,
+                                       label="Select directory to save to")
+        self._expHazDirButton.Bind(event=wx.EVT_BUTTON,
+                                   handler=self.selExpHazDir)
+        self._expHazGrid.Add(self._expHazDirButton, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND|wx.TE_READONLY)
+        self._expHazGrid.Add(self._expHazDirTC, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
 
     def update(self, ev=None):
         if (ev is None):  # First data load
@@ -551,6 +564,17 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
             self._expHazModelCB.Enable(True)
             self._expHazModelCB.AppendItems(self._available_haz_list)
 
+    def selExpHazDir(self, event):
+        print "selExpHazDir"
+        dir = os.path.expanduser("~")
+
+        dlg = wx.DirDialog(self._parent, "Select a directory:", defaultPath=dir,
+                           style=wx.DD_DEFAULT_STYLE)
+        if dlg.ShowModal() == wx.ID_OK:
+            self._rootdir = dlg.GetPath()
+            self._expHazDirTC.SetValue(self._rootdir)
+        dlg.Destroy()
+
     @property
     def expHazPhen(self):
         return self._expHazPhenCB.GetStringSelection()
@@ -566,6 +590,10 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
     @property
     def expHazModel(self):
         return self._expHazModelCB.GetStringSelection()
+
+    @property
+    def expHazExpDir(self):
+        return self._expHazDirTC.GetValue()
 
 class BymurMapBoxSizer(BymurStaticBoxSizer):
     def __init__(self, *args, **kwargs):
@@ -1045,6 +1073,7 @@ class BymurExportHazDlg(wx.Dialog):
                                 'expHazPhen': self._expHazBoxSizer.expHazPhen,
                                 'expHazGrid': self._expHazBoxSizer.expHazGrid,
                                 'expHazExpTime': self._expHazBoxSizer.expHazExpTime,
+                                'expHazDir': self._expHazBoxSizer.expHazExpDir,
             }
             print "Export hazard to XMLs %s" % self._localData
         elif (result == wx.ID_CANCEL):

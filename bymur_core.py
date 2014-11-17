@@ -251,7 +251,7 @@ class HazardModel(object):
         self._points_data = self._db.get_points_all_data(self.phenomenon_id,
                                                     self.hazard_id,
                                                     self.grid_points)
-        print self._points_data[1000]
+        # print self._points_data[1000]
         # print len(self._points_data)
         # print self._points_data[0]
 
@@ -273,6 +273,12 @@ class HazardModel(object):
                 self.hazard_id,
                 stat_id)
         return self._curves[statistic_name]
+
+    def to_xml(self):
+        hazard_xml = ''
+
+
+        return
 
     @property
     def hazard_id(self):
@@ -678,6 +684,50 @@ class BymurCore(object):
         # for key in hazard.curves.keys():
         #     for point in hazard.c
         #     _comulative.append(hazard.curves[key]['curve'][threshold_index])
+
+
+    def exportHaz(self, **local_data):
+
+        haz_model = HazardModel(self.db, hazard_name=local_data['expHazModel'],
+                                   exp_time=local_data['expHazExpTime'])
+
+        for stat in haz_model.statistics:
+
+            haz_model_xml = bf.HazardModelXML(local_data['expHazPhen'])
+
+            # print haz_model.hazard_name
+            haz_model_xml.hazard_model_name = haz_model.hazard_name
+
+            # print haz_model.iml
+            haz_model_xml.iml_thresholds = haz_model.iml
+
+            # print haz_model.imt
+            haz_model_xml.iml_imt = haz_model.imt
+
+            # print haz_model.exposure_time
+            haz_model_xml.exp_time = haz_model.exposure_time
+
+            if stat['name'] == 'mean':
+                haz_model_xml.statistic = 'mean'
+                haz_model_xml.percentile_value = '0'
+            else:
+                haz_model_xml.statistic = 'percentile'
+                haz_model_xml.percentile_value = \
+                    stat['name'][len("percentile"):]
+
+            # print haz_model_xml.statistic
+            # print haz_model_xml.percentile_value
+
+            haz_model_xml.points_coords = [dict(easting=p['easting'],
+                                                northing=p['northing'])
+                                           for p in haz_model.grid_points]
+            haz_model_xml.points_values = [" ".join([str(v)
+                                                for v in c['curve']])
+                    for c in haz_model.curves_by_statistics(stat['name'])]
+
+            haz_model_xml.tostring()
+
+
 
 
 
