@@ -12,7 +12,7 @@ class BymurController(object):
     _basedir = os.getcwd()
     _dbDetails = dict(db_host='***REMOVED***', db_port='3306',
                       db_user='***REMOVED***', db_password='***REMOVED***',
-                      db_name='bymurDB-utm-fix')
+                      db_name='***REMOVED***_def')
 
     _addDBDataDetails = dict()
 
