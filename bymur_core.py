@@ -266,7 +266,7 @@ class HazardModel(object):
         try:
             return self._curves[statistic_name]
         except KeyError:
-            print "HazardModel fetching statistic %s curves " % statistic_name
+            # print "HazardModel fetching statistic %s curves " % statistic_name
             stat_id = self._db.get_statistic_by_value(statistic_name)
             self._curves[statistic_name] = self._db.get_curves(
                 self.phenomenon_id,
@@ -690,12 +690,12 @@ class BymurCore(object):
 
         haz_model = HazardModel(self.db, hazard_name=local_data['expHazModel'],
                                    exp_time=local_data['expHazExpTime'])
-        try:
-            os.mkdir(os.path.join(local_data['expHazDir'], haz_model.hazard_name))
-            os.mkdir(os.path.join(local_data['expHazDir'], haz_model.hazard_name,
-                 local_data['expHazExpTime']))
-        except Exception as e:
-            print str(e)
+        tmp_name = os.path.join(local_data['expHazDir'], haz_model.hazard_name)
+        if not os.path.exists(tmp_name):
+            os.makedirs(tmp_name)
+        tmp_name = os.path.join(tmp_name, local_data['expHazExpTime'])
+        if not os.path.exists(tmp_name):
+            os.makedirs(tmp_name)
 
         for stat in haz_model.statistics:
             haz_model_xml = bf.HazardModelXML(local_data['expHazPhen'])
@@ -703,24 +703,25 @@ class BymurCore(object):
             if stat['name'] == 'mean':
                 haz_model_xml.statistic = 'mean'
                 haz_model_xml.percentile_value = '0'
-                filename = os.path.join(local_data['expHazDir'],
-                                    haz_model.hazard_name,
-                                    local_data['expHazExpTime'],
+                filename = os.path.join(tmp_name,
                                     "hazardcurve-mean.xml"
                                     )
             else:
                 haz_model_xml.statistic = 'percentile'
                 haz_model_xml.percentile_value = \
                     stat['name'][len("percentile"):]
-                filename = os.path.join(local_data['expHazDir'],
-                                haz_model.hazard_name,
-                                local_data['expHazExpTime'],
+                filename = os.path.join(tmp_name,
                                 "hazardcurve-percentile-"+
                                 str(haz_model_xml.percentile_value).zfill(2) +
                                 ".xml" )
 
             # print haz_model.hazard_name
             haz_model_xml.hazard_model_name = haz_model.hazard_name
+            try:
+                haz_model_xml.model_name = haz_model.model_name
+            except Exception as e:
+                pass
+
             # print haz_model.iml
             haz_model_xml.iml_thresholds = haz_model.iml
             # print haz_model.imt
@@ -735,6 +736,7 @@ class BymurCore(object):
                                                 for v in c['curve']])
                     for c in haz_model.curves_by_statistics(stat['name'])]
 
+            print "Exporting to file %s" % filename
             file_desc = open(filename,"w")
             file_desc.writelines(haz_model_xml.tostring())
             file_desc.close()

@@ -238,21 +238,16 @@ class BymurController(object):
                                self._core.exportHaz,
                                dialogResult,
                                self._set_ctrls_data,
-                               wait_msg="Creating ensemble hazard...")
-                self._core.defEnsembleHaz(**dialogResult)
-                pass
+                               wait_msg="Exporting hazard XMLs...")
             except Exception as e:
                 bf.showMessage(parent=self.get_gui(),
                                message=str(e),
                                debug=self._exception_debug,
                                kind="BYMUR_ERROR",
-                               caption="Ensemble hazard definition")
+                               caption="Export XML files")
 
             finally:
-                # self.get_gui().busy = False
-                pass
-
-
+                self.get_gui().busy = False
 
     def update_hazard_options(self, event):
         """Update hazard options from parameters from GUI.

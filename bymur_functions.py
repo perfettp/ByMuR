@@ -210,7 +210,11 @@ class HazardModelXML(object):
             pass
         elif self.phenomenon == "TSUNAMIC":
             pass
-        tmp_child = etree.Element("hazardModel", Model = self.model_name)
+
+        if self.model_name != '':
+            tmp_child = etree.Element("hazardModel", Model = self.model_name)
+        else:
+            tmp_child = etree.Element("hazardModel")
         tmp_child.text = self.hazard_model_name
         xml_root.append(tmp_child)
         tmp_child = etree.Element("timeterm",
