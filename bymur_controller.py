@@ -225,6 +225,37 @@ class BymurController(object):
             finally:
                 self.get_gui().busy = False
 
+    def export_hazard(self):
+        """Export hazard model to XMLs file"""
+
+        print "export Hazard"
+        dialogResult = self._wxframe.showDlg("BymurExportHazDlg",
+                                             **{'data': self._core.ctrls_data})
+        if dialogResult:
+            try:
+                # dialogResult['ensIMLThresh'] = [float(thresh) for thresh in
+                #                         dialogResult['ensIMLThresh'].split()]
+                # bf.SpawnThread(self.get_gui(),
+                #                bf.wxBYMUR_UPDATE_DIALOG,
+                #                self._core.defEnsembleHaz,
+                #                dialogResult,
+                #                self._set_ctrls_data,
+                #                wait_msg="Creating ensemble hazard...")
+                # self._core.defEnsembleHaz(**dialogResult)
+                pass
+            except Exception as e:
+                bf.showMessage(parent=self.get_gui(),
+                               message=str(e),
+                               debug=self._exception_debug,
+                               kind="BYMUR_ERROR",
+                               caption="Ensemble hazard definition")
+
+            finally:
+                # self.get_gui().busy = False
+                pass
+
+
+
     def update_hazard_options(self, event):
         """Update hazard options from parameters from GUI.
 
