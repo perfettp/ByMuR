@@ -690,33 +690,43 @@ class BymurCore(object):
 
         haz_model = HazardModel(self.db, hazard_name=local_data['expHazModel'],
                                    exp_time=local_data['expHazExpTime'])
+        try:
+            os.mkdir(os.path.join(local_data['expHazDir'], haz_model.hazard_name))
+            os.mkdir(os.path.join(local_data['expHazDir'], haz_model.hazard_name,
+                 local_data['expHazExpTime']))
+        except Exception as e:
+            print str(e)
 
         for stat in haz_model.statistics:
-
             haz_model_xml = bf.HazardModelXML(local_data['expHazPhen'])
-
-            # print haz_model.hazard_name
-            haz_model_xml.hazard_model_name = haz_model.hazard_name
-
-            # print haz_model.iml
-            haz_model_xml.iml_thresholds = haz_model.iml
-
-            # print haz_model.imt
-            haz_model_xml.iml_imt = haz_model.imt
-
-            # print haz_model.exposure_time
-            haz_model_xml.exp_time = haz_model.exposure_time
 
             if stat['name'] == 'mean':
                 haz_model_xml.statistic = 'mean'
                 haz_model_xml.percentile_value = '0'
+                filename = os.path.join(local_data['expHazDir'],
+                                    haz_model.hazard_name,
+                                    local_data['expHazExpTime'],
+                                    "hazardcurve-mean.xml"
+                                    )
             else:
                 haz_model_xml.statistic = 'percentile'
                 haz_model_xml.percentile_value = \
                     stat['name'][len("percentile"):]
+                filename = os.path.join(local_data['expHazDir'],
+                                haz_model.hazard_name,
+                                local_data['expHazExpTime'],
+                                "hazardcurve-percentile-"+
+                                str(haz_model_xml.percentile_value).zfill(2) +
+                                ".xml" )
 
-            # print haz_model_xml.statistic
-            # print haz_model_xml.percentile_value
+            # print haz_model.hazard_name
+            haz_model_xml.hazard_model_name = haz_model.hazard_name
+            # print haz_model.iml
+            haz_model_xml.iml_thresholds = haz_model.iml
+            # print haz_model.imt
+            haz_model_xml.iml_imt = haz_model.imt
+            # print haz_model.exposure_time
+            haz_model_xml.exp_time = haz_model.exposure_time
 
             haz_model_xml.points_coords = [dict(easting=p['easting'],
                                                 northing=p['northing'])
@@ -725,8 +735,9 @@ class BymurCore(object):
                                                 for v in c['curve']])
                     for c in haz_model.curves_by_statistics(stat['name'])]
 
-            haz_model_xml.tostring()
-
+            file_desc = open(filename,"w")
+            file_desc.writelines(haz_model_xml.tostring())
+            file_desc.close()
 
 
 

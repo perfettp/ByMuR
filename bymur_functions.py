@@ -214,7 +214,7 @@ class HazardModelXML(object):
         tmp_child.text = self.hazard_model_name
         xml_root.append(tmp_child)
         tmp_child = etree.Element("timeterm",
-                                  deltaT = str(self.exp_time) + "yr")
+                                  deltaT = str(int(self.exp_time)) + "yr")
         xml_root.append(tmp_child)
         if self.statistic == "mean":
             haz_curve_tmp = etree.Element("hazardCurveField",
@@ -250,7 +250,8 @@ class HazardModelXML(object):
 
         xml_root.append(haz_curve_tmp)
 
-        return etree.tostring(xml_root, pretty_print=True)
+        return etree.tostring(xml_root, pretty_print=True,
+                              xml_declaration=True, encoding='UTF-8')
 
     @property
     def filename(self):
