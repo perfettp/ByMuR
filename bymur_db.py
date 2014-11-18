@@ -685,7 +685,8 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
 
         for hazFile in haz_files:
             try:
-                fileXmlModel = bf.HazardXMLModel(hazFile, phenomenon_name)
+                fileXmlModel = bf.parse_xml_hazard(hazFile,
+                                                   phenomenon_name)
             except Exception as e:
                 print "ERROR: %s is not a valid ByMuR file! %s" \
                       "Skipping to next one" % (hazFile, str(e))

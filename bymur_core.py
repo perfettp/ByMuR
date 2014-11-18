@@ -251,7 +251,7 @@ class HazardModel(object):
         self._points_data = self._db.get_points_all_data(self.phenomenon_id,
                                                     self.hazard_id,
                                                     self.grid_points)
-        print self._points_data[1000]
+        # print self._points_data[1000]
         # print len(self._points_data)
         # print self._points_data[0]
 
@@ -266,13 +266,19 @@ class HazardModel(object):
         try:
             return self._curves[statistic_name]
         except KeyError:
-            print "HazardModel fetching statistic %s curves " % statistic_name
+            # print "HazardModel fetching statistic %s curves " % statistic_name
             stat_id = self._db.get_statistic_by_value(statistic_name)
             self._curves[statistic_name] = self._db.get_curves(
                 self.phenomenon_id,
                 self.hazard_id,
                 stat_id)
         return self._curves[statistic_name]
+
+    def to_xml(self):
+        hazard_xml = ''
+
+
+        return
 
     @property
     def hazard_id(self):
@@ -678,6 +684,63 @@ class BymurCore(object):
         # for key in hazard.curves.keys():
         #     for point in hazard.c
         #     _comulative.append(hazard.curves[key]['curve'][threshold_index])
+
+
+    def exportHaz(self, **local_data):
+
+        haz_model = HazardModel(self.db, hazard_name=local_data['expHazModel'],
+                                   exp_time=local_data['expHazExpTime'])
+        tmp_name = os.path.join(local_data['expHazDir'], haz_model.hazard_name)
+        if not os.path.exists(tmp_name):
+            os.makedirs(tmp_name)
+        tmp_name = os.path.join(tmp_name, local_data['expHazExpTime'])
+        if not os.path.exists(tmp_name):
+            os.makedirs(tmp_name)
+
+        for stat in haz_model.statistics:
+            haz_model_xml = bf.HazardModelXML(local_data['expHazPhen'])
+
+            if stat['name'] == 'mean':
+                haz_model_xml.statistic = 'mean'
+                haz_model_xml.percentile_value = '0'
+                filename = os.path.join(tmp_name,
+                                    "hazardcurve-mean.xml"
+                                    )
+            else:
+                haz_model_xml.statistic = 'percentile'
+                haz_model_xml.percentile_value = \
+                    stat['name'][len("percentile"):]
+                filename = os.path.join(tmp_name,
+                                "hazardcurve-percentile-"+
+                                str(haz_model_xml.percentile_value).zfill(2) +
+                                ".xml" )
+
+            # print haz_model.hazard_name
+            haz_model_xml.hazard_model_name = haz_model.hazard_name
+            try:
+                haz_model_xml.model_name = haz_model.model_name
+            except Exception as e:
+                pass
+
+            # print haz_model.iml
+            haz_model_xml.iml_thresholds = haz_model.iml
+            # print haz_model.imt
+            haz_model_xml.iml_imt = haz_model.imt
+            # print haz_model.exposure_time
+            haz_model_xml.exp_time = haz_model.exposure_time
+
+            haz_model_xml.points_coords = [dict(easting=p['easting'],
+                                                northing=p['northing'])
+                                           for p in haz_model.grid_points]
+            haz_model_xml.points_values = [" ".join([str(v)
+                                                for v in c['curve']])
+                    for c in haz_model.curves_by_statistics(stat['name'])]
+
+            print "Exporting to file %s" % filename
+            file_desc = open(filename,"w")
+            file_desc.writelines(haz_model_xml.tostring())
+            file_desc.close()
+
 
 
 

@@ -12,7 +12,7 @@ class BymurController(object):
     _basedir = os.getcwd()
     _dbDetails = dict(db_host='***REMOVED***', db_port='3306',
                       db_user='***REMOVED***', db_password='***REMOVED***',
-                      db_name='bymurDB-utm-fix')
+                      db_name='***REMOVED***_def')
 
     _addDBDataDetails = dict()
 
@@ -221,6 +221,30 @@ class BymurController(object):
                                debug=self._exception_debug,
                                kind="BYMUR_ERROR",
                                caption="Ensemble hazard definition")
+
+            finally:
+                self.get_gui().busy = False
+
+    def export_hazard(self):
+        """Export hazard model to XMLs file"""
+
+        print "export Hazard"
+        dialogResult = self._wxframe.showDlg("BymurExportHazDlg",
+                                             **{'data': self._core.ctrls_data})
+        if dialogResult:
+            try:
+                bf.SpawnThread(self.get_gui(),
+                               bf.wxBYMUR_UPDATE_DIALOG,
+                               self._core.exportHaz,
+                               dialogResult,
+                               self._set_ctrls_data,
+                               wait_msg="Exporting hazard XMLs...")
+            except Exception as e:
+                bf.showMessage(parent=self.get_gui(),
+                               message=str(e),
+                               debug=self._exception_debug,
+                               kind="BYMUR_ERROR",
+                               caption="Export XML files")
 
             finally:
                 self.get_gui().busy = False

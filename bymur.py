@@ -428,6 +428,173 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
         return self._ensNameText.GetValue()
 
 
+class BymurExpHazBoxSizer(BymurStaticBoxSizer):
+
+    def __init__(self, *args, **kwargs):
+        self.ctrls_data = kwargs.pop('data', {})
+        # print self.ctrls_data
+        self._available_haz_list = []
+        super(BymurExpHazBoxSizer, self).__init__(*args, **kwargs)
+        self._expHazGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._expHazGrid)
+    
+        grid_row = 0
+        self._expHazPhenLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose phenomena")
+        self._expHazGrid.Add(self._expHazPhenLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazPhenCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._expHazPhenCB.AppendItems(list(set([haz['phenomenon_name']
+                                              for haz in
+                                              self.ctrls_data['hazard_models']])))
+        self._expHazPhenCB.Enable(True)
+        self._expHazPhenCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazPhenCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+
+        grid_row += 1
+        self._expHazGridLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose grid")
+        self._expHazGrid.Add(self._expHazGridLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazGridCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._expHazGridCB.Enable(False)
+        self._expHazGridCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazGridCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._expHazExpTimeLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose exposure time")
+        self._expHazGrid.Add(self._expHazExpTimeLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazExpTimeCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._expHazExpTimeCB.Enable(False)
+        self._expHazExpTimeCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazExpTimeCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._expHazModelLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose hazard model")
+        self._expHazGrid.Add(self._expHazModelLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazModelCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                               style=wx.CB_READONLY)
+        self._expHazModelCB.Enable(False)
+        # self._expHazModelCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazModelCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._expHazDirButton = wx.Button(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND,
+                                       label="Select directory to save to")
+        self._expHazDirButton.Bind(event=wx.EVT_BUTTON,
+                                   handler=self.selExpHazDir)
+        self._expHazGrid.Add(self._expHazDirButton, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND|wx.TE_READONLY)
+        self._expHazGrid.Add(self._expHazDirTC, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+    def update(self, ev=None):
+        if (ev is None):  # First data load
+            print "expHazBoxSizer, event none"
+        elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
+            _phen_name = self._expHazPhenCB.GetStringSelection()
+            _exptime_sel = self._expHazExpTimeCB.GetValue()
+            _grid_sel = self._expHazGridCB.GetValue()
+            if ev.GetEventObject() == self._expHazPhenCB:
+                _glist = [haz for haz in  self.ctrls_data['hazard_models']
+                          if haz['phenomenon_name'] == _phen_name]
+                self._expHazGridCB.Clear()
+                self._expHazGridCB.SetValue('')
+                self._expHazGridCB.AppendItems(list(set([haz['grid_name']
+                                          for haz in _glist])))
+                self._expHazGridCB.Enable(True)
+                if len(self._expHazGridCB.Items) > 0:
+                    self._expHazGridCB.SetSelection(0)
+                _grid_sel = self._expHazGridCB.GetValue()
+                _exptimelist = [haz['exposure_time'] for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._expHazExpTimeCB.Clear()
+                self._expHazExpTimeCB.SetValue('')
+                self._expHazExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expHazExpTimeCB.Items) > 0:
+                    self._expHazExpTimeCB.SetSelection(0)
+                self._expHazExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._expHazGridCB:
+                _exptimelist = [haz['exposure_time'] for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._expHazExpTimeCB.Clear()
+                self._expHazExpTimeCB.SetValue('')
+                self._expHazExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expHazExpTimeCB.Items) > 0:
+                    self._expHazExpTimeCB.SetSelection(0)
+                self._expHazExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._expHazExpTimeCB:
+                pass
+            _phen_name = self._expHazPhenCB.GetStringSelection()
+            _exptime_sel = self._expHazExpTimeCB.GetValue()
+            _grid_sel = self._expHazGridCB.GetValue()
+            self._available_haz_list = [haz['hazard_name'] for haz in
+                                self.ctrls_data['hazard_models']
+                                if (haz['phenomenon_name'] == _phen_name
+                                    and haz['grid_name'] == _grid_sel
+                                    and haz['exposure_time'] ==_exptime_sel)]
+
+            self._expHazModelCB.Clear()
+            self._expHazModelCB.SetValue('')
+            self._expHazModelCB.Enable(True)
+            self._expHazModelCB.AppendItems(self._available_haz_list)
+
+    def selExpHazDir(self, event):
+        print "selExpHazDir"
+        dir = os.path.expanduser("~")
+
+        dlg = wx.DirDialog(self._parent, "Select a directory:", defaultPath=dir,
+                           style=wx.DD_DEFAULT_STYLE)
+        if dlg.ShowModal() == wx.ID_OK:
+            self._rootdir = dlg.GetPath()
+            self._expHazDirTC.SetValue(self._rootdir)
+        dlg.Destroy()
+
+    @property
+    def expHazPhen(self):
+        return self._expHazPhenCB.GetStringSelection()
+
+    @property
+    def expHazGrid(self):
+        return self._expHazGridCB.GetValue()
+
+    @property
+    def expHazExpTime(self):
+        return self._expHazExpTimeCB.GetValue()
+
+    @property
+    def expHazModel(self):
+        return self._expHazModelCB.GetStringSelection()
+
+    @property
+    def expHazExpDir(self):
+        return self._expHazDirTC.GetValue()
+
 class BymurMapBoxSizer(BymurStaticBoxSizer):
     def __init__(self, *args, **kwargs):
         self._latMin = kwargs.pop('northing_min', '')
@@ -870,6 +1037,50 @@ class BymurEnsembleDlg(wx.Dialog):
             result = -1
         return (result, self._localData)
 
+class BymurExportHazDlg(wx.Dialog):
+
+
+    def __init__(self, *args, **kwargs):
+        self._ensBoxSizer = None
+        self._title = kwargs.pop('title', '')
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localData = kwargs.pop('data', {})
+        # print "data %s " % self._localData
+        super(BymurExportHazDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        self._expHazBoxSizer = BymurExpHazBoxSizer(parent=self,
+                                             label="Export hazard XMLs",
+                                             orient=wx.VERTICAL,
+                                             data=self._localData)
+
+        self._expHazBoxSizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                              flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+
+        self._sizer.Add(self._expHazBoxSizer)
+        self.SetSizerAndFit(self._sizer)
+
+        self.SetTitle(self._title)
+
+    def ShowModal(self, **kwargs):
+        result = super(BymurExportHazDlg, self).ShowModal(**kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localData = { 'expHazModel': self._expHazBoxSizer.expHazModel,
+                                'expHazPhen': self._expHazBoxSizer.expHazPhen,
+                                'expHazGrid': self._expHazBoxSizer.expHazGrid,
+                                'expHazExpTime': self._expHazBoxSizer.expHazExpTime,
+                                'expHazDir': self._expHazBoxSizer.expHazExpDir,
+            }
+            print "Export hazard to XMLs %s" % self._localData
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localData)
 
 class BymurWxPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
@@ -1486,6 +1697,12 @@ class BymurWxMenu(wx.MenuBar):
         # Plot menu and items
         self.menuPlot = wx.Menu()
         menuItemTmp = self.menuPlot.Append(wx.ID_ANY,
+                                           '&Export Hazard XMLs')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.export_hazard
+        self._db_actions.append(menuItemTmp)
+        menuItemTmp.Enable(False)
+
+        menuItemTmp = self.menuPlot.Append(wx.ID_ANY,
                                            '&Export Raster ASCII (GIS)')  # original method was exportAsciiGis
         self._menu_actions[menuItemTmp.GetId()] = self._controller.exportASCII
         self._map_actions.append(menuItemTmp)
@@ -1494,7 +1711,7 @@ class BymurWxMenu(wx.MenuBar):
                                            kind=wx.ITEM_CHECK)  # original method was showPoints
         self._menu_actions[menuItemTmp.GetId()] = self._controller.showPoints
         menuItemTmp.Enable(False)
-        self.Append(self.menuPlot, '&Map')
+        self.Append(self.menuPlot, '&Export')
 
         # Analysis menu and items
         self.menuAnalysis = wx.Menu()
