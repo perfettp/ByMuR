@@ -289,13 +289,17 @@ class BymurController(object):
     def nbTabChanged(self, event):
         self.rightPanel.curvesPanel.updateView(**self._core.data)
 
-    def pick_point_by_index(self, index):
+    def pick_point_by_index(self, index, pathID=None):
         """
         Select by index a point of which plot data in curve graph.
 
         :param index: bigint
         """
 
+        if pathID is not None:
+            print "pathID: %s" % pathID
+            print "areaID: %s" % (pathID+1)
+            self._core.set_area_by_ID(pathID+1)
         if self._core.set_point_by_index(index):
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
@@ -340,6 +344,7 @@ class BymurController(object):
         self._set_hazard_options()
         self._set_selected_point()
         self._set_inventory()
+        self._set_selected_area()
 
     def _set_ctrls_data(self):
         self.get_gui().ctrls_data = self._core.ctrls_data
@@ -359,3 +364,5 @@ class BymurController(object):
     def _set_inventory(self):
         self.get_gui().inventory = self._core.inventory
 
+    def _set_selected_area(self):
+        self.get_gui().selected_area = self._core.selected_area

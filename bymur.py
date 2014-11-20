@@ -1273,6 +1273,22 @@ class BymurWxRightPanel(BymurWxPanel):
     def mapPanel(self):
         return self._mapPanel
 
+class BymurInventorySizer(BymurStaticBoxSizer):
+    def __init__(self, **kwargs):
+        self.areaID=kwargs.pop('areaID', '')
+        self._invBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._invBoxGrid)
+        grid_row = 0
+        self._invBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Selected area: "),
+                             flag=wx.EXPAND, pos=(0, 0), span=(1, 3))
+        self._invAreaTC = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invBoxGrid.Add(self._invAreaTC, flag=wx.EXPAND,
+                             pos=(grid_row, 3), span=(1, 3))
+
+
 
 class BymurWxLeftPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
@@ -1372,8 +1388,6 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._ctrlsSizer.Add(self._updateButton, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(3, 4))
 
-
-
         vpos = 0
         self._pointBox = wx.StaticBox(
             self,
@@ -1414,7 +1428,6 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._pointSizer.Add(self._pointButton, flag=wx.EXPAND, pos=(vpos, 0),
                               span=(2, 4))
 
-
         ## Nearest data point coordinates and values
         self._dataBox = wx.StaticBox(
             self,
@@ -1440,9 +1453,59 @@ class BymurWxLeftPanel(BymurWxPanel):
                               flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._dataSizer.Add(self._dataProbTC, pos=(vpos, 3), span=(1, 1))
 
+        ## Area Inventory details
+        self._invBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Selected area data")
+        self._invBoxSizer = wx.StaticBoxSizer(
+            self._invBox,
+            orient=wx.VERTICAL)
+        self._invSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._invBoxSizer.Add(self._invSizer)
+
+        vpos = 0
+        self._invAreaIDLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Area ID")
+        self._invAreaIDTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invAreaIDLabel,
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 1))
+        self._invSizer.Add(self._invAreaIDTC, flag=wx.EXPAND,
+                             pos=(vpos, 1), span=(1, 1))
+
+        self._invSecIDLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Section ID")
+        self._invSecIDTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invSecIDLabel,
+                             flag=wx.EXPAND, pos=(vpos, 3),
+                             span=(1, 1))
+        self._invSizer.Add(self._invSecIDTC, flag=wx.EXPAND,
+                             pos=(vpos, 4), span=(1, 1))
+
+        vpos += 1
+        self._invCentroidLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Centroid coordinates")
+        self._invCentroidXTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invCentroidYTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invCentroidLabel,
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 2))
+        self._invSizer.Add(self._invCentroidXTC, flag=wx.EXPAND,
+                             pos=(vpos, 2), span=(1, 2))
+        self._invSizer.Add(self._invCentroidYTC, flag=wx.EXPAND,
+                             pos=(vpos, 4), span=(1, 2))
+
+        
+
         self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._dataBoxSizer, flag=wx.EXPAND)
+        self._sizer.Add(self._invBoxSizer, flag=wx.EXPAND)
         self.SetSizer(self._sizer)
         # self.Enable(False)
 
@@ -1484,6 +1547,28 @@ class BymurWxLeftPanel(BymurWxPanel):
                 str(self._topWindow.selected_point.prob_value))
         else:
             self._dataProbTC.SetValue("")
+
+        if self._topWindow.selected_area.areaID:
+            self._invAreaIDTC.SetValue(
+                str(self._topWindow.selected_area.areaID))
+        else:
+            self._invAreaIDTC.SetValue('')
+
+        if self._topWindow.selected_area.sectionID:
+            self._invSecIDTC.SetValue(
+                str(self._topWindow.selected_area.sectionID))
+        else:
+            self._invSecIDTC.SetValue('')
+
+        if self._topWindow.selected_area.centroid:
+            print self._topWindow.selected_area.centroid[0]
+            self._invCentroidXTC.SetValue(
+                str(self._topWindow.selected_area.centroid[0]))
+            self._invCentroidYTC.SetValue(
+                str(self._topWindow.selected_area.centroid[1]))
+        else:
+            self._invCentroidXTC.SetValue('')
+            self._invCentroidYTC.SetValue('')
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
@@ -1773,6 +1858,7 @@ class BymurWxView(wx.Frame):
         self._hazard_options = {}
 
         self._selected_point = None
+        self._selected_area = None
         self._inventory = None
 
 
@@ -2044,6 +2130,14 @@ class BymurWxView(wx.Frame):
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
+        
+    @property
+    def selected_area(self):
+        return self._selected_area
+
+    @selected_area.setter
+    def selected_area(self, data):
+        self._selected_area = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

@@ -50,6 +50,8 @@ mpl.rcParams['legend.fontsize'] = '10'
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.sans-serif'] = 'Times'
 
+show_areas = True
+
 
 class BymurPlot(object):
     def __init__(self, *args, **kwargs):
@@ -76,7 +78,12 @@ class HazardGraph(BymurPlot):
         self.prob_point = None
 
         super(HazardGraph, self).__init__(*args, **kwargs)
-        self._figure.canvas.mpl_connect('pick_event',
+
+        if show_areas:
+            self._figure.canvas.mpl_connect('button_press_event',
+                                        self.on_press)
+        else:
+            self._figure.canvas.mpl_connect('pick_event',
                                         self.on_pick)
         self._points_data = None
         self._selected_point = None
@@ -94,6 +101,15 @@ class HazardGraph(BymurPlot):
         ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
         self._click_callback(ind)
         #self._click_callback(x,y)
+
+    def on_press(self, event):
+        x = event.xdata
+        y = event.ydata
+        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
+        for path_index in range(len(self.areas.get_paths())):
+                if self.areas.get_paths()[path_index].\
+                        contains_point((x, y)):
+                    self._click_callback(ind, pathID=path_index)
 
     def clear(self):
         self._figure.clf()
@@ -170,7 +186,7 @@ class HazardGraph(BymurPlot):
                 ymap1,
                 ymap2))
 
-        if True:
+        if show_areas:
 
             patch_list = []
             for sec in inventory.sections:

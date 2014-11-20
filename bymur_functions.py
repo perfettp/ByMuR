@@ -502,7 +502,7 @@ def parse_xml_inventory(filename):
                     section_model.geometry = element.text.strip().split(",")
                     element.clear()
                 elif element.tag == 'centroid':
-                    section_model.centroid = element.text.strip()
+                    section_model.centroid = element.text.strip().split(" ")
                     element.clear()
                 elif element.tag == 'asset':
                     section_model.asset = asset_model
