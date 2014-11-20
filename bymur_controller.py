@@ -339,6 +339,7 @@ class BymurController(object):
         self._set_hazard_data()
         self._set_hazard_options()
         self._set_selected_point()
+        self._set_inventory()
 
     def _set_ctrls_data(self):
         self.get_gui().ctrls_data = self._core.ctrls_data
@@ -354,4 +355,7 @@ class BymurController(object):
 
     def _set_selected_point(self):
         self.get_gui().selected_point = self._core.selected_point
+
+    def _set_inventory(self):
+        self.get_gui().inventory = self._core.inventory
 

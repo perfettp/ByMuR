@@ -1155,7 +1155,8 @@ class BymurWxMapPanel(BymurWxPanel):
     def updateView(self, **kwargs):
         super(BymurWxMapPanel, self).updateView(**kwargs)
         self._map.plot(wx.GetTopLevelParent(self).hazard,
-                       wx.GetTopLevelParent(self).hazard_data)
+                       wx.GetTopLevelParent(self).hazard_data,
+                       wx.GetTopLevelParent(self).inventory)
         self.Enable(True)
 
     # def clear(self):
@@ -1772,6 +1773,7 @@ class BymurWxView(wx.Frame):
         self._hazard_options = {}
 
         self._selected_point = None
+        self._inventory = None
 
 
         # TODO: make a list for events
@@ -2034,6 +2036,14 @@ class BymurWxView(wx.Frame):
     @selected_point.setter
     def selected_point(self, data):
         self._selected_point = data
+        
+    @property
+    def inventory(self):
+        return self._inventory
+
+    @inventory.setter
+    def inventory(self, data):
+        self._inventory = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

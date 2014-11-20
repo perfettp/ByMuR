@@ -34,6 +34,7 @@ import bymur_functions as bf
 import matplotlib as mpl
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as pyplot
+import matplotlib.collections as mcoll
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
@@ -98,7 +99,7 @@ class HazardGraph(BymurPlot):
         self._figure.clf()
         self._canvas.draw()
 
-    def plot(self, hazard,  hazard_data):
+    def plot(self, hazard,  hazard_data, inventory):
         # Prepare matplotlib grid and data
         grid_points_number = 256
         points_utm = [p['point'] for p in hazard_data]
@@ -115,7 +116,7 @@ class HazardGraph(BymurPlot):
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
         self.haz_map = self.plot_hazard_map(x_mesh, y_mesh,
                              [p['haz_value'] for p in hazard_data],
-                             map_limits, hazard)
+                             map_limits, hazard, inventory)
 
         self.haz_point,  = self.haz_map.plot([self.x_points[0]],
                                                   [self.y_points[0]],
@@ -140,12 +141,14 @@ class HazardGraph(BymurPlot):
         self._canvas.draw()
 
     def plot_hazard_map(self, x_mesh, y_mesh, z_points,
-                 map_limits, hazard):
+                 map_limits, hazard, inventory):
         xmap1, xmap2, ymap1, ymap2 = map_limits
         haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
+
+
 
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
@@ -167,15 +170,37 @@ class HazardGraph(BymurPlot):
                 ymap1,
                 ymap2))
 
+        if True:
+
+            patch_list = []
+            for sec in inventory.sections:
+                geometry_array =  np.array([[float(coord)*1e-3
+                                             for coord in v.strip().split(" ")]
+                                            for v in sec.geometry])
+                path_tmp = mpl.path.Path(geometry_array, closed=True)
+                patch_list.append(path_tmp)
+
+            # Make the collection and add it to the plot.
+            # colors = ['#fbb4ae', '#b3cde3', '#ccebc5', '#decbe4', '#fed9a6' ]
+            self.areas = mcoll.PathCollection(patch_list,
+                                              facecolor='none',
+                                              linewidths=0.1,
+                                              zorder = 5,
+                                              alpha = 0.6)
+            print self.areas.get_facecolor()
+            # self.areas.set_facecolor(None)
+            haz_subplot.add_collection(self.areas)
+
 
         # Plot hazard map
         haz_scatter = haz_subplot.scatter(self.x_points, self.y_points, marker='.',
                                           c = z_points,
                                           cmap=self._cmap,
                                           alpha=0.7,
-                                          zorder=2,
+                                          zorder=4,
                                           picker=5,
-                                          linewidths = 0)
+                                          linewidths=0)
+
 
         # Plot hazard bar
         hazard_bar = self._figure.colorbar(

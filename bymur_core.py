@@ -392,6 +392,7 @@ class BymurCore(object):
         self._hazard = None
         self._hazard_data = None
         self._selected_point = HazardPoint(self)
+        self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -1072,6 +1073,14 @@ class BymurCore(object):
     def hazard_data(self, data):
         print "hazard_data setter"
         self._hazard_data = data
+
+    @property
+    def inventory(self):
+        return self._inventory
+
+    @inventory.setter
+    def inventory(self, data):
+        self._inventory = data
 
     @property
     def selected_point(self):
