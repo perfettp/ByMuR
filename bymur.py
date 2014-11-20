@@ -1500,7 +1500,103 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._invSizer.Add(self._invCentroidYTC, flag=wx.EXPAND,
                              pos=(vpos, 4), span=(1, 2))
 
+        vpos += 1
+        self._invTotalLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Total buildings number")
+        self._invTotalTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invTotalLabel,
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 2))
+        self._invSizer.Add(self._invTotalTC, flag=wx.EXPAND,
+                             pos=(vpos, 2), span=(1, 3))
+
+        self._classBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Classes")
+        self._classBoxSizer = wx.StaticBoxSizer(
+            self._classBox,
+            orient=wx.HORIZONTAL)
+        self._classSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._classBoxSizer.Add(self._classSizer)
+
+        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
+
+        # General Classes
+        self._genClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "General")
+        self._genClassBoxSizer = wx.StaticBoxSizer(
+            self._genClassBox,
+            orient=wx.VERTICAL)
+        self._genClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._genClassBoxSizer.Add(self._genClassSizer)
+        vpos = 0
+        for gen_class in self._topWindow.inventory.classes['generalClasses']:
+            self._genClassSizer.Add(wx.StaticText(self, wx.ID_ANY,
+                                                  gen_class.name),
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 1))
+            self._genClassSizer.Add(wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY, size=(40,20)),
+                                    flag=wx.EXPAND, pos=(vpos, 1),
+                             span=(1, 1))
+            vpos +=1
+
+        self._classBoxSizer.Add(self._genClassBoxSizer, flag=wx.EXPAND)
         
+        # Age Classes
+        self._ageClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Ages")
+        self._ageClassBoxSizer = wx.StaticBoxSizer(
+            self._ageClassBox,
+            orient=wx.VERTICAL)
+        self._ageClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._ageClassBoxSizer.Add(self._ageClassSizer)
+        vpos = 0
+        for age_class in self._topWindow.inventory.classes['ageClasses']:
+            self._ageClassSizer.Add(wx.StaticText(self, wx.ID_ANY,
+                                                  age_class.name),
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 1))
+            self._ageClassSizer.Add(wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY, size=(40,20)),
+                                    flag=wx.EXPAND, pos=(vpos, 1),
+                             span=(1, 1))
+            vpos +=1
+
+        self._classBoxSizer.Add(self._ageClassBoxSizer, flag=wx.EXPAND)
+        
+        # House Classes
+        self._houseClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Houses")
+        self._houseClassBoxSizer = wx.StaticBoxSizer(
+            self._houseClassBox,
+            orient=wx.VERTICAL)
+        self._houseClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._houseClassBoxSizer.Add(self._houseClassSizer)
+        vpos = 0
+        for house_class in self._topWindow.inventory.classes['houseClasses']:
+            self._houseClassSizer.Add(wx.StaticText(self, wx.ID_ANY,
+                                                  house_class.name),
+                                      flag=wx.EXPAND, pos=(vpos, 0),
+                                      span=(1, 1))
+            self._houseClassSizer.Add(wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY, size=(40,20)),
+                                    flag=wx.EXPAND, pos=(vpos, 1),
+                             span=(1, 1))
+            vpos +=1
+
+        self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
+        
+        
+
 
         self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
@@ -1569,6 +1665,12 @@ class BymurWxLeftPanel(BymurWxPanel):
         else:
             self._invCentroidXTC.SetValue('')
             self._invCentroidYTC.SetValue('')
+
+        if self._topWindow.selected_area.asset.total:
+            self._invTotalTC.SetValue(
+                str(self._topWindow.selected_area.asset.total))
+        else:
+            self._invTotalTC.SetValue('')
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
@@ -1849,6 +1951,7 @@ class BymurWxView(wx.Frame):
     def __init__(self, *args, **kwargs):
         self._basedir =  kwargs.pop('basedir', None)
         self._controller = kwargs.pop('controller', None)
+        self._inventory = kwargs.pop('inventory', None)
         self._title = kwargs.pop('title', '')
         super(BymurWxView, self).__init__(*args, **kwargs)
 
@@ -1859,7 +1962,6 @@ class BymurWxView(wx.Frame):
 
         self._selected_point = None
         self._selected_area = None
-        self._inventory = None
 
 
         # TODO: make a list for events
@@ -2143,12 +2245,14 @@ class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):
         self._controller = kwargs.pop('controller', None)
         self._basedir =  kwargs.pop('basedir', None)
+        self._inventory = kwargs.pop('inventory', None)
         super(BymurWxApp, self).__init__(*args, **kwargs)
 
 
     def OnInit(self):
         frame = BymurWxView(parent=None, controller=self._controller,
                             basedir = self._basedir,
+                            inventory = self._inventory,
                             title="ByMuR - Refactoring")
 
         self._controller.set_gui(frame)
@@ -2163,5 +2267,5 @@ if __name__ == "__main__":
     core = bymur_core.BymurCore()
     control = bymur_controller.BymurController(core)
     app = BymurWxApp(redirect=False, controller=control,
-                     basedir = control.basedir)
+                     basedir = control.basedir, inventory = core.inventory)
     app.MainLoop()
