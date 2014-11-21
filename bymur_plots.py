@@ -34,6 +34,7 @@ import bymur_functions as bf
 import matplotlib as mpl
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as pyplot
+import matplotlib.collections as mcoll
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
@@ -48,6 +49,8 @@ mpl.rcParams['ytick.labelsize'] = '10'
 mpl.rcParams['legend.fontsize'] = '10'
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.sans-serif'] = 'Times'
+
+show_areas = True
 
 
 class BymurPlot(object):
@@ -75,7 +78,12 @@ class HazardGraph(BymurPlot):
         self.prob_point = None
 
         super(HazardGraph, self).__init__(*args, **kwargs)
-        self._figure.canvas.mpl_connect('pick_event',
+
+        if show_areas:
+            self._figure.canvas.mpl_connect('button_press_event',
+                                        self.on_press)
+        else:
+            self._figure.canvas.mpl_connect('pick_event',
                                         self.on_pick)
         self._points_data = None
         self._selected_point = None
@@ -94,11 +102,20 @@ class HazardGraph(BymurPlot):
         self._click_callback(ind)
         #self._click_callback(x,y)
 
+    def on_press(self, event):
+        x = event.xdata
+        y = event.ydata
+        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
+        for path_index in range(len(self.areas.get_paths())):
+                if self.areas.get_paths()[path_index].\
+                        contains_point((x, y)):
+                    self._click_callback(ind, pathID=path_index)
+
     def clear(self):
         self._figure.clf()
         self._canvas.draw()
 
-    def plot(self, hazard,  hazard_data):
+    def plot(self, hazard,  hazard_data, inventory):
         # Prepare matplotlib grid and data
         grid_points_number = 256
         points_utm = [p['point'] for p in hazard_data]
@@ -115,7 +132,7 @@ class HazardGraph(BymurPlot):
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
         self.haz_map = self.plot_hazard_map(x_mesh, y_mesh,
                              [p['haz_value'] for p in hazard_data],
-                             map_limits, hazard)
+                             map_limits, hazard, inventory)
 
         self.haz_point,  = self.haz_map.plot([self.x_points[0]],
                                                   [self.y_points[0]],
@@ -140,12 +157,14 @@ class HazardGraph(BymurPlot):
         self._canvas.draw()
 
     def plot_hazard_map(self, x_mesh, y_mesh, z_points,
-                 map_limits, hazard):
+                 map_limits, hazard, inventory):
         xmap1, xmap2, ymap1, ymap2 = map_limits
         haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
+
+
 
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
@@ -167,15 +186,37 @@ class HazardGraph(BymurPlot):
                 ymap1,
                 ymap2))
 
+        if show_areas:
+
+            patch_list = []
+            for sec in inventory.sections:
+                geometry_array =  np.array([[float(coord)*1e-3
+                                             for coord in v.strip().split(" ")]
+                                            for v in sec.geometry])
+                path_tmp = mpl.path.Path(geometry_array, closed=True)
+                patch_list.append(path_tmp)
+
+            # Make the collection and add it to the plot.
+            # colors = ['#fbb4ae', '#b3cde3', '#ccebc5', '#decbe4', '#fed9a6' ]
+            self.areas = mcoll.PathCollection(patch_list,
+                                              facecolor='none',
+                                              linewidths=0.1,
+                                              zorder = 5,
+                                              alpha = 0.6)
+            print self.areas.get_facecolor()
+            # self.areas.set_facecolor(None)
+            haz_subplot.add_collection(self.areas)
+
 
         # Plot hazard map
         haz_scatter = haz_subplot.scatter(self.x_points, self.y_points, marker='.',
                                           c = z_points,
                                           cmap=self._cmap,
                                           alpha=0.7,
-                                          zorder=2,
+                                          zorder=4,
                                           picker=5,
-                                          linewidths = 0)
+                                          linewidths=0)
+
 
         # Plot hazard bar
         hazard_bar = self._figure.colorbar(
@@ -358,6 +399,110 @@ class HazardCurve(BymurPlot):
 
     def clear(self):
         self._figure.clf()
+        self._canvas.draw()
+
+class InvCurve(BymurPlot):
+
+    _colors = ['#fff7ec', '#fee8c8', '#fdd49e', '#fdbb84', '#fc8d59',
+               '#ef6548', '#d7301f', '#b30000', '#7f0000']
+    _bar_colors = ['#762a83', '#af8dc3', '#e7d4e8', '#d9f0d3',
+                   '#7fbf7b','#1b7837']
+
+    def __init__(self, *args, **kwargs):
+        super(InvCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        self._hazard = kwargs.pop('hazard', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._area = kwargs.pop('area', None)
+        # print "InvCurve plot hazard phen= %s" % self._hazard.phenomenon_name
+        # print "InvCurve plot inventory = %s" % self._inventory
+        # print "InvCurve plot area = %s" % self._area
+        self._figure.clf()
+
+        subplot_arr = []
+
+        if int(self._area.asset.total) > 0:
+
+            subplot_tmp = pyplot.subplot2grid((2,2), (0,0))
+            width=0.2
+            subplot_tmp.set_xlim((0, width*len(self._inventory.classes[
+                'fragilityClasses'][self._hazard.phenomenon_name.lower()])))
+            ticks = np.arange(0,width*len(self._inventory.classes[
+                'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
+                      width) + (width/2)
+            subplot_tmp.set_title("Fragility class probability")
+            subplot_tmp.set_xticks(ticks)
+            subplot_tmp.set_xticklabels([cl.label for cl in
+                                    self._inventory.classes['fragilityClasses'][
+                                        self._hazard.phenomenon_name.lower()]])
+            subplot_tmp.set_ylim((0,1))
+
+
+            for i_class in range(len(self._inventory.classes['fragilityClasses'][
+                self._hazard.phenomenon_name.lower()])):
+                subplot_tmp.bar(i_class*width,
+                    np.float(self._area.asset.frag_class_prob[
+                        self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
+                    width, color=self._colors[i_class],
+                    label=self._inventory.classes['fragilityClasses'][
+                        self._hazard.phenomenon_name.lower()][i_class].label)
+            subplot_arr.append(subplot_tmp)
+
+            subplot_tmp = pyplot.subplot2grid((2,2), (0,1))
+            subplot_tmp.set_ylim((0,1))
+            subplot_tmp.set_xlim((0,
+                width*len(self._inventory.classes['costClasses'][
+                self._hazard.phenomenon_name.lower()])))
+            ticks = np.arange(0,width*len(self._inventory.classes[
+            'costClasses'][self._hazard.phenomenon_name.lower()]),
+                  width) + (width/2)
+            subplot_tmp.set_title("Cost class probability")
+            subplot_tmp.set_xticks(ticks)
+            subplot_tmp.set_xticklabels([cl.label for cl in
+                                self._inventory.classes['costClasses'][
+                                    self._hazard.phenomenon_name.lower()]])
+            for i_class in range(len(self._inventory.classes['costClasses'][
+                self._hazard.phenomenon_name.lower()])):
+                subplot_tmp.bar(i_class*width,
+                    np.float(self._area.asset.frag_class_prob[
+                        self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
+                    width, color=self._colors[i_class],
+                    label=self._inventory.classes['costClasses'][
+                        self._hazard.phenomenon_name.lower()][i_class].name)
+            subplot_arr.append(subplot_tmp)
+
+
+            subplot_tmp = pyplot.subplot2grid((2,2), (1,0), colspan=2)
+            subplot_tmp.set_title("Fragility given class")
+            ticks = np.arange(0,width*len(self._inventory.classes[
+                'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
+                      width) + (width/2)
+            subplot_tmp.set_xticks(ticks)
+            subplot_tmp.set_xticklabels([cl.label for cl in
+                                    self._inventory.classes['fragilityClasses'][
+                                        self._hazard.phenomenon_name.lower()]])
+            subplot_tmp.set_ylim((0,1))
+            bar_width=0.05
+            for i_class in range(len(self._inventory.classes['fragilityClasses'][
+                self._hazard.phenomenon_name.lower()])):
+                probs = [float(x) for x  in self._area.asset.frag_class_prob[
+                    self._hazard.phenomenon_name.lower()][
+                    'fntGivenGeneralClass'][i_class]]
+                print probs
+                for i_p in range(len(probs)):
+                    subplot_tmp.bar(i_class*width+bar_width*i_p,
+                        probs[i_p], bar_width, color=self._bar_colors[i_p] )
+
+            subplot_tmp.legend(prop={'size': 10})
+            subplot_arr.append(subplot_tmp)
+            # for i in range(9):
+            #     subplot_pos = i + 1
+            #     subplot_tmp = self._figure.add_subplot(subplot_xn,
+            #                                            subplot_yn,
+            #                                            subplot_pos)
+            #     subplot_arr.append(subplot_tmp)
+
         self._canvas.draw()
 
 class VulnCurve(BymurPlot):

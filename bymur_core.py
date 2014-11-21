@@ -229,6 +229,8 @@ class HazardModel(object):
         self._hazard_id = hm['hazard_id']
         self._hazard_name = hm['hazard_name']
         self._phenomenon_id = hm['phenomenon_id']
+        self._phenomenon_name = self._db.get_phenomenon_by_id(
+            hm['phenomenon_id'])['name']
         self._datagrid_id = hm['datagrid_id']
         self._exposure_time = float(hm['exposure_time'])
         self._iml = [float(l) for l in hm['iml'].split()]
@@ -303,6 +305,12 @@ class HazardModel(object):
         """Return associated phenonmenon id."""
 
         return self._phenomenon_id
+
+    @property
+    def phenomenon_name(self):
+        """Return associated phenonmenon name."""
+
+        return self._phenomenon_name
 
     @property
     def exposure_time(self):
@@ -392,6 +400,10 @@ class BymurCore(object):
         self._hazard = None
         self._hazard_data = None
         self._selected_point = HazardPoint(self)
+        self._selected_area = bf.InventorySection()
+        self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
+        print self._inventory.classes
+        print self._inventory.sections[1].asset.counts
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -531,6 +543,19 @@ class BymurCore(object):
             self.hazard_options['int_thresh'],
             self.hazard_options['hazard_threshold'])
 
+    def set_area_by_ID(self, areaID):
+        print "section aread id %s" % self.inventory.sections[areaID-1].areaID
+
+        self.selected_area.areaID = \
+            self.inventory.sections[areaID-1].areaID
+        self.selected_area.sectionID = \
+            self.inventory.sections[areaID-1].sectionID
+        self.selected_area.geometry = \
+            self.inventory.sections[areaID-1].geometry
+        self.selected_area.centroid = \
+            self.inventory.sections[areaID-1].centroid
+        self.selected_area.asset = \
+            self.inventory.sections[areaID-1].asset
 
     def set_point_by_index(self, index):
         """
@@ -1072,6 +1097,22 @@ class BymurCore(object):
     def hazard_data(self, data):
         print "hazard_data setter"
         self._hazard_data = data
+
+    @property
+    def inventory(self):
+        return self._inventory
+
+    @inventory.setter
+    def inventory(self, data):
+        self._inventory = data
+        
+    @property
+    def selected_area(self):
+        return self._selected_area
+
+    @selected_area.setter
+    def selected_area(self, data):
+        self._selected_area = data
 
     @property
     def selected_point(self):
