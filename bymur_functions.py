@@ -63,8 +63,9 @@ _basedir = os.path.dirname(__file__)
 _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
 class InventoryClass(object):
-    def __init__(self, type='', name=''):
+    def __init__(self, type='', name='', label=''):
         self._name = name
+        self._label = label
         self._type = type
         pass
 
@@ -74,6 +75,13 @@ class InventoryClass(object):
     @name.setter
     def name(self, data):
         self._name = data
+        
+    @property
+    def label(self):
+        return self._label
+    @label.setter
+    def label(self, data):
+        self._label = data
 
     @property
     def type(self):
@@ -93,8 +101,8 @@ class InventoryHouseClass(InventoryClass):
 
 class InventoryPhenClass(InventoryClass):
     def __init__(self, name='', phenomenon = None, **kwargs):
-        super(InventoryPhenClass, self).__init__(name=name, **kwargs)
         self._phenomenon = phenomenon
+        super(InventoryPhenClass, self).__init__(**kwargs)
         pass
 
     @property
@@ -483,7 +491,8 @@ def parse_xml_inventory(filename):
                     class_obj_type = 'InventoryCostClass'
                     class_obj_phen = element.get('phenomenon')
                 elif element.tag == 'class':
-                    new_class = eval(class_obj_type)(name = element.get('name'))
+                    new_class = eval(class_obj_type)(name = element.get('name'),
+                                                label = element.get('label'))
                     if issubclass(eval(class_obj_type), InventoryPhenClass):
                         new_class.phenomenon = class_obj_phen
                     class_list.append(new_class)
