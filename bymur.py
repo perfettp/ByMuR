@@ -1533,16 +1533,22 @@ class BymurWxLeftPanel(BymurWxPanel):
             orient=wx.VERTICAL)
         self._genClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
         self._genClassBoxSizer.Add(self._genClassSizer)
+        
         vpos = 0
+        self._genClasses = []
         for gen_class in self._topWindow.inventory.classes['generalClasses']:
-            self._genClassSizer.Add(wx.StaticText(self, wx.ID_ANY,
-                                                  gen_class.name),
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 1))
-            self._genClassSizer.Add(wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY, size=(40,20)),
-                                    flag=wx.EXPAND, pos=(vpos, 1),
-                             span=(1, 1))
+            _genclassrow = dict()
+            _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  gen_class.name)
+            _genclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._genClassSizer.Add(_genclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._genClassSizer.Add(_genclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._genClasses.append(_genclassrow)
             vpos +=1
 
         self._classBoxSizer.Add(self._genClassBoxSizer, flag=wx.EXPAND)
@@ -1557,18 +1563,24 @@ class BymurWxLeftPanel(BymurWxPanel):
             orient=wx.VERTICAL)
         self._ageClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
         self._ageClassBoxSizer.Add(self._ageClassSizer)
+        
         vpos = 0
+        self._ageClasses = []
         for age_class in self._topWindow.inventory.classes['ageClasses']:
-            self._ageClassSizer.Add(wx.StaticText(self, wx.ID_ANY,
-                                                  age_class.name),
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 1))
-            self._ageClassSizer.Add(wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY, size=(40,20)),
-                                    flag=wx.EXPAND, pos=(vpos, 1),
-                             span=(1, 1))
-            vpos +=1
+            _ageclassrow = dict()
+            _ageclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  age_class.name)
+            _ageclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._ageClassSizer.Add(_ageclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
 
+            self._ageClassSizer.Add(_ageclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._ageClasses.append(_ageclassrow)
+            vpos +=1
+            
         self._classBoxSizer.Add(self._ageClassBoxSizer, flag=wx.EXPAND)
         
         # House Classes
@@ -1581,22 +1593,27 @@ class BymurWxLeftPanel(BymurWxPanel):
             orient=wx.VERTICAL)
         self._houseClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
         self._houseClassBoxSizer.Add(self._houseClassSizer)
+        
         vpos = 0
+        self._houseClasses = []
         for house_class in self._topWindow.inventory.classes['houseClasses']:
-            self._houseClassSizer.Add(wx.StaticText(self, wx.ID_ANY,
-                                                  house_class.name),
-                                      flag=wx.EXPAND, pos=(vpos, 0),
-                                      span=(1, 1))
-            self._houseClassSizer.Add(wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY, size=(40,20)),
-                                    flag=wx.EXPAND, pos=(vpos, 1),
-                             span=(1, 1))
-            vpos +=1
+            _houseclassrow = dict()
+            _houseclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  house_class.name)
+            _houseclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._houseClassSizer.Add(_houseclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
 
+            self._houseClassSizer.Add(_houseclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._houseClasses.append(_houseclassrow)
+            vpos +=1
+            
+        
         self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
         
-        
-
 
         self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
@@ -1671,6 +1688,50 @@ class BymurWxLeftPanel(BymurWxPanel):
                 str(self._topWindow.selected_area.asset.total))
         else:
             self._invTotalTC.SetValue('')
+
+
+        print self._topWindow.selected_area.asset.counts
+
+        if isinstance(self._topWindow.inventory.classes, dict):
+            if self._topWindow.inventory.classes['generalClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['generalClasses'])):
+                    try:
+                        self._genClasses[i_class]['value'].SetValue(
+                            str(self._topWindow.selected_area.asset.
+                                counts['genClassCount'][i_class]))
+                    except:
+                        self._genClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._genClasses)):
+                    self._genClasses[i_class]['value'].SetValue('')
+                    
+            if self._topWindow.inventory.classes['ageClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['ageClasses'])):
+                    try:
+                        self._ageClasses[i_class]['value'].SetValue(
+                            str(self._topWindow.selected_area.asset.
+                                counts['ageClassCount'][i_class]))
+                    except:
+                        self._ageClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._ageClasses)):
+                    self._ageClasses[i_class]['value'].SetValue('')
+                    
+            if self._topWindow.inventory.classes['houseClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['houseClasses'])):
+                    try:
+                        self._houseClasses[i_class]['value'].SetValue(
+                            str(self._topWindow.selected_area.asset.
+                                counts['houseClassCount'][i_class]))
+                    except:
+                        self._houseClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._houseClasses)):
+                    self._houseClasses[i_class]['value'].SetValue('')
+
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
