@@ -229,6 +229,8 @@ class HazardModel(object):
         self._hazard_id = hm['hazard_id']
         self._hazard_name = hm['hazard_name']
         self._phenomenon_id = hm['phenomenon_id']
+        self._phenomenon_name = self._db.get_phenomenon_by_id(
+            hm['phenomenon_id'])['name']
         self._datagrid_id = hm['datagrid_id']
         self._exposure_time = float(hm['exposure_time'])
         self._iml = [float(l) for l in hm['iml'].split()]
@@ -303,6 +305,12 @@ class HazardModel(object):
         """Return associated phenonmenon id."""
 
         return self._phenomenon_id
+
+    @property
+    def phenomenon_name(self):
+        """Return associated phenonmenon name."""
+
+        return self._phenomenon_name
 
     @property
     def exposure_time(self):

@@ -402,6 +402,10 @@ class HazardCurve(BymurPlot):
         self._canvas.draw()
 
 class InvCurve(BymurPlot):
+
+    _colors = ['#fff7ec', '#fee8c8', '#fdd49e', '#fdbb84', '#fc8d59',
+               '#ef6548', '#d7301f', '#b30000', '#7f0000']
+
     def __init__(self, *args, **kwargs):
         super(InvCurve, self).__init__(*args, **kwargs)
 
@@ -409,16 +413,47 @@ class InvCurve(BymurPlot):
         self._hazard = kwargs.pop('hazard', None)
         self._inventory = kwargs.pop('inventory', None)
         self._area = kwargs.pop('area', None)
-        print "InvCurve plot hazard = %s" % self._hazard
+        print "InvCurve plot hazard phen= %s" % self._hazard.phenomenon_name
         print "InvCurve plot inventory = %s" % self._inventory
         print "InvCurve plot area = %s" % self._area
         self._figure.clf()
 
-
-        subplot_xn = 3
-        subplot_yn = 3
+        subplot_xn = 2
+        subplot_yn = 1
         subplot_arr = []
 
+        subplot_pos = 1
+        subplot_tmp = self._figure.add_subplot(subplot_xn, subplot_yn,
+                                               subplot_pos)
+        for i_class in range(len(self._inventory.classes['fragilityClasses'][
+            self._hazard.phenomenon_name.lower()])):
+            width=0.2
+            subplot_tmp.set_title("Fragility class probability")
+            subplot_tmp.set_xticks([])
+            subplot_tmp.bar(i_class*width,
+                np.float(self._area.asset.frag_class_prob[
+                    self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
+                width, color=self._colors[i_class],
+                label=self._inventory.classes['fragilityClasses'][
+                    self._hazard.phenomenon_name.lower()][i_class].name)
+        subplot_arr.append(subplot_tmp)
+
+        subplot_pos += 1
+        subplot_tmp = self._figure.add_subplot(subplot_xn, subplot_yn,
+                                               subplot_pos)
+        for i_class in range(len(self._inventory.classes['costClasses'][
+            self._hazard.phenomenon_name.lower()])):
+            width=0.2
+            subplot_tmp.set_title("Cost class probability")
+            subplot_tmp.set_xticks([])
+            subplot_tmp.bar(i_class*width,
+                np.float(self._area.asset.frag_class_prob[
+                    self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
+                width, color=self._colors[i_class],
+                label=self._inventory.classes['costClasses'][
+                    self._hazard.phenomenon_name.lower()][i_class].name)
+
+        subplot_arr.append(subplot_tmp)
         # for i in range(9):
         #     subplot_pos = i + 1
         #     subplot_tmp = self._figure.add_subplot(subplot_xn,
