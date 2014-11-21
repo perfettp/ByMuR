@@ -401,6 +401,33 @@ class HazardCurve(BymurPlot):
         self._figure.clf()
         self._canvas.draw()
 
+class InvCurve(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(InvCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        self._hazard = kwargs.pop('hazard', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._area = kwargs.pop('area', None)
+        print "InvCurve plot hazard = %s" % self._hazard
+        print "InvCurve plot inventory = %s" % self._inventory
+        print "InvCurve plot area = %s" % self._area
+        self._figure.clf()
+
+
+        subplot_xn = 3
+        subplot_yn = 3
+        subplot_arr = []
+
+        # for i in range(9):
+        #     subplot_pos = i + 1
+        #     subplot_tmp = self._figure.add_subplot(subplot_xn,
+        #                                            subplot_yn,
+        #                                            subplot_pos)
+        #     subplot_arr.append(subplot_tmp)
+
+        self._canvas.draw()
+
 class VulnCurve(BymurPlot):
     def __init__(self, *args, **kwargs):
         super(VulnCurve, self).__init__(*args, **kwargs)

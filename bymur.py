@@ -1118,9 +1118,14 @@ class BymurWxCurvesPanel(BymurWxPanel):
                                                controller=self._controller,
                                                label="NBRiskPage")
 
+        self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBInvPage")
+
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
         self._nb.AddPage(self._curvesNBVuln, self._curvesNBVuln.title)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
+        self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
 
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._controller.nbTabChanged)
         self._sizer.Add(self._nb, 1, wx.EXPAND | wx.ALL, 10)
@@ -1178,6 +1183,29 @@ class BymurWxMapPanel(BymurWxPanel):
     def map(self):
         """Get the current page title."""
         return self._map
+
+class BymurWxNBInvPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Inventory")
+        super(BymurWxNBInvPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.InvCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxNBInvPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       area=wx.GetTopLevelParent(self).selected_area)
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
+
 
 
 class BymurWxNBHazPage(BymurWxPanel):

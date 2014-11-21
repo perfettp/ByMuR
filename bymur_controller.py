@@ -287,7 +287,7 @@ class BymurController(object):
         print "showPoints"
 
     def nbTabChanged(self, event):
-        self.rightPanel.curvesPanel.updateView(**self._core.data)
+        self.get_gui().rightPanel.curvesPanel.updateView()
 
     def pick_point_by_index(self, index, pathID=None):
         """
