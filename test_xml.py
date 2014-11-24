@@ -339,7 +339,7 @@ def parse_xml_loss(filename):
         raise Exception(str(e))
     return loss_xml
 
-class  LossFunction(object):
+class  RiskFunction(object):
     def __init__(self, areaID=None):
         self._areaID = areaID
         self._functions = dict()
@@ -369,39 +369,58 @@ class  LossFunction(object):
     # def [var](self, data):
     #     self._[var] = data
 
-class  LossXML(object):
+class  RiskXML(object):
     def __init__(self):
-        self._loss_type = None
-        self._model_name = None
+        self._risk_type = None
+        self._loss_model_name = None
+        self._hazard_model_name = None
+        self._fragility_model_name = None
         self._statistic = None
         self._quantile_value = None
-        self._unit = None
+        self._investigation_time = None
         self._areas = []
         pass
 
+
     def dump(self):
-        print "Loss type: %s " % self.loss_type
-        print "Model name: %s " % self.model_name
+        print "Risk type: %s " % self.risk_type
+        print "Loss model name: %s " % self.loss_model_name
+        print "Hazard model name: %s " % self.hazard_model_name
+        print "Fragility model name: %s " % self.fragility_model_name
+        print "Investigation time: %s " % self.investigation_time
         print "Statistic: %s " % self.statistic
         print "Quantile value: %s " % self.quantile_value
-        print "Unit: %s " % self.unit
         for a in self.areas:
             a.dump()
         pass
 
     @property
-    def loss_type(self):
-        return self._loss_type
-    @loss_type.setter
-    def loss_type(self, data):
-        self._loss_type = data
+    def risk_type(self):
+        return self._risk_type
+    @risk_type.setter
+    def risk_type(self, data):
+        self._risk_type = data
 
     @property
-    def model_name(self):
-        return self._model_name
-    @model_name.setter
-    def model_name(self, data):
-        self._model_name = data
+    def loss_model_name(self):
+        return self._loss_model_name
+    @loss_model_name.setter
+    def loss_model_name(self, data):
+        self._loss_model_name = data
+    
+    @property
+    def fragility_model_name(self):
+        return self._fragility_model_name
+    @fragility_model_name.setter
+    def fragility_model_name(self, data):
+        self._fragility_model_name = data
+    
+    @property
+    def hazard_model_name(self):
+        return self._hazard_model_name
+    @hazard_model_name.setter
+    def hazard_model_name(self, data):
+        self._hazard_model_name = data
 
     @property
     def statistic(self):
@@ -418,11 +437,12 @@ class  LossXML(object):
         self._quantile_value = float(data)
 
     @property
-    def unit(self):
-        return self._unit
-    @unit.setter
-    def unit(self, data):
-        self._unit = data
+    def investigation_time(self):
+        return self._investigation_time
+    @investigation_time.setter
+    def investigation_time(self, data):
+        self._investigation_time = data
+    
 
     @property
     def areas(self):
@@ -439,54 +459,54 @@ class  LossXML(object):
     #     self._[var] = data
 
 
-def parse_xml_loss(filename):
-    print "Parsing loss: %s" % (filename)
-    loss_xml = LossXML()
+def parse_xml_risk(filename):
+    print "Parsing risk: %s" % (filename)
+    risk_xml = RiskXML()
     try:
         context = etree.iterparse(filename, events=("start", "end"))
         for event, element in context:
             if event == "start":
-                if element.tag == 'arealLossModel':
-                    loss_xml.loss_type = element.get('lossType')
-                    loss_xml.model_name = element.get('modelName')
-                    loss_xml.unit = element.get('unit')
-                    loss_xml.statistic = element.get('statistics')
-                    if loss_xml.statistic == "quantile":
-                        loss_xml.quantile_value = \
+                if element.tag == 'arealRiskModel':
+                    risk_xml.risk_type = element.get('riskType')
+                    risk_xml.loss_model_name = element.get('lossModelName')
+                    risk_xml.hazard_model_name = element.get('hazardModelName')
+                    risk_xml.fragility_model_name = \
+                        element.get('fragilityModelName')
+                    risk_xml.statistic = element.get('statistics')
+                    risk_xml.investigation_time = \
+                        float(element.get('investigationTime'))
+                    if risk_xml.statistic == "quantile":
+                        risk_xml.quantile_value = \
                             element.get('quantileValue')
-                if element.tag == 'lossCurve':
-                    lfs_xml = LossFunction(areaID=element.get("areaID"))
-                if element.tag == 'limitStateCurve':
-                    cur_ls = element.get("ls")
-                    if cur_ls not in lfs_xml.functions.keys():
-                        lfs_xml.functions[cur_ls] = dict()
-                if element.tag == 'poEs':
-                    lfs_xml.functions[cur_ls]['poEs'] = []
-                if element.tag == 'losses':
-                    lfs_xml.functions[cur_ls]['losses'] = []
+                if element.tag == 'riskCurve':
+                    rfs_xml = RiskFunction(areaID=element.get("areaID"))
             else:
-                if element.tag == 'arealLossModel':
+                if element.tag == 'arealRiskModel':
                     element.clear()
                 if element.tag == 'description':
-                    loss_xml.description = element.text.strip()
+                    risk_xml.description = element.text.strip()
                     element.clear()
-                if element.tag == 'lossCurve':
-                    loss_xml.areas.append(lfs_xml)
+                if element.tag == 'riskCurve':
+                    risk_xml.areas.append(rfs_xml)
                     element.clear()
                 if element.tag == 'poEs':
-                    lfs_xml.functions[cur_ls]['poEs'] = [float(p) for p in
-                                                element.text.strip().split(" ")]
+                    rfs_xml.functions['poEs'] = [float(p) for p in
+                                            element.text.strip().split(" ")]
                     element.clear()
                 if element.tag == 'losses':
-                    lfs_xml.functions[cur_ls]['losses'] = [float(p) for p in
-                                                element.text.strip().split(" ")]
+                    rfs_xml.functions['losses'] = [float(p) for p in
+                                            element.text.strip().split(" ")]
                     element.clear()
-
+                if element.tag == 'averageRisk':
+                    rfs_xml.average_risk =  float(element.text.strip())
+                    element.clear()
     except Exception as e:
         print "Error parsing file " + \
               filename +  " : " + str(e)
         raise Exception(str(e))
-    return loss_xml
+    return risk_xml
+
+
 
 
 
@@ -498,10 +518,18 @@ def parse_xml_loss(filename):
 #                     "/arealFragilityModel_quantile10.xml")
 # i_xml.dump()
 
-l_xml = parse_xml_loss("data/examples/volcanic5yr/LMs/LOC_0001-0010"
-                     "/arealLossModel_mean.xml")
+# l_xml = parse_xml_loss("data/examples/volcanic5yr/LMs/LOC_0001-0010"
+#                      "/arealLossModel_mean.xml")
+# 
+# l_xml.dump()
+# l_xml = parse_xml_loss("data/examples/volcanic5yr/LMs/LOC_0001-0010"
+#                     "/arealLossModel_quantile10.xml")
+# l_xml.dump()
 
-l_xml.dump()
-l_xml = parse_xml_loss("data/examples/volcanic5yr/LMs/LOC_0001-0010"
-                    "/arealLossModel_quantile10.xml")
-l_xml.dump()
+r_xml = parse_xml_risk("data/examples/volcanic5yr/RISKs/LOC_0001-0010"
+                     "/arealRiskModel_mean.xml")
+
+r_xml.dump()
+r_xml = parse_xml_risk("data/examples/volcanic5yr/RISKs/LOC_0001-0010"
+                    "/arealRiskModel_quantile10.xml")
+r_xml.dump()
