@@ -69,6 +69,10 @@ class BymurPlot(object):
         self._canvas.SetSize(self._parent.GetSize())
         self._canvas.draw()
 
+    def clear(self):
+        self._figure.clf()
+        self._canvas.draw()
+
 
 class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
@@ -397,9 +401,7 @@ class HazardCurve(BymurPlot):
         # self.axes.axis([0,1,0,1])
         self._canvas.draw()
 
-    def clear(self):
-        self._figure.clf()
-        self._canvas.draw()
+
 
 class InvCurve(BymurPlot):
 
@@ -427,6 +429,7 @@ class InvCurve(BymurPlot):
         #if there area any builging, plot fragility and cost classes probability
         if int(self._area.asset.total) > 0:
 
+            # Fragility class probabilities
             subplot_tmp = pyplot.subplot2grid((2,2), (0,0))
             width=0.2
             subplot_tmp.set_xlim((0, width*len(self._inventory.classes[
@@ -441,7 +444,6 @@ class InvCurve(BymurPlot):
                                         self._hazard.phenomenon_name.lower()]])
             subplot_tmp.set_ylim((0,1))
 
-
             for i_class in range(len(self._inventory.classes['fragilityClasses'][
                 self._hazard.phenomenon_name.lower()])):
                 subplot_tmp.bar(i_class*width,
@@ -452,6 +454,8 @@ class InvCurve(BymurPlot):
                         self._hazard.phenomenon_name.lower()][i_class].label)
             subplot_arr.append(subplot_tmp)
 
+
+            # Cost class probabilities
             subplot_tmp = pyplot.subplot2grid((2,2), (0,1))
             subplot_tmp.set_ylim((0,1))
             subplot_tmp.set_xlim((0,
@@ -468,8 +472,8 @@ class InvCurve(BymurPlot):
             for i_class in range(len(self._inventory.classes['costClasses'][
                 self._hazard.phenomenon_name.lower()])):
                 subplot_tmp.bar(i_class*width,
-                    np.float(self._area.asset.frag_class_prob[
-                        self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
+                    np.float(self._area.asset.cost_class_prob[
+                        self._hazard.phenomenon_name.lower()]['fnc'][i_class]),
                     width, color=self._colors[i_class],
                     label=self._inventory.classes['costClasses'][
                         self._hazard.phenomenon_name.lower()][i_class].name)
@@ -497,7 +501,6 @@ class InvCurve(BymurPlot):
                 bar_offset = bar_width/2
             else:
                 bar_offset = 0
-            # TODO: per l'offset controllare se dispari
             for i_class in range(len(self._inventory.classes['fragilityClasses'][
                 self._hazard.phenomenon_name.lower()])):
                 sub_probs = [float(x) for x  in self._area.asset.frag_class_prob[
