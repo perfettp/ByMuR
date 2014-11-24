@@ -165,7 +165,7 @@ def parse_xml_fragility(filename):
                     element.clear()
                 if element.tag == 'limitStates':
                     fragility_xml.limit_states = \
-                        [ls.strip() for ls in element.text.strip().split(",")]
+                        [ls.strip() for ls in element.text.strip().split(" ")]
                     element.clear()
                 if element.tag == 'IML':
                     fragility_xml.iml = [float(i) for i in
@@ -520,10 +520,20 @@ def parse_xml_risk(filename):
 
 # l_xml = parse_xml_loss("data/examples/volcanic5yr/LMs/LOC_0001-0010"
 #                      "/arealLossModel_mean.xml")
-# 
+#
 # l_xml.dump()
-# l_xml = parse_xml_loss("data/examples/volcanic5yr/LMs/LOC_0001-0010"
-#                     "/arealLossModel_quantile10.xml")
+# # l_xml = parse_xml_loss("data/examples/volcanic5yr/LMs/LOC_0001-0010"
+# #                     "/arealLossModel_quantile10.xml")
+# l_xml = parse_xml_loss("/tmp/arealLossModel_mean.xml")
+# # l_xml.dump()
+# for a in l_xml.areas:
+#     # print a.functions
+#     if 'Severe' in a.functions.keys():
+#         if len(a.functions['Severe']['losses']) !=\
+#                 len(a.functions['Severe']['poEs']):
+#             raise(Exception("LUNGHEZZA DIVERSA"))
+#         else:
+#             print "ok"
 # l_xml.dump()
 
 r_xml = parse_xml_risk("data/examples/volcanic5yr/RISKs/LOC_0001-0010"
