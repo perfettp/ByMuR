@@ -405,8 +405,10 @@ class InvCurve(BymurPlot):
 
     _colors = ['#fff7ec', '#fee8c8', '#fdd49e', '#fdbb84', '#fc8d59',
                '#ef6548', '#d7301f', '#b30000', '#7f0000']
-    _bar_colors = ['#762a83', '#af8dc3', '#e7d4e8', '#d9f0d3',
-                   '#7fbf7b','#1b7837']
+    # _bar_colors = ['#762a83', '#af8dc3', '#e7d4e8', '#d9f0d3',
+    #                '#7fbf7b','#1b7837']
+    _bar_colors = ['#1b9e77', '#d95f02', '#7570b3', '#e7298a', '#66a61e',
+                   '#e6ab02']
 
     def __init__(self, *args, **kwargs):
         super(InvCurve, self).__init__(*args, **kwargs)
@@ -422,6 +424,7 @@ class InvCurve(BymurPlot):
 
         subplot_arr = []
 
+        #if there area any builging, plot fragility and cost classes probability
         if int(self._area.asset.total) > 0:
 
             subplot_tmp = pyplot.subplot2grid((2,2), (0,0))
@@ -473,35 +476,53 @@ class InvCurve(BymurPlot):
             subplot_arr.append(subplot_tmp)
 
 
+
+            # Plot the probability to be in a specific fragility class given
+            # a certain generic class (plotted with the same color accross
+            # differents target fragility class ==> same bar color sum == 1)
             subplot_tmp = pyplot.subplot2grid((2,2), (1,0), colspan=2)
             subplot_tmp.set_title("Fragility given class")
             ticks = np.arange(0,width*len(self._inventory.classes[
                 'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
                       width) + (width/2)
+
             subplot_tmp.set_xticks(ticks)
             subplot_tmp.set_xticklabels([cl.label for cl in
                                     self._inventory.classes['fragilityClasses'][
                                         self._hazard.phenomenon_name.lower()]])
             subplot_tmp.set_ylim((0,1))
             bar_width=0.05
+
+            if (len(self._inventory.classes['generalClasses'])%2 != 0 ):
+                bar_offset = bar_width/2
+            else:
+                bar_offset = 0
+            # TODO: per l'offset controllare se dispari
             for i_class in range(len(self._inventory.classes['fragilityClasses'][
                 self._hazard.phenomenon_name.lower()])):
-                probs = [float(x) for x  in self._area.asset.frag_class_prob[
+                sub_probs = [float(x) for x  in self._area.asset.frag_class_prob[
                     self._hazard.phenomenon_name.lower()][
                     'fntGivenGeneralClass'][i_class]]
-                print probs
-                for i_p in range(len(probs)):
-                    subplot_tmp.bar(i_class*width+bar_width*i_p,
-                        probs[i_p], bar_width, color=self._bar_colors[i_p] )
+                print sub_probs
+                for i_p in range(len(sub_probs)):
+                    subplot_tmp.bar(i_class*width+bar_width*i_p+bar_offset,
+                        sub_probs[i_p], bar_width, color=self._bar_colors[
+                            i_p] )
 
-            subplot_tmp.legend(prop={'size': 10})
+            # Build legend for graph
+            legend_handles = []
+
+            for i_leg in \
+                range(len(self._inventory.classes['generalClasses'])):
+                lh_tmp = mpl.patches.Patch(color=self._bar_colors[i_leg],
+                                   label= self._inventory.classes[
+                                       'generalClasses'][i_leg].name)
+                legend_handles.append(lh_tmp)
+            subplot_tmp.legend(handles=legend_handles, prop={'size': 9},
+                               frameon = False, labelspacing=0.2,
+                               borderaxespad=0.)
+
             subplot_arr.append(subplot_tmp)
-            # for i in range(9):
-            #     subplot_pos = i + 1
-            #     subplot_tmp = self._figure.add_subplot(subplot_xn,
-            #                                            subplot_yn,
-            #                                            subplot_pos)
-            #     subplot_arr.append(subplot_tmp)
 
         self._canvas.draw()
 
