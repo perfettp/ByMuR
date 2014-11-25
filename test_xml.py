@@ -71,7 +71,6 @@ class InventoryAsset(object):
         self._counts = dict()
         self._frag_class_prob = dict()
         self._cost_class_prob = dict()
-        self._counts = dict()
         pass
 
     def dump(self):
@@ -87,7 +86,7 @@ class InventoryAsset(object):
         return self._total
     @total.setter
     def total(self, data):
-        self._total = data
+        self._total = int(data)
 
     @property
     def type(self):

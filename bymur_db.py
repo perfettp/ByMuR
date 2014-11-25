@@ -832,6 +832,58 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                         VALUES ({0}, {1})"""
         return self._cursor.execute(sqlquery.format(inventory_id, class_id))
 
+    def insert_areas(self, areas):
+        sqlquery = """
+                    INSERT IGNORE INTO areas (areaID, sectionID, centroidX,
+                                        centroidY, total_buildings,
+                                        general_classes_count,
+                                        age_classes_count,
+                                        house_classes_count,
+                                        geometry)
+                        VALUES(%(areaID)s, %(sectionID)s, %(centroidX)s,
+                        %(centroidY)s, %(total_buildings)s,
+                        %(general_classes_count)s, %(age_classes_count)s,
+                        %(house_classes_count)s, %(geometry)s)
+                    """
+        return self._cursor.executemany(sqlquery, areas)
+
+    def get_areas_list_by_id(self, areas):
+
+
+        sqlquery = " SELECT id FROM areas WHERE (areaID)  IN (%s)"
+        if len(areas) < 1:
+            return -1
+        areas_list = ', '.join([str((int(x['areaID']) )) for x in areas])
+        sqlquery %= areas_list
+        self._cursor.execute(sqlquery)
+        return [item[0] for item in self._cursor.fetchall()]
+
+    def insert_inventory_areas_rels(self, inv_id, areas_id_list):
+        """
+
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO inventory_areas (id_inventory, id_area)
+                        VALUES(""" + str(inv_id) + """, %s)"""
+        return self._cursor.executemany(sqlquery, [(id,) for id
+                                                   in areas_id_list])
+
+    def insert_cost_prob_class(self, phen_id, fun_list):
+
+        sqlquery = """
+                    INSERT IGNORE INTO area_costclass_prob (id_phenomenon,
+                    id_area, fnc) VALUES(""" + str(phen_id) + """, %s, %s)"""
+        return self._cursor.executemany(sqlquery, fun_list)
+
+    def insert_frag_prob_class(self, phen_id, fun_list):
+
+        sqlquery = """
+                    INSERT IGNORE INTO area_fragclass_prob (id_phenomenon,
+                    id_area, fnt, fnt_given_general_class) VALUES(""" + \
+                   str(phen_id) + """, %s, %s, %s)"""
+        return self._cursor.executemany(sqlquery, fun_list)
+
+
     def add_inventory(self, inventory_xml, grid_id):
 
         # Add inventory
@@ -916,143 +968,64 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                                              frag_class_id)
 
 
-
-
-
         # Add areas
-        # Add inventory_areas
+        a_list = []
+        for a in inventory_xml.sections:
+            a_dic = dict(areaID = a.areaID,
+                         sectionID = a.sectionID,
+                         centroidX = a.centroid[0],
+                         centroidY = a.centroid[1],
+                         total_buildings = a.asset.total,
+                         geometry = ",".join(a.geometry),
+                         frag_class_prob = a.asset.frag_class_prob,
+                         cost_class_prob = a.asset.cost_class_prob)
+            gen_class_count = age_class_count = house_class_count = ''
+            if int(a.asset.total) > 0:
+                gen_class_count = " ".join(a.asset.counts['genClassCount'])
+                age_class_count = " ".join(a.asset.counts['ageClassCount'])
+                house_class_count = " ".join(a.asset.counts['houseClassCount'])
+            a_dic.update(dict(general_classes_count = gen_class_count,
+                              age_classes_count = age_class_count,
+                              house_classes_count = house_class_count))
+            a_list.append(a_dic)
+            # self.insert_areas([a_dic])
+            # areas_id_list = self.get_areas_list_by_id([a_dic])
+            # self.insert_inventory_areas_rels(inventory_id, areas_id_list)
+
+        # Add inventory_areas relationship
+        self.insert_areas(a_list)
+        areas_id_list = self.get_areas_list_by_id(a_list)
+        for i_a in range(len(a_list)):
+            a_list[i_a].update(dict(id_db= areas_id_list[i_a]))
+
+        self.insert_inventory_areas_rels(inventory_id, areas_id_list)
+
+        phen_id_dic = dict()
+        for p in self.get_phenomena_list():
+            phen_id_dic.update({p['phenomenon_name'].lower():p['phenomenon_id']})
+
+        # Add areas cost and fragility class probability
+        for phen_k in phen_id_dic.keys():
+            cost_prob_class = []
+            for a in a_list:
+                if phen_k in a['cost_class_prob'].keys():
+                    cost_prob_class.append((a['id_db'],
+                            " ".join(a['cost_class_prob'][phen_k]['fnc'])))
+            self.insert_cost_prob_class(phen_id_dic[phen_k], cost_prob_class)
+
+        for phen_k in phen_id_dic.keys():
+            frag_prob_class = []
+            for a in a_list:
+                if phen_k in a['frag_class_prob'].keys():
+                    frag_prob_class.append((a['id_db'],
+                                " ".join(a['frag_class_prob'][phen_k]['fnt']),
+                                ",".join([" ".join(f) for f in
+                                          a['frag_class_prob'][phen_k]
+                                          ['fntGivenGeneralClass']])))
+            self.insert_frag_prob_class(phen_id_dic[phen_k], frag_prob_class)
+
+
+
+
+
         pass
-
-
-    # TODO: da eliminare modificando prima il codice
-
-    # def intensity_measure_unit_get_insert_id(self, unit_name):
-    #     sqlquery = """
-    #                 SELECT id FROM intensity_measure_unit
-    #                 WHERE measure_unit_text = '{0}'
-    #                """
-    #     # print sqlquery.format(unit_name)
-    #     self._cursor.execute(sqlquery.format(unit_name))
-    #     id = self._cursor.fetchone()
-    #     if id:
-    #         return id[0]
-    #     else:
-    #         sqlquery = """
-    #                     INSERT INTO intensity_measure_unit (measure_unit_text)
-    #                     VALUES('{0}')
-    #                    """
-    #         # print sqlquery.format(unit_name)
-    #         self._cursor.execute(sqlquery.format(unit_name))
-    #         return self._cursor.lastrowid
-
-    # def get_intensity_measure_unit_by_haz(self, haz_id):
-    #     sqlquery = """ SELECT `imu`.`measure_unit_text`
-    #         FROM (`hazmodel_intensities` `haz_int` LEFT JOIN
-    #         `intensity_thresholds` `it` ON
-    #         `haz_int`.`id_intensity_threshold`=`it`.`id`)
-    #             LEFT JOIN `intensity_measure_unit` `imu` ON
-    #                 `it`.`id_unit` = `imu`.`id`
-    #         WHERE `haz_int`.`id_hazard_model`= %s LIMIT 1
-    #     """
-    #     sqlquery %= str(haz_id)
-    #     self._cursor.execute(sqlquery)
-    #     return self._cursor.fetchone()[0]
-
-
-    # def intensity_thresholds_insert(self, int_thres, imt_id):
-    #     """
-    #     """
-    #     sqlquery = """
-    #                 INSERT IGNORE INTO intensity_thresholds (value,
-    #                     id_unit) VALUES( %s, """ + str(imt_id) + """)"""
-    #
-    #     # print sqlquery
-    #     # print int_thres
-    #
-    #     return self._cursor.executemany(sqlquery, [(val,) for val
-    #                                                in int_thres])
-
-    # def intensity_thresholds_idlist(self, imt_id, iml_thresholds):
-    #     """
-    #     """
-    #
-    #     sqlquery = """
-    #                 SELECT id FROM intensity_thresholds WHERE
-    #                 (value) IN (%s) AND id_unit=""" + str(imt_id)
-    #
-    #     if len(iml_thresholds) < 1:
-    #         return -1
-    #         # print iml_thresholds
-    #     iml_thresh_list = ', '.join([str(y) for y in [float(x)
-    #                                                   for x in
-    #                                                   iml_thresholds]])
-    #     sqlquery %= iml_thresh_list
-    #     self._cursor.execute(sqlquery)
-    #     return [item[0] for item in self._cursor.fetchall()]
-
-    # def hazard_thresholds_rel(self, hazard_id, thresholds_id_list):
-    #     """
-    #
-    #     """
-    #     sqlquery = """
-    #                 INSERT IGNORE INTO hazmodel_intensities
-    #                 (id_hazard_model, id_intensity_threshold)
-    #                     VALUES(""" + str(hazard_id) + """, %s)"""
-    #     return self._cursor.executemany(sqlquery, [(id,) for id
-    #                                                in thresholds_id_list])
-
-    # def get_intensity_threshods_by_haz(self, haz_id):
-    #
-    #     sqlquery = """ SELECT `it`.`value`
-    #         FROM `hazmodel_intensities` `haz_int` LEFT JOIN
-    #         `intensity_thresholds` `it` ON
-    #         `haz_int`.`id_intensity_threshold`=`it`.`id`
-    #         WHERE `haz_int`.`id_hazard_model`= %s ORDER BY `it`.`value`
-    #     """
-    #     sqlquery %= str(haz_id)
-    #     self._cursor.execute(sqlquery)
-    #     return [float(item[0]) for item in self._cursor.fetchall()]
-
-    # def get_exposure_times_by_haz(self, haz_id):
-    #     sqlquery = """ SELECT `et`.`id`, `et`.`years`
-    #         FROM `hazmodel_exptimes` `haz_exp` LEFT JOIN
-    #         `exposure_times` `et` ON
-    #         `haz_exp`.`id_exposure_time`=`et`.`id`
-    #         WHERE `haz_exp`.`id_hazard_model`= %s
-    #     """
-    #     sqlquery %= str(haz_id)
-    #     self._cursor.execute(sqlquery)
-    #     return [dict(zip(['id', 'years'], (x[0], int(x[1]))))
-    #             for x in self._cursor.fetchall()]
-
-    # def get_exposure_time_by_value(self, exp_time_value):
-    #     sqlquery = """ SELECT `et`.`id`
-    #         FROM `exposure_times` `et`
-    #         WHERE `et`.`years`= %s
-    #     """
-    #     sqlquery %= str(exp_time_value)
-    #     self._cursor.execute(sqlquery)
-    #     return self._cursor.fetchone()[0]
-
-
-    # def exposure_time_get_insert_id(self, exposure_time):
-    #     sqlquery = "SELECT id FROM exposure_times WHERE years = '{0}'"
-    #     self._cursor.execute(sqlquery.format(str(float(exposure_time))))
-    #     id = self._cursor.fetchone()
-    #     if id:
-    #         return id[0]
-    #     else:
-    #         sqlquery = "INSERT INTO exposure_times (years) VALUES('{0}')"
-    #         self._cursor.execute(sqlquery.format(str(float(exposure_time))))
-    #         return self._cursor.lastrowid
-
-    # def hazard_exposure_time_rel(self, hazard_id, exposure_time_id):
-    #     """
-    #
-    #     """
-    #     sqlquery = """
-    #                 INSERT IGNORE INTO hazmodel_exptimes
-    #                 (id_hazard_model, id_exposure_time)
-    #                     VALUES({0}, {1})"""
-    #     return self._cursor.execute(
-    #         sqlquery.format(hazard_id, exposure_time_id))
