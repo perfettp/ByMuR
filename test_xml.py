@@ -465,8 +465,6 @@ class  FragilityXML(object):
     #     self._[var] = data
 
 
-
-
 def parse_xml_fragility(filename):
     print "Parsing fragility: %s" % (filename)
     fragility_xml = FragilityXML()
@@ -559,6 +557,7 @@ class  LossFunction(object):
 class  LossXML(object):
     def __init__(self):
         self._loss_type = None
+        self._hazard_type = None
         self._model_name = None
         self._statistic = None
         self._quantile_value = None
@@ -582,6 +581,13 @@ class  LossXML(object):
     @loss_type.setter
     def loss_type(self, data):
         self._loss_type = data
+        
+    @property
+    def hazard_type(self):
+        return self._hazard_type
+    @hazard_type.setter
+    def hazard_type(self, data):
+        self._hazard_type = data
 
     @property
     def model_name(self):
@@ -635,6 +641,7 @@ def parse_xml_loss(filename):
             if event == "start":
                 if element.tag == 'arealLossModel':
                     loss_xml.loss_type = element.get('lossType')
+                    loss_xml.hazard_type = element.get('hazardType')
                     loss_xml.model_name = element.get('modelName')
                     loss_xml.unit = element.get('unit')
                     loss_xml.statistic = element.get('statistics')
@@ -843,8 +850,11 @@ def parse_xml_risk(filename):
     return risk_xml
 
 
-f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
-                            "/FCs/LOC_0011-0020/arealFragilityModel_mean.xml")
+# f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+#                             "/FCs/LOC_0011-0020/arealFragilityModel_mean.xml")
+
+l_xml = parse_xml_loss("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+                         "/LMs/LOC_0011-0020/arealLossModel_quantile10.xml")
 #
 # f_xml.dump()
 # f_xml = parse_xml_fragility("data/examples/volcanic5yr/FCs/LOC_0001-0010"
@@ -894,5 +904,8 @@ dbDetails = {'db_host': '***REMOVED***',
 
 
 db=bymur_db.BymurDB(**dbDetails)
-db.add_inventory(i_xml, 6)
-db.add_fragility(f_xml)
+# db.add_inventory(i_xml, 6)
+# db.add_fragility(f_xml)
+db.add_loss(l_xml)
+
+

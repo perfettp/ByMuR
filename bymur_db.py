@@ -1177,7 +1177,84 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                     frag_entries.append(f_tmp)
         self.insert_fragility_data(frag_id, stat_id, frag_entries)
 
+    def insert_id_loss_model(self, id_phen, loss_type, model_name, unit):
+        sqlquery = """SELECT id FROM loss_models
+                   WHERE model_name = '{0}'
+                   """
+        self._cursor.execute(sqlquery.format(model_name.upper()))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = """
+                    INSERT INTO loss_models (loss_type, id_phenomenon,
+                                                model_name, unit)
+                                        VALUES('{0}', {1}, '{2}', '{3}')
+                    """
+            self._cursor.execute(sqlquery.format(loss_type,
+                                                 id_phen,
+                                                 model_name.upper(),
+                                                 unit))
+            return self._cursor.lastrowid
 
+    def insert_loss_statistic_rel(self, loss_id, statistic_id):
+        """
 
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO lossmodel_statistics
+                    (id_loss_model, id_statistic)
+                        VALUES ({0}, {1})"""
+        return self._cursor.execute(sqlquery.format(loss_id, statistic_id))
+
+    def insert_loss_data(self, loss_id, stat_id, loss_entries):
+        sqlquery = """
+                    INSERT IGNORE INTO loss_data (id_loss_model,
+                        id_area, id_statistic, id_limit_state,
+                        loss_function)
+                        VALUES ( """ + str(loss_id) + """
+                        , %s, """ + str(stat_id) + """, %s , %s)"""
+
+        return self._cursor.executemany(sqlquery, loss_entries)
+
+    def add_loss(self, loss_xml):
+        phen_id_dic = dict()
+        for p in self.get_phenomena_list():
+            phen_id_dic.update({p['phenomenon_name']:p['phenomenon_id']})
+        phen_id = phen_id_dic[loss_xml.hazard_type.upper()]
+
+        loss_id = self.insert_id_loss_model(phen_id,
+                                            loss_xml.loss_type,
+                                            loss_xml.model_name,
+                                            loss_xml.unit)
+
+        stat_id = self.insert_id_statistic(
+                loss_xml.statistic,
+                loss_xml.quantile_value)
+
+        self.insert_loss_statistic_rel(loss_id, stat_id)
+
+        ls_id_dic = dict()
+
+        loss_entries = []
+        for a in loss_xml.areas:
+            for ls_key in a.functions.keys():
+                if ls_key not in ls_id_dic.keys():
+                    ls_id = self.insert_id_limitstate(ls_key)
+                    ls_id_dic.update({ls_key.lower():ls_id})
+                else:
+                    ls_id = ls_id_dic[ls_key.lower()]
+                function_point_list = []
+                for i_x in range(len(a.functions[ls_key]['losses'])):
+                    function_point = str(a.functions[ls_key]['losses'][i_x]) + \
+                                  " " + str(a.functions[ls_key]['poEs'][i_x])
+                    function_point_list.append(function_point)
+
+                f_tmp = ( self.get_area_dbid_by_areaid(a.areaID),
+                          ls_id,
+                          ",".join(function_point_list))
+                loss_entries.append(f_tmp)
+        print loss_entries
+        self.insert_loss_data(loss_id, stat_id, loss_entries)
 
 
