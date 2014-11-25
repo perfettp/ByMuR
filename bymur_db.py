@@ -404,6 +404,12 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         return [dict(zip(('phenomenon_id', 'phenomenon_name'), phen))
                 for phen in self._cursor.fetchall()]
 
+    def get_general_class_list(self):
+        sqlquery = "SELECT id, name FROM general_classes"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('id', 'name'), c))
+                for c in self._cursor.fetchall()]
+
     def get_phenomenon_by_id(self, phenomeon_id):
         sqlquery = """ SELECT `ph`.`id`, `ph`.`name`
             FROM `phenomena` `ph`  WHERE `ph`.`id`= '{0}'
@@ -414,10 +420,11 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     def insert_id_statistic(self, statistic,
                                 percentile_value):
         sqlquery = "SELECT id FROM statistics WHERE name = '{0}'"
-        if percentile_value != '0':
-            statistic_name = statistic + str(percentile_value).zfill(2)
-        else:
+        if (percentile_value) == '0' or (percentile_value is None) or (
+                percentile_value == 0):
             statistic_name = statistic
+        else:
+            statistic_name = statistic + str(percentile_value).zfill(2)
 
         self._cursor.execute(sqlquery.format(statistic_name))
         id = self._cursor.fetchone()
@@ -766,6 +773,43 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     def close(self):
         self._connection.close()
 
+    def insert_id_age_class(self, name, label):
+        sqlquery = "SELECT id FROM age_classes WHERE name LIKE '{0}'"
+        self._cursor.execute(sqlquery.format(name))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = "INSERT INTO age_classes (name, label)" \
+                       "VALUES('{0}', '{1}')"
+            self._cursor.execute(sqlquery.format(name, label))
+            return self._cursor.lastrowid
+        
+    def insert_id_general_class(self, name, label):
+        sqlquery = "SELECT id FROM general_classes WHERE name LIKE '{0}'"
+        self._cursor.execute(sqlquery.format(name))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = "INSERT INTO general_classes (name, label)" \
+                       "VALUES('{0}', '{1}')"
+            self._cursor.execute(sqlquery.format(name, label))
+            return self._cursor.lastrowid
+        
+    def insert_id_house_class(self, name, label):
+        sqlquery = "SELECT id FROM house_classes WHERE name LIKE '{0}'"
+        self._cursor.execute(sqlquery.format(name))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = "INSERT INTO house_classes (name, label)" \
+                       "VALUES('{0}', '{1}')"
+            self._cursor.execute(sqlquery.format(name, label))
+            return self._cursor.lastrowid
+
+
     def insert_id_cost_classes(self, cost_classes_str, phen_id):
         sqlquery = "SELECT id FROM cost_classes WHERE classes LIKE '{0}' AND " \
                    "id_phenomenon = '{1}'"
@@ -887,37 +931,35 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     def add_inventory(self, inventory_xml, grid_id):
 
         # Add inventory
-        age_classes_str = ''
-        gen_classes_str = ''
-        house_classes_str = ''
+        # age_classes_str = ''
+        # gen_classes_str = ''
+        # house_classes_str = ''
+        age_classes_list = []
+        general_classes_list = []
+        house_classes_list = []
         if type(inventory_xml.classes) is dict:
             if ('ageClasses' in inventory_xml.classes.keys()) and \
                 (len(inventory_xml.classes['ageClasses']) > 0):
-                age_classes_str = "(" + inventory_xml.classes[
-                    'ageClasses'][0].name + "," + inventory_xml.classes[
-                    'ageClasses'][0].label + ")"
-                for c in inventory_xml.classes['ageClasses'][1:]:
-                    age_classes_str += ", (" + c.name + "," + c.label + ")"
+                for c in inventory_xml.classes['ageClasses']:
+                    c_id = self.insert_id_age_class(c.name, c.label)
+                    age_classes_list.append(str(c_id))
 
             if ('generalClasses' in inventory_xml.classes.keys()) and \
                 (len(inventory_xml.classes['generalClasses']) > 0):
-                gen_classes_str = "(" + inventory_xml.classes[
-                    'generalClasses'][0].name + "," + inventory_xml.classes[
-                    'generalClasses'][0].label + ")"
-                for c in inventory_xml.classes['generalClasses'][1:]:
-                    gen_classes_str += ", (" + c.name + "," + c.label + ")"
+                for c in inventory_xml.classes['generalClasses']:
+                    c_id = self.insert_id_general_class(c.name, c.label)
+                    general_classes_list.append(str(c_id))
 
             if ('houseClasses' in inventory_xml.classes.keys()) and \
                 (len(inventory_xml.classes['houseClasses']) > 0):
-                house_classes_str = "(" + inventory_xml.classes[
-                    'houseClasses'][0].name + "," + inventory_xml.classes[
-                    'houseClasses'][0].label + ")"
-                for c in inventory_xml.classes['houseClasses'][1:]:
-                    house_classes_str += ", (" + c.name + "," + c.label + ")"
+                for c in inventory_xml.classes['houseClasses']:
+                    c_id = self.insert_id_house_class(c.name, c.label)
+                    house_classes_list.append(str(c_id))
 
         inventory_id = self.insert_id_inventory(grid_id, inventory_xml.name,
-                            gen_classes_str, age_classes_str, house_classes_str)
-
+                            " ".join(general_classes_list),
+                            " ".join(age_classes_list),
+                            " ".join(house_classes_list))
 
         # Add classes
         if type(inventory_xml.classes) is dict:
@@ -1024,8 +1066,118 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                           ['fntGivenGeneralClass']])))
             self.insert_frag_prob_class(phen_id_dic[phen_k], frag_prob_class)
 
+    def insert_id_fragility_model(self, id_phen, name, description,
+                               iml, imt):
+        sqlquery = """SELECT id FROM fragility_models
+                   WHERE model_name = '{0}'
+                   """
+        self._cursor.execute(sqlquery.format(name.upper()))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = """
+                    INSERT INTO fragility_models (id_phenomenon,
+                                                model_name, description,
+                                                iml, imt)
+                                        VALUES({0}, '{1}', '{2}', '{3}', '{4}')
+                    """
+            self._cursor.execute(sqlquery.format(id_phen, name.upper(),
+                                                 description, iml, imt))
+            return self._cursor.lastrowid
+
+    def insert_fragility_statistic_rel(self, frag_id, statistic_id):
+        """
+
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO fragmodel_statistics
+                    (id_fragility_model, id_statistic)
+                        VALUES ({0}, {1})"""
+        return self._cursor.execute(sqlquery.format(frag_id, statistic_id))
+
+    def insert_id_limitstate(self, limit_state):
+        sqlquery = "SELECT id FROM limit_states WHERE name = '{0}'"
+
+        self._cursor.execute(sqlquery.format(limit_state))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = "INSERT INTO limit_states (name) VALUES('{0}')"
+            self._cursor.execute(sqlquery.format(limit_state))
+            return self._cursor.lastrowid
+
+    def insert_fragmodel_limitstate_rel(self, frag_id, ls_id):
+        """
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO fragmodel_limitstates
+                    (id_fragility_model, id_limitstate)
+                        VALUES ({0}, {1})"""
+        return self._cursor.execute(sqlquery.format(frag_id, ls_id))
+
+    def get_area_dbid_by_areaid(self, areaid):
+        sqlquery = "SELECT id FROM areas WHERE areaID = {0}"
+        self._cursor.execute(sqlquery.format(areaid))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            return 0
+
+    def insert_fragility_data(self, frag_id, stat_id, frag_entries):
+        sqlquery = """
+                    INSERT IGNORE INTO fragility_data (id_fragility_model,
+                        id_area, id_statistic, id_limit_state,
+                        id_taxonomy, fragility_curve)
+                        VALUES ( """ + str(frag_id) + """
+                        , %s, """ + str(stat_id) + """, %s , %s, %s)"""
+
+        return self._cursor.executemany(sqlquery, frag_entries)
+
+    def add_fragility(self, fragility_xml):
+        phen_id_dic = dict()
+        for p in self.get_phenomena_list():
+            phen_id_dic.update({p['phenomenon_name']:p['phenomenon_id']})
+        phen_id = phen_id_dic[fragility_xml.hazard_type.upper()]
+
+        frag_id = self.insert_id_fragility_model(phen_id,
+                            fragility_xml.model_name,
+                            fragility_xml.description,
+                            " ".join([str(f) for f in fragility_xml.iml]),
+                            fragility_xml.imt)
+
+        stat_id = self.insert_id_statistic(
+                fragility_xml.statistic,
+                fragility_xml.quantile_value)
+
+        self.insert_fragility_statistic_rel(frag_id, stat_id)
+
+        ls_id_dic = dict()
+
+        for ls in fragility_xml.limit_states:
+            ls_id = self.insert_id_limitstate(ls)
+            ls_id_dic.update({ls.lower():ls_id})
+            self.insert_fragmodel_limitstate_rel(frag_id, ls_id)
+
+        general_class_id_dic = dict()
+        for c in self.get_general_class_list():
+            general_class_id_dic.update({c['name'].lower():c['id']})
+
+        frag_entries = []
+        for a in fragility_xml.areas:
+            for cat_key in a.functions.keys():
+                for ls_key in a.functions[cat_key].keys():
+                    f_tmp = ( self.get_area_dbid_by_areaid(a.areaID),
+                              ls_id_dic[ls_key.lower()],
+                              general_class_id_dic[cat_key.lower()],
+                              " ".join([str(x) for x in
+                                        a.functions[cat_key][ls_key]]))
+                    frag_entries.append(f_tmp)
+        self.insert_fragility_data(frag_id, stat_id, frag_entries)
 
 
 
 
-        pass
+

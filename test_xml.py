@@ -843,8 +843,8 @@ def parse_xml_risk(filename):
     return risk_xml
 
 
-# f_xml = parse_xml_fragility("data/examples/volcanic5yr/FCs/LOC_0001-0010"
-#                      "/arealFragilityModel_mean.xml")
+f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+                            "/FCs/LOC_0011-0020/arealFragilityModel_mean.xml")
 #
 # f_xml.dump()
 # f_xml = parse_xml_fragility("data/examples/volcanic5yr/FCs/LOC_0001-0010"
@@ -895,3 +895,4 @@ dbDetails = {'db_host': '***REMOVED***',
 
 db=bymur_db.BymurDB(**dbDetails)
 db.add_inventory(i_xml, 6)
+db.add_fragility(f_xml)
