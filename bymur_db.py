@@ -766,6 +766,163 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     def close(self):
         self._connection.close()
 
+    def insert_id_cost_classes(self, cost_classes_str, phen_id):
+        sqlquery = "SELECT id FROM cost_classes WHERE classes LIKE '{0}' AND " \
+                   "id_phenomenon = '{1}'"
+        self._cursor.execute(sqlquery.format(cost_classes_str, phen_id))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = "INSERT INTO cost_classes (id_phenomenon, classes)" \
+                       "VALUES('{0}', '{1}')"
+            self._cursor.execute(sqlquery.format(phen_id, cost_classes_str))
+            return self._cursor.lastrowid
+        
+    def insert_id_frag_classes(self, frag_classes_str, phen_id):
+        sqlquery = "SELECT id FROM fragility_classes WHERE classes LIKE '{" \
+                   "0}' AND id_phenomenon = '{1}'"
+        self._cursor.execute(sqlquery.format(frag_classes_str, phen_id))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = "INSERT INTO fragility_classes (id_phenomenon, " \
+                       "classes) VALUES('{0}', '{1}')"
+            self._cursor.execute(sqlquery.format(phen_id, frag_classes_str))
+            return self._cursor.lastrowid
+
+    def insert_id_inventory(self, id_grid, name,
+                               gen_classes, age_classes, house_classes):
+        sqlquery = """SELECT id FROM inventory
+                   WHERE name = '{0}'
+                   """
+        self._cursor.execute(sqlquery.format(name.upper()))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = """
+                    INSERT INTO inventory (grid_id, name, general_classes,
+                                        age_classes, house_classes)
+                                        VALUES({0}, '{1}', '{2}', '{3}', '{4}')
+                    """
+            self._cursor.execute(sqlquery.format(id_grid, name.upper(),
+                                                 gen_classes, age_classes,
+                                                 house_classes))
+            return self._cursor.lastrowid
+
+    def insert_inventory_cost_class_rel(self, inventory_id, class_id):
+        """
+
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO inventory_cost_classes
+                    (id_inventory, id_cost_class)
+                        VALUES ({0}, {1})"""
+        return self._cursor.execute(sqlquery.format(inventory_id, class_id))
+    
+    def insert_inventory_frag_class_rel(self, inventory_id, class_id):
+        """
+
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO inventory_frag_classes
+                    (id_inventory, id_frag_class)
+                        VALUES ({0}, {1})"""
+        return self._cursor.execute(sqlquery.format(inventory_id, class_id))
+
+    def add_inventory(self, inventory_xml, grid_id):
+
+        # Add inventory
+        age_classes_str = ''
+        gen_classes_str = ''
+        house_classes_str = ''
+        if type(inventory_xml.classes) is dict:
+            if ('ageClasses' in inventory_xml.classes.keys()) and \
+                (len(inventory_xml.classes['ageClasses']) > 0):
+                age_classes_str = "(" + inventory_xml.classes[
+                    'ageClasses'][0].name + "," + inventory_xml.classes[
+                    'ageClasses'][0].label + ")"
+                for c in inventory_xml.classes['ageClasses'][1:]:
+                    age_classes_str += ", (" + c.name + "," + c.label + ")"
+
+            if ('generalClasses' in inventory_xml.classes.keys()) and \
+                (len(inventory_xml.classes['generalClasses']) > 0):
+                gen_classes_str = "(" + inventory_xml.classes[
+                    'generalClasses'][0].name + "," + inventory_xml.classes[
+                    'generalClasses'][0].label + ")"
+                for c in inventory_xml.classes['generalClasses'][1:]:
+                    gen_classes_str += ", (" + c.name + "," + c.label + ")"
+
+            if ('houseClasses' in inventory_xml.classes.keys()) and \
+                (len(inventory_xml.classes['houseClasses']) > 0):
+                house_classes_str = "(" + inventory_xml.classes[
+                    'houseClasses'][0].name + "," + inventory_xml.classes[
+                    'houseClasses'][0].label + ")"
+                for c in inventory_xml.classes['houseClasses'][1:]:
+                    house_classes_str += ", (" + c.name + "," + c.label + ")"
+
+        inventory_id = self.insert_id_inventory(grid_id, inventory_xml.name,
+                            gen_classes_str, age_classes_str, house_classes_str)
+
+
+        # Add classes
+        if type(inventory_xml.classes) is dict:
+            if 'costClasses' in inventory_xml.classes.keys():
+                for p_class in inventory_xml.classes['costClasses'].keys():
+                    cost_class_id = -1
+                    phen_id = self.insert_id_phenomenon(p_class)
+                    class_list = []
+                    for i_class in range(len(inventory_xml.classes
+                    ['costClasses'][p_class])):
+                        c_tmp = (inventory_xml.classes['costClasses']
+                                 [p_class][i_class].name,
+                                 inventory_xml.classes['costClasses']
+                                 [p_class][i_class].label)
+                        class_list.append(c_tmp)
+                    cost_classes_str = "("+str(class_list[0][0]) + "," \
+                                + str(class_list[0][1])+")"
+                    for c in class_list[1:]:
+                        cost_classes_str += ", ("+str(c[0]) + "," \
+                                + str(c[1])+")"
+                    cost_class_id = self.insert_id_cost_classes(
+                        cost_classes_str, phen_id)
+                    if cost_class_id >=0:
+                        self.insert_inventory_cost_class_rel(inventory_id,
+                                                             cost_class_id)
+
+            if 'fragilityClasses' in inventory_xml.classes.keys():
+                for p_class in inventory_xml.classes['fragilityClasses'].keys():
+                    frag_class_id = -1
+                    phen_id = self.insert_id_phenomenon(p_class)
+                    class_list = []
+                    for i_class in range(len(inventory_xml.classes
+                    ['fragilityClasses'][p_class])):
+                        c_tmp = (inventory_xml.classes['fragilityClasses']
+                                 [p_class][i_class].name,
+                                 inventory_xml.classes['fragilityClasses']
+                                 [p_class][i_class].label)
+                        class_list.append(c_tmp)
+                    frag_classes_str = "("+str(class_list[0][0]) + "," \
+                                + str(class_list[0][1])+")"
+                    for c in class_list[1:]:
+                        frag_classes_str += ", ("+str(c[0]) + "," \
+                                + str(c[1])+")"
+                    frag_class_id =  self.insert_id_frag_classes(
+                        frag_classes_str, phen_id)
+                    if frag_class_id >=0:
+                        self.insert_inventory_frag_class_rel(inventory_id,
+                                                             frag_class_id)
+
+
+
+
+
+        # Add areas
+        # Add inventory_areas
+        pass
+
 
     # TODO: da eliminare modificando prima il codice
 
