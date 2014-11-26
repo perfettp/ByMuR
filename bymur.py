@@ -1343,7 +1343,7 @@ class BymurInventorySizer(BymurStaticBoxSizer):
 
 class BymurWxDataPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
-        self._ctrlsBoxTitle = kwargs.pop('title', "Data")
+        self._dataBoxTitle = kwargs.pop('title', "Data")
         super(BymurWxDataPanel, self).__init__(*args, **kwargs)
         self._topWindow = wx.GetTopLevelParent(self)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
@@ -1535,6 +1535,7 @@ class BymurWxDataPanel(BymurWxPanel):
         self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._dataBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._invBoxSizer, flag=wx.EXPAND)
+        self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
         super(BymurWxDataPanel, self).updateView(**kwargs)
@@ -2109,7 +2110,7 @@ class BymurWxView(wx.Frame):
 
         # Main panel
         self.mainSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._ctrlsPanel = BymurWxCtrlsPanel(parent=self,
                                            controller=self._controller,
                                            title="Hazard",
@@ -2117,15 +2118,15 @@ class BymurWxView(wx.Frame):
 
         self._dataPanel = BymurWxDataPanel(parent=self,
                                            controller=self._controller,
-                                           title="Hazard",
+                                           title="Data",
                                            label="DataPanel")
 
         self._rightPanel = BymurWxRightPanel(parent=self,
                                              controller=self._controller,
                                              label="RightPanel")
-        self.leftSizer.Add(self._ctrlsPanel, 0, wx.EXPAND)
-        self.leftSizer.Add(self._dataPanel, 1, wx.EXPAND)
-        self.mainSizer.Add(self.leftSizer, 0, wx.EXPAND)
+        self._leftSizer.Add(self._ctrlsPanel, 0, wx.EXPAND)
+        self._leftSizer.Add(self._dataPanel, 1, wx.EXPAND)
+        self.mainSizer.Add(self._leftSizer, 0, wx.EXPAND)
         self.mainSizer.Add(self._rightPanel, 1, wx.EXPAND)
         self.SetSizer(self.mainSizer)
         self.SetSize((950, 750))
