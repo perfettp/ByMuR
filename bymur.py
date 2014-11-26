@@ -1540,6 +1540,102 @@ class BymurWxDataPanel(BymurWxPanel):
     def updateView(self, **kwargs):
         super(BymurWxDataPanel, self).updateView(**kwargs)
 
+    def clearPoint(self):
+        self._dataHazTC.SetValue('')
+        self._dataProbTC.SetValue('')
+
+    def updatePointData(self):
+        if self._topWindow.selected_point.haz_value:
+            self._dataHazTC.SetValue(
+                str(self._topWindow.selected_point.haz_value))
+        else:
+            self._dataHazTC.SetValue("")
+
+        if self._topWindow.selected_point.prob_value:
+            self._dataProbTC.SetValue(
+                str(self._topWindow.selected_point.prob_value))
+        else:
+            self._dataProbTC.SetValue("")
+
+        if self._topWindow.selected_area.areaID:
+            self._invAreaIDTC.SetValue(
+                str(self._topWindow.selected_area.areaID))
+        else:
+            self._invAreaIDTC.SetValue('')
+
+        if self._topWindow.selected_area.sectionID:
+            self._invSecIDTC.SetValue(
+                str(self._topWindow.selected_area.sectionID))
+        else:
+            self._invSecIDTC.SetValue('')
+
+        if self._topWindow.selected_area.centroid:
+            print self._topWindow.selected_area.centroid[0]
+            self._invCentroidXTC.SetValue(
+                str(self._topWindow.selected_area.centroid[0]))
+            self._invCentroidYTC.SetValue(
+                str(self._topWindow.selected_area.centroid[1]))
+        else:
+            self._invCentroidXTC.SetValue('')
+            self._invCentroidYTC.SetValue('')
+
+        if self._topWindow.selected_area.asset.total:
+            self._invTotalTC.SetValue(
+                str(self._topWindow.selected_area.asset.total))
+        else:
+            self._invTotalTC.SetValue('')
+
+
+        print self._topWindow.selected_area.asset.counts
+
+        if isinstance(self._topWindow.inventory.classes, dict):
+            if self._topWindow.inventory.classes['generalClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['generalClasses'])):
+                    try:
+                        self._genClasses[i_class]['value'].SetValue(
+                            str(self._topWindow.selected_area.asset.
+                                counts['genClassCount'][i_class]))
+                    except:
+                        self._genClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._genClasses)):
+                    self._genClasses[i_class]['value'].SetValue('')
+
+            if self._topWindow.inventory.classes['ageClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['ageClasses'])):
+                    try:
+                        self._ageClasses[i_class]['value'].SetValue(
+                            str(self._topWindow.selected_area.asset.
+                                counts['ageClassCount'][i_class]))
+                    except:
+                        self._ageClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._ageClasses)):
+                    self._ageClasses[i_class]['value'].SetValue('')
+
+            if self._topWindow.inventory.classes['houseClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['houseClasses'])):
+                    try:
+                        self._houseClasses[i_class]['value'].SetValue(
+                            str(self._topWindow.selected_area.asset.
+                                counts['houseClassCount'][i_class]))
+                    except:
+                        self._houseClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._houseClasses)):
+                    self._houseClasses[i_class]['value'].SetValue('')
+
+    # @property
+    # def pointID(self):
+    #     return self._pointIDCB.GetValue()
+    #
+    # @pointID.setter
+    # def pointID(self, data):
+    #     self._pointIDCB.SetValue(data)
+
 
 class BymurWxCtrlsPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
@@ -1691,8 +1787,6 @@ class BymurWxCtrlsPanel(BymurWxPanel):
     def clearPoint(self):
         self._pointEastSC.SetValueString('')
         self._pointNortSC.SetValueString('')
-        self._dataHazTC.SetValue('')
-        self._dataProbTC.SetValue('')
 
     def updatePointSel(self, ev=None, easting='', northing=''):
         self._pointEastSC.SetValueString(easting)
@@ -1710,90 +1804,6 @@ class BymurWxCtrlsPanel(BymurWxPanel):
                 str(self._topWindow.selected_point.northing))
         else:
             self._pointNortSC.SetValueString("")
-
-        if self._topWindow.selected_point.haz_value:
-            self._dataHazTC.SetValue(
-                str(self._topWindow.selected_point.haz_value))
-        else:
-            self._dataHazTC.SetValue("")
-
-        if self._topWindow.selected_point.prob_value:
-            self._dataProbTC.SetValue(
-                str(self._topWindow.selected_point.prob_value))
-        else:
-            self._dataProbTC.SetValue("")
-
-        if self._topWindow.selected_area.areaID:
-            self._invAreaIDTC.SetValue(
-                str(self._topWindow.selected_area.areaID))
-        else:
-            self._invAreaIDTC.SetValue('')
-
-        if self._topWindow.selected_area.sectionID:
-            self._invSecIDTC.SetValue(
-                str(self._topWindow.selected_area.sectionID))
-        else:
-            self._invSecIDTC.SetValue('')
-
-        if self._topWindow.selected_area.centroid:
-            print self._topWindow.selected_area.centroid[0]
-            self._invCentroidXTC.SetValue(
-                str(self._topWindow.selected_area.centroid[0]))
-            self._invCentroidYTC.SetValue(
-                str(self._topWindow.selected_area.centroid[1]))
-        else:
-            self._invCentroidXTC.SetValue('')
-            self._invCentroidYTC.SetValue('')
-
-        if self._topWindow.selected_area.asset.total:
-            self._invTotalTC.SetValue(
-                str(self._topWindow.selected_area.asset.total))
-        else:
-            self._invTotalTC.SetValue('')
-
-
-        print self._topWindow.selected_area.asset.counts
-
-        if isinstance(self._topWindow.inventory.classes, dict):
-            if self._topWindow.inventory.classes['generalClasses']:
-                for i_class in range(len(self._topWindow.inventory.
-                        classes['generalClasses'])):
-                    try:
-                        self._genClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
-                                counts['genClassCount'][i_class]))
-                    except:
-                        self._genClasses[i_class]['value'].SetValue('')
-            else:
-                for i_class in range(len(self._genClasses)):
-                    self._genClasses[i_class]['value'].SetValue('')
-                    
-            if self._topWindow.inventory.classes['ageClasses']:
-                for i_class in range(len(self._topWindow.inventory.
-                        classes['ageClasses'])):
-                    try:
-                        self._ageClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
-                                counts['ageClassCount'][i_class]))
-                    except:
-                        self._ageClasses[i_class]['value'].SetValue('')
-            else:
-                for i_class in range(len(self._ageClasses)):
-                    self._ageClasses[i_class]['value'].SetValue('')
-                    
-            if self._topWindow.inventory.classes['houseClasses']:
-                for i_class in range(len(self._topWindow.inventory.
-                        classes['houseClasses'])):
-                    try:
-                        self._houseClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
-                                counts['houseClassCount'][i_class]))
-                    except:
-                        self._houseClasses[i_class]['value'].SetValue('')
-            else:
-                for i_class in range(len(self._houseClasses)):
-                    self._houseClasses[i_class]['value'].SetValue('')
-
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
@@ -1944,13 +1954,6 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         values['exp_time'] = self._expTimeCB.GetStringSelection()
         return values
 
-    @property
-    def pointID(self):
-        return self._pointIDCB.GetValue()
-
-    @pointID.setter
-    def pointID(self, data):
-        self._pointIDCB.SetValue(data)
 
 
 class BymurWxMenu(wx.MenuBar):
@@ -2239,6 +2242,7 @@ class BymurWxView(wx.Frame):
             self.reset()
             self.ctrlsPanel.clearCtrls()
             self.ctrlsPanel.clearPoint()
+            self.dataPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
             self.rightPanel.mapPanel.clear()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
@@ -2252,13 +2256,15 @@ class BymurWxView(wx.Frame):
             self.ctrlsPanel.updateCtrls(event)
             self.ctrlsPanel.updatePointInterval()
             self.ctrlsPanel.clearPoint()
+            self.dataPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
             self.rightPanel.mapPanel.clear()
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_POINT:
             print "bf.wxBYMUR_UPDATE_POINT"
-            # self.leftPanel.updatePointData()
+            self.ctrlsPanel.updatePointData()
+            self.dataPanel.updatePointData()
             self.rightPanel.mapPanel.updatePoint()
             self.rightPanel.curvesPanel.updateView()
 
@@ -2273,6 +2279,10 @@ class BymurWxView(wx.Frame):
     @property
     def ctrlsPanel(self):
         return self._ctrlsPanel
+
+    @property
+    def dataPanel(self):
+        return self._dataPanel
 
     @property
     def hazard_options(self):
