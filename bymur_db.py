@@ -1154,7 +1154,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         
         fragility_model = self.get_fragility_model_by_name(
             fragility_xml.model_name)
-        print "Inserted fragility model %s" % fragility_model
+        # print "Inserted fragility model %s" % fragility_model
 
         stat_id = self.insert_id_statistic(
                 fragility_xml.statistic,
@@ -1269,7 +1269,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                           ls_id,
                           ",".join(function_point_list))
                 loss_entries.append(f_tmp)
-        print loss_entries
         self.insert_loss_data(loss_id, stat_id, loss_entries)
 
     def get_fragility_model_by_name(self, frag_name):
