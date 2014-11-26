@@ -256,7 +256,7 @@ class BymurController(object):
         """
 
         try:
-            data = self.get_gui().leftPanel.hazard_options
+            data = self.get_gui().ctrlsPanel.hazard_options
             print "Setting hazard_options data: %s" % data
             if (data['ret_per'] is None) or (data['int_thresh'] is None) or \
                     (data['hazard_name'] is None) or (data['exp_time'] is None):
