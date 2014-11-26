@@ -300,7 +300,7 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
                 if len(self._ensGridCB.Items) > 0:
                     self._ensGridCB.SetSelection(0)
                 _grid_sel = self._ensGridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -312,7 +312,7 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
                     self._ensExpTimeCB.SetSelection(0)
                 self._ensExpTimeCB.Enable(True)
             elif ev.GetEventObject() == self._ensGridCB:
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -525,7 +525,7 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
                 if len(self._expHazGridCB.Items) > 0:
                     self._expHazGridCB.SetSelection(0)
                 _grid_sel = self._expHazGridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -537,7 +537,7 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
                     self._expHazExpTimeCB.SetSelection(0)
                 self._expHazExpTimeCB.Enable(True)
             elif ev.GetEventObject() == self._expHazGridCB:
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -1122,7 +1122,12 @@ class BymurWxCurvesPanel(BymurWxPanel):
                                                controller=self._controller,
                                                label="NBInvPage")
 
+        self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBFragPage")
+
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
+        self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
         self._nb.AddPage(self._curvesNBVuln, self._curvesNBVuln.title)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
         self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
@@ -1206,7 +1211,27 @@ class BymurWxNBInvPage(BymurWxPanel):
         """Get the current page title."""
         return self._title
 
+class BymurWxNBFragPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Fragility")
+        super(BymurWxNBFragPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.FragCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
 
+    def updateView(self, **kwargs):
+        super(BymurWxNBFragPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       area=wx.GetTopLevelParent(self).selected_area)
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
 
 class BymurWxNBHazPage(BymurWxPanel):
     def __init__(self, *args, **kwargs):
@@ -1801,7 +1826,7 @@ class BymurWxLeftPanel(BymurWxPanel):
                 if len(self._gridCB.Items) > 0:
                     self._gridCB.SetSelection(0)
                 _grid_sel = self._gridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name and
@@ -1823,19 +1848,20 @@ class BymurWxLeftPanel(BymurWxPanel):
                 if len(self._gridCB.Items) > 0:
                     self._gridCB.SetSelection(0)
                 _grid_sel = self._gridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
+                print _exptimelist
                 self._expTimeCB.AppendItems(list(set(_exptimelist)))
                 if len(self._expTimeCB.Items) > 0:
                     self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
             elif ev.GetEventObject() == self._gridCB:
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name and
@@ -2214,7 +2240,7 @@ class BymurWxView(wx.Frame):
             self.rightPanel.Enable(True)
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_POINT:
             print "bf.wxBYMUR_UPDATE_POINT"
-            self.leftPanel.updatePointData()
+            # self.leftPanel.updatePointData()
             self.rightPanel.mapPanel.updatePoint()
             self.rightPanel.curvesPanel.updateView()
 

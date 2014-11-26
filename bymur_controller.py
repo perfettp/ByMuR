@@ -10,9 +10,9 @@ class BymurController(object):
 
     _exception_debug = False
     _basedir = os.getcwd()
-    _dbDetails = dict(db_host='***REMOVED***', db_port='3306',
+    _dbDetails = dict(db_host='127.0.0.1', db_port='3306',
                       db_user='***REMOVED***', db_password='***REMOVED***',
-                      db_name='***REMOVED***_def')
+                      db_name='***REMOVED***')
 
     _addDBDataDetails = dict()
 

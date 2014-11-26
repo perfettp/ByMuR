@@ -50,7 +50,7 @@ mpl.rcParams['legend.fontsize'] = '10'
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.sans-serif'] = 'Times'
 
-show_areas = True
+show_areas = False
 
 
 class BymurPlot(object):
@@ -401,6 +401,29 @@ class HazardCurve(BymurPlot):
         # self.axes.axis([0,1,0,1])
         self._canvas.draw()
 
+class FragCurve(BymurPlot):
+
+    def __init__(self, *args, **kwargs):
+        super(FragCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        pass
+
+class LossCurve(BymurPlot):
+
+    def __init__(self, *args, **kwargs):
+        super(LossCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        pass
+
+class RiskCurve(BymurPlot):
+
+    def __init__(self, *args, **kwargs):
+        super(RiskCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        pass
 
 
 class InvCurve(BymurPlot):
