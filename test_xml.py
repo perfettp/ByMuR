@@ -685,6 +685,7 @@ def parse_xml_loss(filename):
 class  RiskFunction(object):
     def __init__(self, areaID=None):
         self._areaID = areaID
+        self._average_risk = None
         self._functions = dict()
 
     def dump(self):
@@ -704,6 +705,13 @@ class  RiskFunction(object):
     @functions.setter
     def functions(self, data):
         self._functions = data
+        
+    @property
+    def average_risk(self):
+        return self._average_risk
+    @average_risk.setter
+    def average_risk(self, data):
+        self._average_risk = data
 
     # @property
     # def [var](self):
@@ -715,8 +723,10 @@ class  RiskFunction(object):
 class  RiskXML(object):
     def __init__(self):
         self._risk_type = None
+        self._model_name = None
         self._loss_model_name = None
         self._hazard_model_name = None
+        self._hazard_type = None
         self._fragility_model_name = None
         self._statistic = None
         self._quantile_value = None
@@ -727,8 +737,10 @@ class  RiskXML(object):
 
     def dump(self):
         print "Risk type: %s " % self.risk_type
+        print "Risk model name: %s " % self.model_name
         print "Loss model name: %s " % self.loss_model_name
         print "Hazard model name: %s " % self.hazard_model_name
+        print "Hazard type: %s " % self.hazard_type
         print "Fragility model name: %s " % self.fragility_model_name
         print "Investigation time: %s " % self.investigation_time
         print "Statistic: %s " % self.statistic
@@ -743,6 +755,13 @@ class  RiskXML(object):
     @risk_type.setter
     def risk_type(self, data):
         self._risk_type = data
+
+    @property
+    def model_name(self):
+        return self._model_name
+    @model_name.setter
+    def model_name(self, data):
+        self._model_name = data
 
     @property
     def loss_model_name(self):
@@ -764,6 +783,13 @@ class  RiskXML(object):
     @hazard_model_name.setter
     def hazard_model_name(self, data):
         self._hazard_model_name = data
+        
+    @property
+    def hazard_type(self):
+        return self._hazard_type
+    @hazard_type.setter
+    def hazard_type(self, data):
+        self._hazard_type = data
 
     @property
     def statistic(self):
@@ -811,8 +837,10 @@ def parse_xml_risk(filename):
             if event == "start":
                 if element.tag == 'arealRiskModel':
                     risk_xml.risk_type = element.get('riskType')
+                    risk_xml.model_name = element.get('modelName')
                     risk_xml.loss_model_name = element.get('lossModelName')
                     risk_xml.hazard_model_name = element.get('hazardModelName')
+                    risk_xml.hazard_type = element.get('hazardType')
                     risk_xml.fragility_model_name = \
                         element.get('fragilityModelName')
                     risk_xml.statistic = element.get('statistics')
@@ -850,12 +878,10 @@ def parse_xml_risk(filename):
     return risk_xml
 
 
-# f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
-#                             "/FCs/LOC_0011-0020/arealFragilityModel_mean.xml")
 
-l_xml = parse_xml_loss("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
-                         "/LMs/LOC_0011-0020/arealLossModel_quantile10.xml")
-#
+
+
+
 # f_xml.dump()
 # f_xml = parse_xml_fragility("data/examples/volcanic5yr/FCs/LOC_0001-0010"
 #                     "/arealFragilityModel_quantile10.xml")
@@ -902,10 +928,19 @@ dbDetails = {'db_host': '***REMOVED***',
     }
 
 
+# f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+#                             "/FCs/LOC_0011-0020/arealFragilityModel_mean.xml")
+
+l_xml = parse_xml_loss("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+                         "/LMs/LOC_0011-0020/arealLossModel_quantile10.xml")
+
+r_xml = parse_xml_risk("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+                       "/RISKs/LOC_0011-0020/arealRiskModel_quantile10.xml")
 
 db=bymur_db.BymurDB(**dbDetails)
 # db.add_inventory(i_xml, 6)
 # db.add_fragility(f_xml)
 db.add_loss(l_xml)
+db.add_risk(r_xml)
 
 

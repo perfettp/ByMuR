@@ -1176,6 +1176,8 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                         a.functions[cat_key][ls_key]]))
                     frag_entries.append(f_tmp)
         self.insert_fragility_data(frag_id, stat_id, frag_entries)
+        
+    
 
     def insert_id_loss_model(self, id_phen, loss_type, model_name, unit):
         sqlquery = """SELECT id FROM loss_models
@@ -1245,6 +1247,8 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                 else:
                     ls_id = ls_id_dic[ls_key.lower()]
                 function_point_list = []
+                if len(a.functions[ls_key]['losses']) != len(a.functions[ls_key]['poEs']):
+                    raise Exception("different lengths")
                 for i_x in range(len(a.functions[ls_key]['losses'])):
                     function_point = str(a.functions[ls_key]['losses'][i_x]) + \
                                   " " + str(a.functions[ls_key]['poEs'][i_x])
@@ -1257,4 +1261,155 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         print loss_entries
         self.insert_loss_data(loss_id, stat_id, loss_entries)
 
+    def get_fragility_model_by_name(self, frag_name):
+        sqlquery = """ SELECT `frag_mod`.`id`,
+                    `frag_mod`.`id_phenomenon`,
+                    `frag_mod`.`model_name`,
+                    `frag_mod`.`description`,
+                    `frag_mod`.`iml`,
+                    `frag_mod`.`imt`
+            FROM `fragility_models` `frag_mod`
+            WHERE `frag_mod`.`model_name`= '%s'
+        """
+        sqlquery %= (str(frag_name.upper()))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['id', 'phenomenon_id',
+                         'model_name', 'description',
+                         'iml', 'imt'],
+                        self._cursor.fetchone()))
+    
+    def get_loss_model_by_name(self, loss_name):
+        sqlquery = """ SELECT `loss_mod`.`id`,
+                    `loss_mod`.`loss_type`,
+                    `loss_mod`.`id_phenomenon`,
+                    `loss_mod`.`model_name`,
+                    `loss_mod`.`description`,
+                    `loss_mod`.`unit`
+            FROM `loss_models` `loss_mod`
+            WHERE `loss_mod`.`model_name`= '%s'
+        """
+        sqlquery %= (str(loss_name.upper()))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['id', 'loss_type', 'phenomenon_id',
+                         'model_name', 'description',
+                         'unit'],
+                        self._cursor.fetchone()))
+    
+    
+    def insert_id_risk_model(self, id_phen, risk_type, model_name,
+                             fragility_model_name, hazard_model_name,
+                             loss_model_name, investigation_time):
+        sqlquery = """SELECT id FROM risk_models
+                   WHERE model_name = '{0}'
+                   """
+        self._cursor.execute(sqlquery.format(model_name.upper()))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            haz_model = self.get_hazard_model_by_name_exptime(
+                hazard_model_name,
+                                                           investigation_time)
+            frag_model = self.get_fragility_model_by_name(fragility_model_name)
+            loss_model = self.get_loss_model_by_name(loss_model_name)
 
+            sqlquery = """
+                    INSERT INTO risk_models (id_phenomenon,
+                                            id_hazard_model, id_fragility_model,
+                                            id_loss_model, risk_type,
+                                            model_name, investigation_time)
+                                VALUES({0}, {1}, {2}, {3}, '{4}', '{5}', {6})
+                    """
+            self._cursor.execute(sqlquery.format(id_phen,
+                                                 haz_model['hazard_id'],
+                                                 frag_model['id'],
+                                                 loss_model['id'],
+                                                 risk_type,
+                                                 model_name.upper(),
+                                                 investigation_time))
+            return self._cursor.lastrowid
+
+    def insert_risk_statistic_rel(self, risk_id, statistic_id):
+        """
+
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO riskmodel_statistics
+                    (id_risk_model, id_statistic)
+                        VALUES ({0}, {1})"""
+        return self._cursor.execute(sqlquery.format(risk_id, statistic_id))
+
+    def insert_risk_data(self, risk_id, stat_id, risk_entries):
+        sqlquery = """
+                    INSERT IGNORE INTO risk_data (id_risk_model,
+                        id_area, id_statistic, risk_function, average_risk)
+                        VALUES ( """ + str(risk_id) + """
+                        , %s, """ + str(stat_id) + """, %s , %s)"""
+
+        return self._cursor.executemany(sqlquery, risk_entries)
+
+    def get_risk_model_by_name_invtime(self, risk_name, investigation_time):
+        sqlquery = """ SELECT `risk_mod`.`id`,
+                    `risk_mod`.`id_phenomenon`,
+                    `risk_mod`.`id_hazard_model`,
+                    `risk_mod`.`id_fragility_model`,
+                    `risk_mod`.`id_loss_model`,
+                    `risk_mod`.`risk_type`,
+                    `risk_mod`.`model_name`,
+                    `risk_mod`.`investigation_time`,
+                    `risk_mod`.`description`
+            FROM `risk_models` `risk_mod`
+            WHERE `risk_mod`.`model_name`= '%s' AND
+            `risk_mod`.`investigation_time`= '%s'
+        """
+        sqlquery %= (str(risk_name.upper()), str(investigation_time))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['id', 'phenomenon_id', 'hazard_id', 'fragility_id',
+                         'loss_id', 'risk_type', 'model_name',
+                         'investigation_time', 'description'],
+                        self._cursor.fetchone()))
+
+
+    def add_risk(self, risk_xml):
+        phen_id_dic = dict()
+        for p in self.get_phenomena_list():
+            phen_id_dic.update({p['phenomenon_name']:p['phenomenon_id']})
+        phen_id = phen_id_dic[risk_xml.hazard_type.upper()]
+
+
+        risk_id = self.insert_id_risk_model(phen_id,
+                                            risk_xml.risk_type,
+                                            risk_xml.model_name,
+                                            risk_xml.fragility_model_name,
+                                            risk_xml.hazard_model_name,
+                                            risk_xml.loss_model_name,
+                                            risk_xml.investigation_time)
+
+        risk_model = self.get_risk_model_by_name_invtime(risk_xml.model_name,
+                                                risk_xml.investigation_time)
+        print risk_model
+
+        stat_id = self.insert_id_statistic(
+                risk_xml.statistic,
+                risk_xml.quantile_value)
+
+        self.insert_risk_statistic_rel(risk_id, stat_id)
+
+        risk_entries = []
+        for a in risk_xml.areas:
+                function_point_list = []
+                if len(a.functions['losses']) != len(a.functions['poEs']):
+                    raise Exception("different lengths")
+                for i_x in range(len(a.functions['losses'])):
+                    function_point = str(a.functions['losses'][i_x]) + \
+                                  " " + str(a.functions['poEs'][i_x])
+                    function_point_list.append(function_point)
+
+                f_tmp = ( self.get_area_dbid_by_areaid(a.areaID),
+                          ",".join(function_point_list),
+                          a.average_risk
+                )
+                risk_entries.append(f_tmp)
+
+        print risk_entries[5]
+        self.insert_risk_data(risk_id, stat_id, risk_entries)
