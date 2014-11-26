@@ -1531,11 +1531,31 @@ class BymurWxDataPanel(BymurWxPanel):
         #     self._houseClasses.append(_houseclassrow)
         #     vpos +=1
 
-
+        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
         self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._dataBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._invBoxSizer, flag=wx.EXPAND)
         self.SetSizer(self._sizer)
+
+    def updateInventory(self):
+        print "updateInventory"
+        print self._topWindow.inventory
+        vpos = 0
+        self._genClasses = []
+        for gen_class in self._topWindow.inventory['general_classes']:
+            _genclassrow = dict()
+            _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  gen_class['name'])
+            _genclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._genClassSizer.Add(_genclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._genClassSizer.Add(_genclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._genClasses.append(_genclassrow)
+            vpos +=1
 
     def updateView(self, **kwargs):
         super(BymurWxDataPanel, self).updateView(**kwargs)
@@ -2254,6 +2274,7 @@ class BymurWxView(wx.Frame):
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
             print "bf.wxBYMUR_UPDATE_ALL"
             self.ctrlsPanel.updateCtrls(event)
+            self.dataPanel.updateInventory()
             self.ctrlsPanel.updatePointInterval()
             self.ctrlsPanel.clearPoint()
             self.dataPanel.clearPoint()

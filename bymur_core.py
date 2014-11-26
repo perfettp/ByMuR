@@ -533,6 +533,11 @@ class BymurCore(object):
                                    self.hazard_options['hazard_name'],
                                    exp_time=self.hazard_options['exp_time'])
 
+        self._inventory = self.db.get_inventory_by_datagrid_id(
+            self._hazard.datagrid_id)
+
+        print self._inventory
+
         # TODO: grid_point should be eliminated from here
         # TODO: or from
         self.grid_points = self._hazard.grid_points

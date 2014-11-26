@@ -404,10 +404,22 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         return [dict(zip(('phenomenon_id', 'phenomenon_name'), phen))
                 for phen in self._cursor.fetchall()]
 
-    def get_general_class_list(self):
-        sqlquery = "SELECT id, name FROM general_classes"
+    def get_general_classes_list(self):
+        sqlquery = "SELECT id, name, label FROM general_classes"
         self._cursor.execute(sqlquery)
-        return [dict(zip(('id', 'name'), c))
+        return [dict(zip(('id', 'name', 'label'), c))
+                for c in self._cursor.fetchall()]
+
+    def get_age_classes_list(self):
+        sqlquery = "SELECT id, name, label FROM age_classes"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('id', 'name', 'label'), c))
+                for c in self._cursor.fetchall()]
+
+    def get_house_classes_list(self):
+        sqlquery = "SELECT id, name, label FROM house_classes"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('id', 'name', 'label'), c))
                 for c in self._cursor.fetchall()]
 
     def get_phenomenon_by_id(self, phenomeon_id):
@@ -928,6 +940,48 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                    str(phen_id) + """, %s, %s, %s)"""
         return self._cursor.executemany(sqlquery, fun_list)
 
+    def get_inventory_by_datagrid_id(self, grid_id):
+        sqlquery = """ SELECT `inv`.`id`,
+                    `inv`.`grid_id`,
+                    `inv`.`name`,
+                    `inv`.`general_classes`,
+                    `inv`.`age_classes`,
+                    `inv`.`house_classes`
+            FROM `inventory` `inv` WHERE `inv`.`grid_id`= %s
+        """
+        sqlquery %= str(grid_id)
+        print sqlquery
+        self._cursor.execute(sqlquery)
+        _inv_dic = dict(zip(['inventory_id', 'grid_id', 'name',
+                         'general_classes_ids', 'age_classes_ids',
+                         'house_classes_ids'],
+                        self._cursor.fetchone()))
+
+        _inv_dic['general_classes'] = []
+        _general_classes = self.get_general_classes_list()
+        self.get_general_classes_list()
+        for id_c in [int(id) for id in _inv_dic['general_classes_ids'].split()]:
+            for j_c in _general_classes:
+                if j_c['id'] == id_c:
+                    _inv_dic['general_classes'].append(j_c)
+
+        _inv_dic['age_classes'] = []
+        _age_classes = self.get_age_classes_list()
+        self.get_age_classes_list()
+        for id_c in [int(id) for id in _inv_dic['age_classes_ids'].split()]:
+            for j_c in _age_classes:
+                if j_c['id'] == id_c:
+                    _inv_dic['age_classes'].append(j_c)
+        
+        _inv_dic['house_classes'] = []
+        _house_classes = self.get_house_classes_list()
+        self.get_house_classes_list()
+        for id_c in [int(id) for id in _inv_dic['house_classes_ids'].split()]:
+            for j_c in _house_classes:
+                if j_c['id'] == id_c:
+                    _inv_dic['house_classes'].append(j_c)
+
+        return _inv_dic
 
     def add_inventory(self, inventory_xml, grid_id):
 
@@ -1170,7 +1224,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             self.insert_fragmodel_limitstate_rel(frag_id, ls_id)
 
         general_class_id_dic = dict()
-        for c in self.get_general_class_list():
+        for c in self.get_general_classes_list():
             general_class_id_dic.update({c['name'].lower():c['id']})
 
         frag_entries = []
