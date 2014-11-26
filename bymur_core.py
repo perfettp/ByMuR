@@ -401,9 +401,8 @@ class BymurCore(object):
         self._hazard_data = None
         self._selected_point = HazardPoint(self)
         self._selected_area = bf.InventorySection()
-        self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
-        print self._inventory.classes
-        print self._inventory.sections[1].asset.counts
+        # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
+        self._inventory = None
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
