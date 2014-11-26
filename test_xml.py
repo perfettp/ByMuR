@@ -915,7 +915,7 @@ def parse_xml_risk(filename):
 
 
 
-i_xml = parse_xml_inventory("data/InventoryByMuR.xml")
+
 
 # print i_xml.classes
 
@@ -926,21 +926,26 @@ dbDetails = {'db_host': '***REMOVED***',
                   'db_password': '***REMOVED***',
                   'db_name': '***REMOVED***'
     }
-
-
-# f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
-#                             "/FCs/LOC_0011-0020/arealFragilityModel_mean.xml")
-
-l_xml = parse_xml_loss("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
-                         "/LMs/LOC_0011-0020/arealLossModel_quantile10.xml")
-
-r_xml = parse_xml_risk("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
-                       "/RISKs/LOC_0011-0020/arealRiskModel_quantile10.xml")
-
 db=bymur_db.BymurDB(**dbDetails)
-# db.add_inventory(i_xml, 6)
+
+i_xml = parse_xml_inventory("data/InventoryByMuR.xml")
+db.add_inventory(i_xml, 6)
+
+# f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/seismic50yr"
+#                             "/FCs/LOC_0001-0010/arealFragilityModel_mean.xml" )
 # db.add_fragility(f_xml)
-db.add_loss(l_xml)
-db.add_risk(r_xml)
+
+# l_xml = parse_xml_loss("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+#                          "/LMs/LOC_0011-0020/arealLossModel_quantile10.xml")
+# db.add_loss(l_xml)
+
+# r_xml = parse_xml_risk("/hades/dev/bymur-data/definitivi/risk/volcanic50yr"
+#                        "/RISKs/LOC_0011-0020/arealRiskModel_quantile10.xml")
+# db.add_risk(r_xml)
+
+
+
+
+
 
 

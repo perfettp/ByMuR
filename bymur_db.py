@@ -919,6 +919,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                     id_area, fnc) VALUES(""" + str(phen_id) + """, %s, %s)"""
         return self._cursor.executemany(sqlquery, fun_list)
 
+
     def insert_frag_prob_class(self, phen_id, fun_list):
 
         sqlquery = """
@@ -930,10 +931,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
 
     def add_inventory(self, inventory_xml, grid_id):
 
-        # Add inventory
-        # age_classes_str = ''
-        # gen_classes_str = ''
-        # house_classes_str = ''
         age_classes_list = []
         general_classes_list = []
         house_classes_list = []
@@ -1037,8 +1034,9 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         # Add inventory_areas relationship
         self.insert_areas(a_list)
         areas_id_list = self.get_areas_list_by_id(a_list)
+        # print "Areas id list: %s " % areas_id_list
         for i_a in range(len(a_list)):
-            a_list[i_a].update(dict(id_db= areas_id_list[i_a]))
+            a_list[i_a].update(dict(id_db=areas_id_list[i_a]))
 
         self.insert_inventory_areas_rels(inventory_id, areas_id_list)
 
@@ -1053,6 +1051,9 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                 if phen_k in a['cost_class_prob'].keys():
                     cost_prob_class.append((a['id_db'],
                             " ".join(a['cost_class_prob'][phen_k]['fnc'])))
+                    # print "cost class prob, phen: %s, areaID: %s" %(phen_k,
+                    #                                                 a['areaID'])
+            # print cost_prob_class
             self.insert_cost_prob_class(phen_id_dic[phen_k], cost_prob_class)
 
         for phen_k in phen_id_dic.keys():
@@ -1064,6 +1065,9 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                 ",".join([" ".join(f) for f in
                                           a['frag_class_prob'][phen_k]
                                           ['fntGivenGeneralClass']])))
+                    # print "frag class prob, phen: %s, areaID: %s" %(phen_k,
+                    #                                                 a['areaID'])
+            # print frag_prob_class
             self.insert_frag_prob_class(phen_id_dic[phen_k], frag_prob_class)
 
     def insert_id_fragility_model(self, id_phen, name, description,
@@ -1130,7 +1134,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         sqlquery = """
                     INSERT IGNORE INTO fragility_data (id_fragility_model,
                         id_area, id_statistic, id_limit_state,
-                        id_taxonomy, fragility_curve)
+                        id_general_class, fragility_curve)
                         VALUES ( """ + str(frag_id) + """
                         , %s, """ + str(stat_id) + """, %s , %s, %s)"""
 
@@ -1147,6 +1151,10 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                             fragility_xml.description,
                             " ".join([str(f) for f in fragility_xml.iml]),
                             fragility_xml.imt)
+        
+        fragility_model = self.get_fragility_model_by_name(
+            fragility_xml.model_name)
+        print "Inserted fragility model %s" % fragility_model
 
         stat_id = self.insert_id_statistic(
                 fragility_xml.statistic,
@@ -1230,6 +1238,9 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                             loss_xml.model_name,
                                             loss_xml.unit)
 
+        loss_model = self.get_loss_model_by_name(loss_xml.model_name)
+        print "Inserted loss model %s" % loss_model
+        
         stat_id = self.insert_id_statistic(
                 loss_xml.statistic,
                 loss_xml.quantile_value)
@@ -1387,7 +1398,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
 
         risk_model = self.get_risk_model_by_name_invtime(risk_xml.model_name,
                                                 risk_xml.investigation_time)
-        print risk_model
+        print "Inserted risk model %s" % risk_model
 
         stat_id = self.insert_id_statistic(
                 risk_xml.statistic,
@@ -1411,5 +1422,4 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                 )
                 risk_entries.append(f_tmp)
 
-        print risk_entries[5]
         self.insert_risk_data(risk_id, stat_id, risk_entries)
