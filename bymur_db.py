@@ -848,6 +848,60 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             self._cursor.execute(sqlquery.format(phen_id, frag_classes_str))
             return self._cursor.lastrowid
 
+    def get_fragility_classes_by_inv_id(self, inv_id):
+        sqlquery = """ SELECT `phen`.`name`, `fc`.`classes`
+            FROM (`inventory_frag_classes` `inv_fc` LEFT JOIN
+            `fragility_classes` `fc` ON
+            `inv_fc`.`id_frag_class`=`fc`.`id`)
+                LEFT JOIN `phenomena` `phen`
+                ON `fc`.`id_phenomenon` = `phen`.`id`
+            WHERE `inv_fc`.`id_inventory`= %s
+        """
+        sqlquery %= str(inv_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['phenomenon_name', 'classes'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
+
+    def get_cost_classes_by_inv_id(self, inv_id):
+        sqlquery = """ SELECT `phen`.`name`, `cc`.`classes`
+            FROM (`inventory_cost_classes` `inv_cc` LEFT JOIN
+            `cost_classes` `cc` ON
+            `inv_cc`.`id_cost_class`=`cc`.`id`)
+                LEFT JOIN `phenomena` `phen`
+                ON `cc`.`id_phenomenon` = `phen`.`id`
+            WHERE `inv_cc`.`id_inventory`= %s
+        """
+        sqlquery %= str(inv_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['phenomenon_name', 'classes'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
+
+    def get_costclass_prob_by_area_id(self, area_id):
+        sqlquery = """ SELECT `phen`.`name`, `cc_prob`.`fnc`
+            FROM `area_costclass_prob` `cc_prob` LEFT JOIN
+            `phenomena` `phen` ON
+            `cc_prob`.`id_phenomenon`=`phen`.`id`
+            WHERE `cc_prob`.`id_area`= %s
+        """
+        sqlquery %= str(area_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['phenomenon_name', 'fnc'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
+    
+    def get_fragclass_prob_by_area_id(self, area_id):
+        sqlquery = """ SELECT `phen`.`name`, `fc_prob`.`fnt`,
+            `fc_prob`.`fnt_given_general_class`
+            FROM `area_fragclass_prob` `fc_prob` LEFT JOIN
+            `phenomena` `phen` ON
+            `fc_prob`.`id_phenomenon`=`phen`.`id`
+            WHERE `fc_prob`.`id_area`= %s
+        """
+        sqlquery %= str(area_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['phenomenon_name', 'fnt', 'fnt_given_general_class'],
+                         (x[0], x[1], x[2])))  for x in self._cursor.fetchall()]
+
+
     def insert_id_inventory(self, id_grid, name,
                                gen_classes, age_classes, house_classes):
         sqlquery = """SELECT id FROM inventory
@@ -996,6 +1050,13 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             for j_c in _house_classes:
                 if j_c['id'] == id_c:
                     _inv_dic['house_classes'].append(j_c)
+
+        _inv_dic['cost_classes'] = self.get_cost_classes_by_inv_id(
+            _inv_dic['inventory_id'])
+        _inv_dic['fragility_classes'] =  self.get_fragility_classes_by_inv_id(
+            _inv_dic['inventory_id'])
+
+
         return _inv_dic
 
     def add_inventory(self, inventory_xml, grid_id):
@@ -1044,7 +1105,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                     cost_classes_str = "("+str(class_list[0][0]) + "," \
                                 + str(class_list[0][1])+")"
                     for c in class_list[1:]:
-                        cost_classes_str += ", ("+str(c[0]) + "," \
+                        cost_classes_str += ":("+str(c[0]) + "," \
                                 + str(c[1])+")"
                     cost_class_id = self.insert_id_cost_classes(
                         cost_classes_str, phen_id)
@@ -1067,7 +1128,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                     frag_classes_str = "("+str(class_list[0][0]) + "," \
                                 + str(class_list[0][1])+")"
                     for c in class_list[1:]:
-                        frag_classes_str += ", ("+str(c[0]) + "," \
+                        frag_classes_str += ":("+str(c[0]) + "," \
                                 + str(c[1])+")"
                     frag_class_id =  self.insert_id_frag_classes(
                         frag_classes_str, phen_id)

@@ -67,7 +67,10 @@ class InventoryClass(object):
         self._name = name
         self._label = label
         self._type = type
-        pass
+
+    def dump(self):
+        print "Class name: %s" % self.name
+        print "Class label: %s" % self.label
 
     @property
     def name(self):
@@ -75,7 +78,7 @@ class InventoryClass(object):
     @name.setter
     def name(self, data):
         self._name = data
-        
+
     @property
     def label(self):
         return self._label
@@ -100,7 +103,7 @@ class InventoryHouseClass(InventoryClass):
     pass
 
 class InventoryPhenClass(InventoryClass):
-    def __init__(self, name='', phenomenon = None, **kwargs):
+    def __init__(self, phenomenon = None, **kwargs):
         self._phenomenon = phenomenon
         super(InventoryPhenClass, self).__init__(**kwargs)
         pass
@@ -130,7 +133,6 @@ class InventoryAsset(object):
         self._counts = dict()
         self._frag_class_prob = dict()
         self._cost_class_prob = dict()
-        self._counts = dict()
         pass
 
     def dump(self):
@@ -146,7 +148,7 @@ class InventoryAsset(object):
         return self._total
     @total.setter
     def total(self, data):
-        self._total = data
+        self._total = int(data)
 
     @property
     def type(self):
@@ -188,7 +190,8 @@ class InventorySection(object):
     def dump(self):
         print "AreaID: %s" % self.areaID
         print "SectionID: %s" % self.sectionID
-        print "Centroid: %s" % self.centroid
+        print "Centroid: (%s, %s)" % (str(self.centroid[0]),
+                                      str(self.centroid[1]))
         print "Geometry: %s" % self.geometry
         if self.asset is not None:
             self.asset.dump()
@@ -235,19 +238,28 @@ class InventorySection(object):
 
 
 class  InventoryXML(object):
-    def __init__(self):
+    def __init__(self, name = ''):
+        self._name = name
         self._sections = []
         self._classes = dict()
         pass
 
     def dump(self):
+        print "Inventory Name: %s" % self.name
+        print "> Classes: %s" % self.classes
         for sec in self.sections:
             sec.dump()
 
     @property
+    def name(self):
+        return self._name
+    @name.setter
+    def name(self, data):
+        self._name = data
+
+    @property
     def sections(self):
         return self._sections
-
     @sections.setter
     def sections(self, data):
         self._sections = data
@@ -255,7 +267,6 @@ class  InventoryXML(object):
     @property
     def classes(self):
         return self._classes
-
     @classes.setter
     def classes(self, data):
         self._classes = data
@@ -462,15 +473,15 @@ class BymurThread(threading.Thread):
 def read_db_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
           utm_zone_number=33, utm_zone_letter='T'):
     pass
-
 def parse_xml_inventory(filename):
     print "Parsing Inventory: %s" % (filename)
-    inventory_xml = InventoryXML()
     try:
         context = etree.iterparse(filename, events=("start", "end"))
         for event, element in context:
             if event == "start":
-                if element.tag == 'sezione':
+                if element.tag == 'inventory':
+                    inventory_xml = InventoryXML(element.get('Name'))
+                elif element.tag == 'sezione':
                     section_model = InventorySection()
                     section_model.areaID = element.get('areaID')
                     section_model.sectionID = element.get('sezioneID')
@@ -491,8 +502,11 @@ def parse_xml_inventory(filename):
                     class_obj_type = 'InventoryCostClass'
                     class_obj_phen = element.get('phenomenon')
                 elif element.tag == 'class':
+                    label = element.get('label')
+                    if label is None:
+                        label = ''
                     new_class = eval(class_obj_type)(name = element.get('name'),
-                                                label = element.get('label'))
+                                                label = label)
                     if issubclass(eval(class_obj_type), InventoryPhenClass):
                         new_class.phenomenon = class_obj_phen
                     class_list.append(new_class)
@@ -587,7 +601,6 @@ def parse_xml_inventory(filename):
               filename +  " : " + str(e)
         raise Exception(str(e))
     return inventory_xml
-
 
 def parse_xml_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
                      utm_zone_number=33, utm_zone_letter='T'):

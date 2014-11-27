@@ -929,7 +929,8 @@ dbDetails = {'db_host': '***REMOVED***',
 db=bymur_db.BymurDB(**dbDetails)
 
 i_xml = parse_xml_inventory("data/InventoryByMuR.xml")
-db.add_inventory(i_xml, 6)
+i_xml.dump()
+# db.add_inventory(i_xml, 6)
 
 # f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/seismic50yr"
 #                             "/FCs/LOC_0001-0010/arealFragilityModel_mean.xml" )
@@ -962,12 +963,12 @@ rootdir = "/hades/dev/bymur-data/definitivi/risk/"
 #             db.add_loss(l_xml)
 
 
-for root, dirs, files in os.walk(rootdir):
-    for file in files:
-        if file.startswith("arealRiskModel"):
-            r_xml = parse_xml_risk(os.path.relpath(os.path.join(root,file),
-                                                   os.getcwd()))
-            db.add_risk(r_xml)
+# for root, dirs, files in os.walk(rootdir):
+#     for file in files:
+#         if file.startswith("arealRiskModel"):
+#             r_xml = parse_xml_risk(os.path.relpath(os.path.join(root,file),
+#                                                    os.getcwd()))
+#             db.add_risk(r_xml)
 
 
 
