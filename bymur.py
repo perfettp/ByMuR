@@ -2427,13 +2427,13 @@ class BymurWxView(wx.Frame):
     def inventory(self, data):
         self._inventory = data
 
-    @property
-    def inventory_sections(self):
-        return self._inventory_sections
-
-    @inventory_sections.setter
-    def inventory_sections(self, data):
-        self._inventory_sections = data
+    # @property
+    # def inventory_sections(self):
+    #     return self._inventory_sections
+    #
+    # @inventory_sections.setter
+    # def inventory_sections(self, data):
+    #     self._inventory_sections = data
         
     @property
     def selected_area(self):

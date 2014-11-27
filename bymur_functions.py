@@ -62,6 +62,86 @@ BYMUR_DB_CLOSED = wx.PyEventBinder(wxBYMUR_DB_CLOSED)
 _basedir = os.path.dirname(__file__)
 _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
+class  FragilityModel(object):
+    def __init__(self):
+        self._hazard_type = None
+        self._model_name = None
+        self._statistics = []
+        self._description = None
+        self._limit_states = None
+        self._iml = None
+        self._imt = None
+        self._areas = []
+        pass
+
+    def dump(self):
+        print "Hazard type: %s " % self.hazard_type
+        print "Model name: %s " % self.model_name
+        print "Statistics: %s " % self.statistics
+        print "Description: %s " % self.description
+        print "Limit states: %s " % self.limit_states
+        print "IML: %s " % self.imt
+        print "IML: %s " % self.iml
+        for a in self.areas:
+            a.dump()
+        pass
+
+    @property
+    def hazard_type(self):
+        return self._hazard_type
+    @hazard_type.setter
+    def hazard_type(self, data):
+        self._hazard_type = data
+
+    @property
+    def model_name(self):
+        return self._model_name
+    @model_name.setter
+    def model_name(self, data):
+        self._model_name = data
+
+    @property
+    def statistics(self):
+        return self._statistics
+    @statistics.setter
+    def statistics(self, data):
+        self._statistics= data
+
+    @property
+    def description(self):
+        return self._description
+    @description.setter
+    def description(self, data):
+        self._description = data
+
+    @property
+    def limit_states(self):
+        return self._limit_states
+    @limit_states.setter
+    def limit_states(self, data):
+        self._limit_states = data
+
+    @property
+    def imt(self):
+        return self._imt
+    @imt.setter
+    def imt(self, data):
+        self._imt = data
+
+    @property
+    def iml(self):
+        return self._iml
+    @iml.setter
+    def iml(self, data):
+        self._iml = data
+
+    @property
+    def areas(self):
+        return self._areas
+    @areas.setter
+    def areas(self, data):
+        self._areas = data
+
 class InventoryClass(object):
     def __init__(self, type='', name='', label=''):
         self._name = name

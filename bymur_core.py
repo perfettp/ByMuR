@@ -403,7 +403,7 @@ class BymurCore(object):
         self._selected_area = bf.InventorySection()
         # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
         self._inventory = None
-        self._inventory_sections = None
+        self._fragility = None
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -517,6 +517,21 @@ class BymurCore(object):
         # print "phenomena %s " % ret['phenomena']
         return ret
 
+    def read_fragility_model(self, phenomenon_id):
+        frag_dic = self.db.get_fragility_model_by_phenid(phenomenon_id)
+        _fragility = bf.FragilityModel()
+        _fragility.model_name = frag_dic['model_name']
+        _fragility.description = frag_dic['description']
+        _fragility.imt = frag_dic['imt']
+        _fragility.iml = [float(l) for l in frag_dic['iml'].split(" ")]
+        _fragility.hazard_type = self.db.get_phenomenon_by_id(
+            frag_dic['phenomenon_id'])['name']
+        _fragility.limit_states = [ls['name'] for ls in
+                            self.db.get_limitstates_by_frag_id(frag_dic['id'])]
+        _fragility.statistics = [st['name'] for st in
+                            self.db.get_statistics_by_frag_id(frag_dic['id'])]
+
+
     def read_inventory_model(self, grid_id):
         inv_dic = self.db.get_inventory_by_datagrid_id(grid_id)
         _inventory = bf.InventoryXML(name=inv_dic['name'])
@@ -620,6 +635,7 @@ class BymurCore(object):
                                    exp_time=self.hazard_options['exp_time'])
 
         self._inventory = self.read_inventory_model(self._hazard.datagrid_id)
+        self._fragility = self.read_fragility_model(self._hazard.phenomenon_id)
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
@@ -1190,15 +1206,6 @@ class BymurCore(object):
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
-
-    @property
-    def inventory_sections(self):
-        return self._inventory_sections
-
-    @inventory_sections.setter
-    def inventory_sections(self, data):
-        self._inventory_sections = data
-
 
     @property
     def selected_area(self):

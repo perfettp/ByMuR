@@ -896,6 +896,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             `fc_prob`.`id_phenomenon`=`phen`.`id`
             WHERE `fc_prob`.`id_area`= %s
         """
+
         sqlquery %= str(area_id)
         self._cursor.execute(sqlquery)
         return [dict(zip(['phenomenon_name', 'fnt', 'fnt_given_general_class'],
@@ -1230,6 +1231,18 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                         VALUES ({0}, {1})"""
         return self._cursor.execute(sqlquery.format(frag_id, statistic_id))
 
+    def get_statistics_by_frag_id(self, frag_id):
+        sqlquery = """ SELECT `st`.`id`, `st`.`name`
+            FROM `fragmodel_statistics` `frag_stat` LEFT JOIN
+            `statistics` `st` ON
+            `frag_stat`.`id_statistic`=`st`.`id`
+            WHERE `frag_stat`.`id_fragility_model`= %s
+        """
+        sqlquery %= str(frag_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'name'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
+
     def insert_id_limitstate(self, limit_state):
         sqlquery = "SELECT id FROM limit_states WHERE name = '{0}'"
 
@@ -1250,6 +1263,18 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                     (id_fragility_model, id_limitstate)
                         VALUES ({0}, {1})"""
         return self._cursor.execute(sqlquery.format(frag_id, ls_id))
+    
+    def get_limitstates_by_frag_id(self, frag_id):
+        sqlquery = """ SELECT `ls`.`id`, `ls`.`name`
+            FROM `fragmodel_limitstates` `frag_ls` LEFT JOIN
+            `limit_states` `ls` ON
+            `frag_ls`.`id_limitstate`=`ls`.`id`
+            WHERE `frag_ls`.`id_fragility_model`= %s
+        """
+        sqlquery %= str(frag_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'name'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
 
     def get_area_dbid_by_areaid(self, areaid):
         sqlquery = "SELECT id FROM areas WHERE areaID = {0}"
@@ -1417,7 +1442,25 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                          'model_name', 'description',
                          'iml', 'imt'],
                         self._cursor.fetchone()))
-    
+
+    def get_fragility_model_by_phenid(self, phen_id):
+        sqlquery = """ SELECT `frag_mod`.`id`,
+                    `frag_mod`.`id_phenomenon`,
+                    `frag_mod`.`model_name`,
+                    `frag_mod`.`description`,
+                    `frag_mod`.`iml`,
+                    `frag_mod`.`imt`
+            FROM `fragility_models` `frag_mod`
+            WHERE `frag_mod`.`id_phenomenon`= %s
+        """
+        sqlquery %= (str(phen_id))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['id', 'phenomenon_id',
+                         'model_name', 'description',
+                         'iml', 'imt'],
+                        self._cursor.fetchone()))
+
+
     def get_loss_model_by_name(self, loss_name):
         sqlquery = """ SELECT `loss_mod`.`id`,
                     `loss_mod`.`loss_type`,
