@@ -403,6 +403,7 @@ class BymurCore(object):
         self._selected_area = bf.InventorySection()
         # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
         self._inventory = None
+        self._inventory_sections = None
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -535,8 +536,10 @@ class BymurCore(object):
 
         self._inventory = self.db.get_inventory_by_datagrid_id(
             self._hazard.datagrid_id)
+        self._inventory_sections = self.db.get_sections_by_inventory_id(
+            self._inventory['inventory_id'])
 
-        print self._inventory
+        print self._inventory_sections [3]
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
@@ -1109,7 +1112,16 @@ class BymurCore(object):
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
-        
+
+    @property
+    def inventory_sections(self):
+        return self._inventory_sections
+
+    @inventory_sections.setter
+    def inventory_sections(self, data):
+        self._inventory_sections = data
+
+
     @property
     def selected_area(self):
         return self._selected_area

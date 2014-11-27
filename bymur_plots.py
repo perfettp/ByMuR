@@ -50,7 +50,7 @@ mpl.rcParams['legend.fontsize'] = '10'
 mpl.rcParams['font.family'] = 'serif'
 mpl.rcParams['font.sans-serif'] = 'Times'
 
-show_areas = False
+show_areas = True
 
 
 class BymurPlot(object):
@@ -119,7 +119,7 @@ class HazardGraph(BymurPlot):
         self._figure.clf()
         self._canvas.draw()
 
-    def plot(self, hazard,  hazard_data, inventory):
+    def plot(self, hazard,  hazard_data, inventory, inventory_sections):
         # Prepare matplotlib grid and data
         grid_points_number = 256
         points_utm = [p['point'] for p in hazard_data]
@@ -136,7 +136,7 @@ class HazardGraph(BymurPlot):
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
         self.haz_map = self.plot_hazard_map(x_mesh, y_mesh,
                              [p['haz_value'] for p in hazard_data],
-                             map_limits, hazard, inventory)
+                             map_limits, hazard, inventory, inventory_sections)
 
         self.haz_point,  = self.haz_map.plot([self.x_points[0]],
                                                   [self.y_points[0]],
@@ -161,7 +161,7 @@ class HazardGraph(BymurPlot):
         self._canvas.draw()
 
     def plot_hazard_map(self, x_mesh, y_mesh, z_points,
-                 map_limits, hazard, inventory):
+                 map_limits, hazard, inventory, inventory_sections):
         xmap1, xmap2, ymap1, ymap2 = map_limits
         haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
@@ -193,10 +193,11 @@ class HazardGraph(BymurPlot):
         if show_areas:
 
             patch_list = []
-            for sec in inventory.sections:
+            for sec in inventory_sections:
                 geometry_array =  np.array([[float(coord)*1e-3
-                                             for coord in v.strip().split(" ")]
-                                            for v in sec.geometry])
+                                    for coord in v.strip().split(" ")]
+                                        for v in sec['geometry'].split(",")])
+
                 path_tmp = mpl.path.Path(geometry_array, closed=True)
                 patch_list.append(path_tmp)
 

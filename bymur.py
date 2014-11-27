@@ -1166,7 +1166,8 @@ class BymurWxMapPanel(BymurWxPanel):
         super(BymurWxMapPanel, self).updateView(**kwargs)
         self._map.plot(wx.GetTopLevelParent(self).hazard,
                        wx.GetTopLevelParent(self).hazard_data,
-                       wx.GetTopLevelParent(self).inventory)
+                       wx.GetTopLevelParent(self).inventory,
+                       wx.GetTopLevelParent(self).inventory_sections)
         self.Enable(True)
 
     # def clear(self):
@@ -1531,8 +1532,8 @@ class BymurWxDataPanel(BymurWxPanel):
         #     self._houseClasses.append(_houseclassrow)
         #     vpos +=1
 
-        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
         self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
+        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._dataBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._invBoxSizer, flag=wx.EXPAND)
         self.SetSizer(self._sizer)
@@ -2395,6 +2396,14 @@ class BymurWxView(wx.Frame):
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
+
+    @property
+    def inventory_sections(self):
+        return self._inventory_sections
+
+    @inventory_sections.setter
+    def inventory_sections(self, data):
+        self._inventory_sections = data
         
     @property
     def selected_area(self):

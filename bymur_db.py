@@ -940,6 +940,23 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                    str(phen_id) + """, %s, %s, %s)"""
         return self._cursor.executemany(sqlquery, fun_list)
 
+    def get_sections_by_inventory_id(self, inv_id):
+        sqlquery = """ SELECT `a`.`id`, `a`.`areaID`, `a`.`sectionID`,
+            `a`.`centroidX`,  `a`.`centroidY`, `a`.`total_buildings`,
+            `a`.`general_classes_count`, `a`.`age_classes_count`,
+            `a`.`house_classes_count`, `a`.`geometry`
+            FROM `areas` a LEFT JOIN `inventory_areas` ia ON
+            a.`id`=ia.`id_area`
+            WHERE ia.`id_inventory`= %s ORDER BY `a`.`id`
+        """
+        sqlquery %= str(inv_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'areaID', 'sectionID', 'centroidX', 'centroidY',
+                          'total_buildings', 'general_classes_count',
+                          'age_classes_count', 'house_classes_count',
+                          'geometry'], x))
+                for x in self._cursor.fetchall()]
+
     def get_inventory_by_datagrid_id(self, grid_id):
         sqlquery = """ SELECT `inv`.`id`,
                     `inv`.`grid_id`,
@@ -950,7 +967,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             FROM `inventory` `inv` WHERE `inv`.`grid_id`= %s
         """
         sqlquery %= str(grid_id)
-        print sqlquery
         self._cursor.execute(sqlquery)
         _inv_dic = dict(zip(['inventory_id', 'grid_id', 'name',
                          'general_classes_ids', 'age_classes_ids',
@@ -980,7 +996,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             for j_c in _house_classes:
                 if j_c['id'] == id_c:
                     _inv_dic['house_classes'].append(j_c)
-
         return _inv_dic
 
     def add_inventory(self, inventory_xml, grid_id):
