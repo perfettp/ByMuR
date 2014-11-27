@@ -443,13 +443,13 @@ class InvCurve(BymurPlot):
     def plot(self, **kwargs):
         self._hazard = kwargs.pop('hazard', None)
         self._inventory = kwargs.pop('inventory', None)
-        self._area = kwargs.pop('area', None)
+        self._area_inventory = kwargs.pop('area_inventory', None)
         self._figure.clf()
 
         subplot_arr = []
 
         #if there area any builging, plot fragility and cost classes probability
-        if int(self._area.asset.total) > 0:
+        if int(self._area_inventory.asset.total) > 0:
 
             # Fragility class probabilities
             subplot_tmp = pyplot.subplot2grid((2,2), (0,0))
@@ -469,7 +469,7 @@ class InvCurve(BymurPlot):
             for i_class in range(len(self._inventory.classes['fragilityClasses'][
                 self._hazard.phenomenon_name.lower()])):
                 subplot_tmp.bar(i_class*width,
-                    np.float(self._area.asset.frag_class_prob[
+                    np.float(self._area_inventory.asset.frag_class_prob[
                         self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
                     width, color=self._colors[i_class],
                     label=self._inventory.classes['fragilityClasses'][
@@ -494,7 +494,7 @@ class InvCurve(BymurPlot):
             for i_class in range(len(self._inventory.classes['costClasses'][
                 self._hazard.phenomenon_name.lower()])):
                 subplot_tmp.bar(i_class*width,
-                    np.float(self._area.asset.cost_class_prob[
+                    np.float(self._area_inventory.asset.cost_class_prob[
                         self._hazard.phenomenon_name.lower()]['fnc'][i_class]),
                     width, color=self._colors[i_class],
                     label=self._inventory.classes['costClasses'][
@@ -525,7 +525,7 @@ class InvCurve(BymurPlot):
                 bar_offset = 0
             for i_class in range(len(self._inventory.classes['fragilityClasses'][
                 self._hazard.phenomenon_name.lower()])):
-                sub_probs = [float(x) for x  in self._area.asset.frag_class_prob[
+                sub_probs = [float(x) for x  in self._area_inventory.asset.frag_class_prob[
                     self._hazard.phenomenon_name.lower()][
                     'fntGivenGeneralClass'][i_class]]
                 for i_p in range(len(sub_probs)):

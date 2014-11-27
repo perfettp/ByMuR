@@ -400,7 +400,8 @@ class BymurCore(object):
         self._hazard = None
         self._hazard_data = None
         self._selected_point = HazardPoint(self)
-        self._selected_area = bf.InventorySection()
+        self._selected_area = dict(inventory=bf.InventorySection(),
+                                   fragility=None)
         # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
         self._inventory = None
         self._fragility = None
@@ -647,16 +648,21 @@ class BymurCore(object):
             self.hazard_options['hazard_threshold'])
 
     def set_area_by_ID(self, areaID):
-        self.selected_area.areaID = \
-            self.inventory.sections[areaID-1].areaID
-        self.selected_area.sectionID = \
-            self.inventory.sections[areaID-1].sectionID
-        self.selected_area.geometry = \
-            self.inventory.sections[areaID-1].geometry
-        self.selected_area.centroid = \
-            self.inventory.sections[areaID-1].centroid
-        self.selected_area.asset = \
-            self.inventory.sections[areaID-1].asset
+        for sec in self.inventory.sections:
+            if sec.areaID == areaID:
+                self.selected_area['inventory'] = sec
+                break
+        # self.selected_area['inventory'] = self.inventory.sections
+        # self.selected_area.areaID = \
+        #     self.inventory.sections[areaID-1].areaID
+        # self.selected_area.sectionID = \
+        #     self.inventory.sections[areaID-1].sectionID
+        # self.selected_area.geometry = \
+        #     self.inventory.sections[areaID-1].geometry
+        # self.selected_area.centroid = \
+        #     self.inventory.sections[areaID-1].centroid
+        # self.selected_area.asset = \
+        #     self.inventory.sections[areaID-1].asset
 
     def set_point_by_index(self, index):
         """

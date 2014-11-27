@@ -1201,7 +1201,8 @@ class BymurWxNBInvPage(BymurWxPanel):
         super(BymurWxNBInvPage, self).updateView(**kwargs)
         self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
                        inventory=wx.GetTopLevelParent(self).inventory,
-                       area=wx.GetTopLevelParent(self).selected_area)
+                       area_inventory=wx.GetTopLevelParent(self).selected_area[
+                           'inventory'])
         self.Enable(True)
 
     @property
@@ -1608,36 +1609,37 @@ class BymurWxDataPanel(BymurWxPanel):
         else:
             self._dataProbTC.SetValue("")
 
-        if self._topWindow.selected_area.areaID:
+        area_inventory = self._topWindow.selected_area['inventory']
+        if area_inventory.areaID:
             self._invAreaIDTC.SetValue(
-                str(self._topWindow.selected_area.areaID))
+                str(area_inventory.areaID))
         else:
             self._invAreaIDTC.SetValue('')
 
-        if self._topWindow.selected_area.sectionID:
+        if area_inventory.sectionID:
             self._invSecIDTC.SetValue(
-                str(self._topWindow.selected_area.sectionID))
+                str(area_inventory.sectionID))
         else:
             self._invSecIDTC.SetValue('')
 
-        if self._topWindow.selected_area.centroid:
-            print self._topWindow.selected_area.centroid[0]
+        if area_inventory.centroid:
+            print area_inventory.centroid[0]
             self._invCentroidXTC.SetValue(
-                str(self._topWindow.selected_area.centroid[0]))
+                str(area_inventory.centroid[0]))
             self._invCentroidYTC.SetValue(
-                str(self._topWindow.selected_area.centroid[1]))
+                str(area_inventory.centroid[1]))
         else:
             self._invCentroidXTC.SetValue('')
             self._invCentroidYTC.SetValue('')
 
-        if self._topWindow.selected_area.asset.total:
+        if area_inventory.asset.total:
             self._invTotalTC.SetValue(
-                str(self._topWindow.selected_area.asset.total))
+                str(area_inventory.asset.total))
         else:
             self._invTotalTC.SetValue('')
 
 
-        print self._topWindow.selected_area.asset.counts
+        print area_inventory.asset.counts
 
         if isinstance(self._topWindow.inventory.classes, dict):
             if self._topWindow.inventory.classes['generalClasses']:
@@ -1645,7 +1647,7 @@ class BymurWxDataPanel(BymurWxPanel):
                         classes['generalClasses'])):
                     try:
                         self._genClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
+                            str(area_inventory.asset.
                                 counts['genClassCount'][i_class]))
                     except:
                         self._genClasses[i_class]['value'].SetValue('')
@@ -1658,7 +1660,7 @@ class BymurWxDataPanel(BymurWxPanel):
                         classes['ageClasses'])):
                     try:
                         self._ageClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
+                            str(area_inventory.asset.
                                 counts['ageClassCount'][i_class]))
                     except:
                         self._ageClasses[i_class]['value'].SetValue('')
@@ -1671,7 +1673,7 @@ class BymurWxDataPanel(BymurWxPanel):
                         classes['houseClasses'])):
                     try:
                         self._houseClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
+                            str(area_inventory.asset.
                                 counts['houseClassCount'][i_class]))
                     except:
                         self._houseClasses[i_class]['value'].SetValue('')
