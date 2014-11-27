@@ -517,64 +517,47 @@ class BymurCore(object):
         # print "phenomena %s " % ret['phenomena']
         return ret
 
-
-    def updateModel(self, **ctrls_options):
-
-        """Update HazardModel reflecting selected options. """
-        print "ctrls_options %s" % ctrls_options
-        haz_tmp = ctrls_options
-        haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time'] /
-                                                   haz_tmp['ret_per'])
-        self.hazard_options = haz_tmp
-
-        print "core hazard_options %s " % self.hazard_options
-
-        self._hazard = HazardModel(self._db,
-                                   hazard_name=
-                                   self.hazard_options['hazard_name'],
-                                   exp_time=self.hazard_options['exp_time'])
-
-        inv_dic = self.db.get_inventory_by_datagrid_id(
-            self._hazard.datagrid_id)
-        self._inventory = bf.InventoryXML(name=inv_dic['name'])
-        self._inventory.classes.update({'generalClasses':[],
+    def read_inventory_model(self, grid_id):
+        inv_dic = self.db.get_inventory_by_datagrid_id(grid_id)
+        _inventory = bf.InventoryXML(name=inv_dic['name'])
+        _inventory.classes.update({'generalClasses':[],
                                         'ageClasses':[],
                                         'houseClasses':[]})
         for c in inv_dic['general_classes']:
-            self._inventory.classes['generalClasses'].append(
+            _inventory.classes['generalClasses'].append(
                 bf.InventoryGeneralClass(name=c['name'],
                                          label=c['label']))
         for c in inv_dic['age_classes']:
-            self._inventory.classes['ageClasses'].append(
+            _inventory.classes['ageClasses'].append(
                 bf.InventoryAgeClass(name=c['name'],
                                      label=c['label']))
         for c in inv_dic['house_classes']:
-            self._inventory.classes['houseClasses'].append(
+            _inventory.classes['houseClasses'].append(
                 bf.InventoryHouseClass(name=c['name'],
                                        label=c['label']))
 
-        self._inventory.classes['costClasses'] = dict()
+        _inventory.classes['costClasses'] = dict()
         for phen_class in inv_dic['cost_classes']:
             phen = phen_class['phenomenon_name']
-            self._inventory.classes['costClasses'][phen.lower()] = []
+            _inventory.classes['costClasses'][phen.lower()] = []
             for c_str in phen_class['classes'].split(":"):
                 c_name, c_label = c_str.lstrip("(").rstrip(")").split(",")
                 c_tmp = bf.InventoryCostClass(phenomenon=phen.lower(),
                                               name=c_name,
                                               label=c_label)
-                self._inventory.classes['costClasses']\
+                _inventory.classes['costClasses']\
                         [phen.lower()].append(c_tmp)
 
-        self._inventory.classes['fragilityClasses'] = dict()
+        _inventory.classes['fragilityClasses'] = dict()
         for phen_class in inv_dic['fragility_classes']:
             phen = phen_class['phenomenon_name'].lower()
-            self._inventory.classes['fragilityClasses'][phen] = []
+            _inventory.classes['fragilityClasses'][phen] = []
             for c_str in phen_class['classes'].split(":"):
                 c_name, c_label = c_str.lstrip("(").rstrip(")").split(",")
                 c_tmp = bf.InventoryFragilityClass(phenomenon=phen,
                                                    name=c_name,
                                                    label=c_label)
-                self._inventory.classes['fragilityClasses']\
+                _inventory.classes['fragilityClasses']\
                         [phen].append(c_tmp)
 
         _inventory_sections = self.db.get_sections_by_inventory_id(
@@ -615,10 +598,28 @@ class BymurCore(object):
                     sec_tmp.asset.frag_class_prob[phen] = \
                         dict(fnc=fnt_tmp,
                              fnt_given_general_class = fnt_given_tmp)
+            _inventory.sections.append(sec_tmp)
 
-            self._inventory.sections.append(sec_tmp)
+        return _inventory
 
-        self._inventory.dump()
+
+    def updateModel(self, **ctrls_options):
+
+        """Update HazardModel reflecting selected options. """
+        print "ctrls_options %s" % ctrls_options
+        haz_tmp = ctrls_options
+        haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time'] /
+                                                   haz_tmp['ret_per'])
+        self.hazard_options = haz_tmp
+
+        print "core hazard_options %s " % self.hazard_options
+
+        self._hazard = HazardModel(self._db,
+                                   hazard_name=
+                                   self.hazard_options['hazard_name'],
+                                   exp_time=self.hazard_options['exp_time'])
+
+        self._inventory = self.read_inventory_model(self._hazard.datagrid_id)
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
