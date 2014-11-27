@@ -297,8 +297,6 @@ class BymurController(object):
         """
 
         if pathID is not None:
-            print "pathID: %s" % pathID
-            print "areaID: %s" % (pathID+1)
             self._core.set_area_by_ID(pathID+1)
         if self._core.set_point_by_index(index):
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)

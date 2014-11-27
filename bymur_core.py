@@ -596,8 +596,8 @@ class BymurCore(object):
                             for c_list in
                             phen_class['fnt_given_general_class'].split(",")]
                     sec_tmp.asset.frag_class_prob[phen] = \
-                        dict(fnc=fnt_tmp,
-                             fnt_given_general_class = fnt_given_tmp)
+                        dict(fnt=fnt_tmp,
+                             fntGivenGeneralClass = fnt_given_tmp)
             _inventory.sections.append(sec_tmp)
 
         return _inventory
@@ -631,8 +631,6 @@ class BymurCore(object):
             self.hazard_options['hazard_threshold'])
 
     def set_area_by_ID(self, areaID):
-        print "section aread id %s" % self.inventory.sections[areaID-1].areaID
-
         self.selected_area.areaID = \
             self.inventory.sections[areaID-1].areaID
         self.selected_area.sectionID = \

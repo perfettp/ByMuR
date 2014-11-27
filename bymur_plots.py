@@ -119,7 +119,7 @@ class HazardGraph(BymurPlot):
         self._figure.clf()
         self._canvas.draw()
 
-    def plot(self, hazard,  hazard_data, inventory, inventory_sections):
+    def plot(self, hazard,  hazard_data, inventory):
         # Prepare matplotlib grid and data
         grid_points_number = 256
         points_utm = [p['point'] for p in hazard_data]
@@ -136,7 +136,7 @@ class HazardGraph(BymurPlot):
         map_limits = [375.300, 508.500, 4449.200, 4569.800]
         self.haz_map = self.plot_hazard_map(x_mesh, y_mesh,
                              [p['haz_value'] for p in hazard_data],
-                             map_limits, hazard, inventory, inventory_sections)
+                             map_limits, hazard, inventory)
 
         self.haz_point,  = self.haz_map.plot([self.x_points[0]],
                                                   [self.y_points[0]],
@@ -161,7 +161,7 @@ class HazardGraph(BymurPlot):
         self._canvas.draw()
 
     def plot_hazard_map(self, x_mesh, y_mesh, z_points,
-                 map_limits, hazard, inventory, inventory_sections):
+                 map_limits, hazard, inventory):
         xmap1, xmap2, ymap1, ymap2 = map_limits
         haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
@@ -193,10 +193,10 @@ class HazardGraph(BymurPlot):
         if show_areas:
 
             patch_list = []
-            for sec in inventory_sections:
+            for sec in inventory.sections:
                 geometry_array =  np.array([[float(coord)*1e-3
-                                    for coord in v.strip().split(" ")]
-                                        for v in sec['geometry'].split(",")])
+                                    for coord in v]
+                                        for v in sec.geometry])
 
                 path_tmp = mpl.path.Path(geometry_array, closed=True)
                 patch_list.append(path_tmp)
@@ -408,6 +408,7 @@ class FragCurve(BymurPlot):
         super(FragCurve, self).__init__(*args, **kwargs)
 
     def plot(self, **kwargs):
+        print "Fragcurve plot"
         pass
 
 class LossCurve(BymurPlot):
@@ -443,9 +444,6 @@ class InvCurve(BymurPlot):
         self._hazard = kwargs.pop('hazard', None)
         self._inventory = kwargs.pop('inventory', None)
         self._area = kwargs.pop('area', None)
-        # print "InvCurve plot hazard phen= %s" % self._hazard.phenomenon_name
-        # print "InvCurve plot inventory = %s" % self._inventory
-        # print "InvCurve plot area = %s" % self._area
         self._figure.clf()
 
         subplot_arr = []
@@ -530,7 +528,6 @@ class InvCurve(BymurPlot):
                 sub_probs = [float(x) for x  in self._area.asset.frag_class_prob[
                     self._hazard.phenomenon_name.lower()][
                     'fntGivenGeneralClass'][i_class]]
-                print sub_probs
                 for i_p in range(len(sub_probs)):
                     subplot_tmp.bar(i_class*width+bar_width*i_p+bar_offset,
                         sub_probs[i_p], bar_width, color=self._bar_colors[

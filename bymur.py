@@ -1111,20 +1111,18 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
                                              controller=self._controller,
                                              label="NBHazPage")
+        self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBFragPage")
         self._curvesNBVuln = BymurWxNBVulnPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBVulnPage")
         self._curvesNBRisk = BymurWxNBRiskPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBRiskPage")
-
         self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBInvPage")
-
-        self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
-                                               controller=self._controller,
-                                               label="NBFragPage")
 
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
         self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
@@ -1166,8 +1164,7 @@ class BymurWxMapPanel(BymurWxPanel):
         super(BymurWxMapPanel, self).updateView(**kwargs)
         self._map.plot(wx.GetTopLevelParent(self).hazard,
                        wx.GetTopLevelParent(self).hazard_data,
-                       wx.GetTopLevelParent(self).inventory,
-                       wx.GetTopLevelParent(self).inventory_sections)
+                       wx.GetTopLevelParent(self).inventory)
         self.Enable(True)
 
     # def clear(self):
@@ -1224,9 +1221,7 @@ class BymurWxNBFragPage(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxNBFragPage, self).updateView(**kwargs)
-        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
-                       inventory=wx.GetTopLevelParent(self).inventory,
-                       area=wx.GetTopLevelParent(self).selected_area)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard)
         self.Enable(True)
 
     @property
@@ -1543,10 +1538,10 @@ class BymurWxDataPanel(BymurWxPanel):
         print self._topWindow.inventory
         vpos = 0
         self._genClasses = []
-        for gen_class in self._topWindow.inventory['general_classes']:
+        for gen_class in self._topWindow.inventory.classes['generalClasses']:
             _genclassrow = dict()
             _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
-                                                  gen_class['name'])
+                                                  gen_class.name)
             _genclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
                                                 style=wx.TE_READONLY,
                                                 size=(40,20))
@@ -1557,6 +1552,41 @@ class BymurWxDataPanel(BymurWxPanel):
                                     flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
             self._genClasses.append(_genclassrow)
             vpos +=1
+
+        vpos = 0
+        self._ageClasses = []
+        for age_class in self._topWindow.inventory.classes['ageClasses']:
+            _ageclassrow = dict()
+            _ageclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  age_class.name)
+            _ageclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._ageClassSizer.Add(_ageclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._ageClassSizer.Add(_ageclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._ageClasses.append(_ageclassrow)
+            vpos +=1
+
+        vpos = 0
+        self._houseClasses = []
+        for house_class in self._topWindow.inventory.classes['houseClasses']:
+            _houseclassrow = dict()
+            _houseclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  house_class.name)
+            _houseclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._houseClassSizer.Add(_houseclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._houseClassSizer.Add(_houseclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._houseClasses.append(_houseclassrow)
+            vpos +=1
+
 
     def updateView(self, **kwargs):
         super(BymurWxDataPanel, self).updateView(**kwargs)
