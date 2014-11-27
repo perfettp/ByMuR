@@ -1243,6 +1243,30 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         return [dict(zip(['id', 'name'], (x[0], x[1])))
                 for x in self._cursor.fetchall()]
 
+    def get_fragdata_by_areaid(self, frag_id, area_id):
+
+        area_db_id = self.get_area_dbid_by_areaid(area_id)
+        sqlquery = """
+                    SELECT `st`.`name`, `ls`.`name`, `gc`.`name`,
+                       `fd`.`fragility_curve`
+                    FROM ((`fragility_data` `fd` JOIN `statistics` `st` ON
+                      `fd`.`id_statistic` = `st`.`id`) LEFT JOIN
+                      `general_classes` `gc` ON
+                        `fd`.`id_general_class` = `gc`.`id`) LEFT JOIN
+                        `limit_states` `ls` ON
+                        `fd`.`id_limit_state` = `ls`.`id`
+                    WHERE `fd`.`id_fragility_model`={0} AND
+                     `fd`.`id_area`={1}
+        """
+        query = sqlquery.format(frag_id, area_db_id)
+        self._cursor.execute(query)
+        res = self._cursor.fetchall()
+        return [dict(zip(['statistic', 'limit_state', 'general_class',
+                          'fragility_curve'], x))
+                for x in res]
+
+
+
     def insert_id_limitstate(self, limit_state):
         sqlquery = "SELECT id FROM limit_states WHERE name = '{0}'"
 

@@ -64,6 +64,7 @@ _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
 class  FragilityModel(object):
     def __init__(self):
+        self._id = None
         self._hazard_type = None
         self._model_name = None
         self._statistics = []
@@ -75,6 +76,7 @@ class  FragilityModel(object):
         pass
 
     def dump(self):
+        print "ID: %s" % self.id
         print "Hazard type: %s " % self.hazard_type
         print "Model name: %s " % self.model_name
         print "Statistics: %s " % self.statistics
@@ -85,6 +87,13 @@ class  FragilityModel(object):
         for a in self.areas:
             a.dump()
         pass
+
+    @property
+    def id(self):
+        return self._id
+    @id.setter
+    def id(self, data):
+        self._id = data
 
     @property
     def hazard_type(self):

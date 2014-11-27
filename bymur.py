@@ -1222,7 +1222,11 @@ class BymurWxNBFragPage(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxNBFragPage, self).updateView(**kwargs)
-        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       fragility=wx.GetTopLevelParent(self).fragility,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       area_fragility=wx.GetTopLevelParent(
+                           self).selected_area['fragility'])
         self.Enable(True)
 
     @property
@@ -2428,6 +2432,14 @@ class BymurWxView(wx.Frame):
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
+        
+    @property
+    def fragility(self):
+        return self._fragility
+
+    @fragility.setter
+    def fragility(self, data):
+        self._fragility = data
 
     # @property
     # def inventory_sections(self):

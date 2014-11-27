@@ -521,6 +521,7 @@ class BymurCore(object):
     def read_fragility_model(self, phenomenon_id):
         frag_dic = self.db.get_fragility_model_by_phenid(phenomenon_id)
         _fragility = bf.FragilityModel()
+        _fragility.id = frag_dic['id']
         _fragility.model_name = frag_dic['model_name']
         _fragility.description = frag_dic['description']
         _fragility.imt = frag_dic['imt']
@@ -531,6 +532,7 @@ class BymurCore(object):
                             self.db.get_limitstates_by_frag_id(frag_dic['id'])]
         _fragility.statistics = [st['name'] for st in
                             self.db.get_statistics_by_frag_id(frag_dic['id'])]
+        return _fragility
 
 
     def read_inventory_model(self, grid_id):
@@ -635,8 +637,8 @@ class BymurCore(object):
                                    self.hazard_options['hazard_name'],
                                    exp_time=self.hazard_options['exp_time'])
 
-        self._inventory = self.read_inventory_model(self._hazard.datagrid_id)
-        self._fragility = self.read_fragility_model(self._hazard.phenomenon_id)
+        self.inventory = self.read_inventory_model(self._hazard.datagrid_id)
+        self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
@@ -651,18 +653,12 @@ class BymurCore(object):
         for sec in self.inventory.sections:
             if sec.areaID == areaID:
                 self.selected_area['inventory'] = sec
+                # TODO: questo dovrebbe diventare un oggetto
+                self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
+                            self.fragility.id, areaID)
                 break
-        # self.selected_area['inventory'] = self.inventory.sections
-        # self.selected_area.areaID = \
-        #     self.inventory.sections[areaID-1].areaID
-        # self.selected_area.sectionID = \
-        #     self.inventory.sections[areaID-1].sectionID
-        # self.selected_area.geometry = \
-        #     self.inventory.sections[areaID-1].geometry
-        # self.selected_area.centroid = \
-        #     self.inventory.sections[areaID-1].centroid
-        # self.selected_area.asset = \
-        #     self.inventory.sections[areaID-1].asset
+
+        print self.selected_area['fragility']
 
     def set_point_by_index(self, index):
         """
@@ -1212,6 +1208,14 @@ class BymurCore(object):
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
+        
+    @property
+    def fragility(self):
+        return self._fragility
+
+    @fragility.setter
+    def fragility(self, data):
+        self._fragility = data
 
     @property
     def selected_area(self):

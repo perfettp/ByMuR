@@ -407,9 +407,48 @@ class FragCurve(BymurPlot):
     def __init__(self, *args, **kwargs):
         super(FragCurve, self).__init__(*args, **kwargs)
 
-    def plot(self, **kwargs):
-        print "Fragcurve plot"
-        pass
+    def plot(self, **kwargs ):
+        self._hazard = kwargs.pop('hazard', None)
+        self._fragility = kwargs.pop('fragility', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._area_fragility = kwargs.pop('area_fragility', None)
+
+
+        # TODO: sistemare questa lista perche' sia unica ma in ordine
+        area_class = [af['general_class'] for af in self._area_fragility]
+        print area_class
+        area_class = list(set(area_class))
+        print area_class
+
+        self._figure.clf()
+        row_num = len(self._fragility.limit_states)
+        col_num = len(area_class)
+        subplot_arr = []
+        for i_row in range(row_num):
+            for i_col in range(col_num):
+                subplot_tmp = pyplot.subplot2grid((row_num, col_num),
+                                                  (i_row, i_col))
+                print "subplot (%s, %s) (%s, %s)" % (row_num, col_num, i_row,
+                                                     i_col)
+                for c in self._area_fragility:
+                    if (c['statistic'] == 'mean') and \
+                        (c['limit_state'] ==
+                         self._fragility.limit_states[i_row]) and \
+                            (c['general_class'] == area_class[i_col]):
+                        print "dentro if: %s, %s" % (c['limit_state'],
+                                                     c['general_class'])
+                        subplot_tmp.plot(self._fragility.iml,
+                                        [float(y) for  y in
+                                         c['fragility_curve'].split(" ")],
+                                        linewidth=1,
+                                        alpha=1)
+                        print subplot_tmp
+                        # subplot_tmp.set_title(c['limit_state'] + c['general_class'],
+                        #                           fontsize=10)
+                subplot_arr.append(subplot_tmp)
+
+        self._canvas.draw()
+
 
 class LossCurve(BymurPlot):
 
@@ -549,6 +588,7 @@ class InvCurve(BymurPlot):
             subplot_arr.append(subplot_tmp)
 
         self._canvas.draw()
+
 
 class VulnCurve(BymurPlot):
     def __init__(self, *args, **kwargs):
