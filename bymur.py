@@ -300,7 +300,7 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
                 if len(self._ensGridCB.Items) > 0:
                     self._ensGridCB.SetSelection(0)
                 _grid_sel = self._ensGridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -312,7 +312,7 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
                     self._ensExpTimeCB.SetSelection(0)
                 self._ensExpTimeCB.Enable(True)
             elif ev.GetEventObject() == self._ensGridCB:
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -525,7 +525,7 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
                 if len(self._expHazGridCB.Items) > 0:
                     self._expHazGridCB.SetSelection(0)
                 _grid_sel = self._expHazGridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -537,7 +537,7 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
                     self._expHazExpTimeCB.SetSelection(0)
                 self._expHazExpTimeCB.Enable(True)
             elif ev.GetEventObject() == self._expHazGridCB:
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     self.ctrls_data['hazard_models']
                                     if (haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
@@ -1111,18 +1111,21 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
                                              controller=self._controller,
                                              label="NBHazPage")
+        self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBFragPage")
         self._curvesNBVuln = BymurWxNBVulnPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBVulnPage")
         self._curvesNBRisk = BymurWxNBRiskPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBRiskPage")
-
         self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBInvPage")
 
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
+        self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
         self._nb.AddPage(self._curvesNBVuln, self._curvesNBVuln.title)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
         self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
@@ -1198,7 +1201,8 @@ class BymurWxNBInvPage(BymurWxPanel):
         super(BymurWxNBInvPage, self).updateView(**kwargs)
         self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
                        inventory=wx.GetTopLevelParent(self).inventory,
-                       area=wx.GetTopLevelParent(self).selected_area)
+                       area_inventory=wx.GetTopLevelParent(self).selected_area[
+                           'inventory'])
         self.Enable(True)
 
     @property
@@ -1206,7 +1210,29 @@ class BymurWxNBInvPage(BymurWxPanel):
         """Get the current page title."""
         return self._title
 
+class BymurWxNBFragPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Fragility")
+        super(BymurWxNBFragPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.FragCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
 
+    def updateView(self, **kwargs):
+        super(BymurWxNBFragPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       fragility=wx.GetTopLevelParent(self).fragility,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       area_fragility=wx.GetTopLevelParent(
+                           self).selected_area['fragility'])
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
 
 class BymurWxNBHazPage(BymurWxPanel):
     def __init__(self, *args, **kwargs):
@@ -1316,12 +1342,362 @@ class BymurInventorySizer(BymurStaticBoxSizer):
         self._invBoxGrid.Add(self._invAreaTC, flag=wx.EXPAND,
                              pos=(grid_row, 3), span=(1, 3))
 
+class BymurWxDataPanel(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._dataBoxTitle = kwargs.pop('title', "Data")
+        super(BymurWxDataPanel, self).__init__(*args, **kwargs)
+        self._topWindow = wx.GetTopLevelParent(self)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        ## Nearest data point coordinates and values
+        self._dataBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Selected point data")
+        self._dataBoxSizer = wx.StaticBoxSizer(
+            self._dataBox,
+            orient=wx.VERTICAL)
+        self._dataSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._dataBoxSizer.Add(self._dataSizer)
+
+        vpos = 0
+        self._dataHazLabel = wx.StaticText(self, wx.ID_ANY, 'Hazard ')
+        self._dataHazTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataHazLabel, pos=(vpos, 0), span=(1, 1),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._dataSizer.Add(self._dataHazTC, pos=(vpos, 1), span=(1, 1))
+
+        self._dataProbLabel = wx.StaticText(self, wx.ID_ANY, 'Probability ')
+        self._dataProbTC = wx.TextCtrl(self, wx.ID_ANY,
+                                       style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataProbLabel, pos=(vpos, 2), span=(1, 1),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._dataSizer.Add(self._dataProbTC, pos=(vpos, 3), span=(1, 1))
+
+        ## Area Inventory details
+        self._invBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Selected area data")
+        self._invBoxSizer = wx.StaticBoxSizer(
+            self._invBox,
+            orient=wx.VERTICAL)
+        self._invSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._invBoxSizer.Add(self._invSizer)
+
+        vpos = 0
+        self._invAreaIDLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Area ID")
+        self._invAreaIDTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invAreaIDLabel,
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 1))
+        self._invSizer.Add(self._invAreaIDTC, flag=wx.EXPAND,
+                             pos=(vpos, 1), span=(1, 1))
+
+        self._invSecIDLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Section ID")
+        self._invSecIDTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invSecIDLabel,
+                             flag=wx.EXPAND, pos=(vpos, 3),
+                             span=(1, 1))
+        self._invSizer.Add(self._invSecIDTC, flag=wx.EXPAND,
+                             pos=(vpos, 4), span=(1, 1))
+
+        vpos += 1
+        self._invCentroidLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Centroid coordinates")
+        self._invCentroidXTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invCentroidYTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invCentroidLabel,
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 2))
+        self._invSizer.Add(self._invCentroidXTC, flag=wx.EXPAND,
+                             pos=(vpos, 2), span=(1, 2))
+        self._invSizer.Add(self._invCentroidYTC, flag=wx.EXPAND,
+                             pos=(vpos, 4), span=(1, 2))
+
+        vpos += 1
+        self._invTotalLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Total buildings number")
+        self._invTotalTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._invSizer.Add(self._invTotalLabel,
+                             flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 2))
+        self._invSizer.Add(self._invTotalTC, flag=wx.EXPAND,
+                             pos=(vpos, 2), span=(1, 3))
+
+        self._classBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Classes")
+        self._classBoxSizer = wx.StaticBoxSizer(
+            self._classBox,
+            orient=wx.HORIZONTAL)
+        self._classSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._classBoxSizer.Add(self._classSizer)
+
+        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
+
+        # General Classes
+        self._genClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "General")
+        self._genClassBoxSizer = wx.StaticBoxSizer(
+            self._genClassBox,
+            orient=wx.VERTICAL)
+        self._genClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._genClassBoxSizer.Add(self._genClassSizer)
+
+        vpos = 0
+        self._genClasses = []
+        # for gen_class in self._topWindow.inventory.classes['generalClasses']:
+        #     _genclassrow = dict()
+        #     _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+        #                                           gen_class.name)
+        #     _genclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+        #                                         style=wx.TE_READONLY,
+        #                                         size=(40,20))
+        #     self._genClassSizer.Add(_genclassrow['label'],
+        #                      flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+        #
+        #     self._genClassSizer.Add(_genclassrow['value'],
+        #                             flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+        #     self._genClasses.append(_genclassrow)
+        #     vpos +=1
+
+        self._classBoxSizer.Add(self._genClassBoxSizer, flag=wx.EXPAND)
+
+        # Age Classes
+        self._ageClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Ages")
+        self._ageClassBoxSizer = wx.StaticBoxSizer(
+            self._ageClassBox,
+            orient=wx.VERTICAL)
+        self._ageClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._ageClassBoxSizer.Add(self._ageClassSizer)
+
+        vpos = 0
+        self._ageClasses = []
+        # for age_class in self._topWindow.inventory.classes['ageClasses']:
+        #     _ageclassrow = dict()
+        #     _ageclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+        #                                           age_class.name)
+        #     _ageclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+        #                                         style=wx.TE_READONLY,
+        #                                         size=(40,20))
+        #     self._ageClassSizer.Add(_ageclassrow['label'],
+        #                      flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+        #
+        #     self._ageClassSizer.Add(_ageclassrow['value'],
+        #                             flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+        #     self._ageClasses.append(_ageclassrow)
+        #     vpos +=1
+
+        self._classBoxSizer.Add(self._ageClassBoxSizer, flag=wx.EXPAND)
+
+        # House Classes
+        self._houseClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Houses")
+        self._houseClassBoxSizer = wx.StaticBoxSizer(
+            self._houseClassBox,
+            orient=wx.VERTICAL)
+        self._houseClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._houseClassBoxSizer.Add(self._houseClassSizer)
+
+        vpos = 0
+        self._houseClasses = []
+        # for house_class in self._topWindow.inventory.classes['houseClasses']:
+        #     _houseclassrow = dict()
+        #     _houseclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+        #                                           house_class.name)
+        #     _houseclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+        #                                         style=wx.TE_READONLY,
+        #                                         size=(40,20))
+        #     self._houseClassSizer.Add(_houseclassrow['label'],
+        #                      flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+        #
+        #     self._houseClassSizer.Add(_houseclassrow['value'],
+        #                             flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+        #     self._houseClasses.append(_houseclassrow)
+        #     vpos +=1
+
+        self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
+        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
+        self._sizer.Add(self._dataBoxSizer, flag=wx.EXPAND)
+        self._sizer.Add(self._invBoxSizer, flag=wx.EXPAND)
+        self.SetSizer(self._sizer)
+
+    def updateInventory(self):
+        print "updateInventory"
+        print self._topWindow.inventory
+        vpos = 0
+        self._genClasses = []
+        for gen_class in self._topWindow.inventory.classes['generalClasses']:
+            _genclassrow = dict()
+            _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  gen_class.name)
+            _genclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._genClassSizer.Add(_genclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._genClassSizer.Add(_genclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._genClasses.append(_genclassrow)
+            vpos +=1
+
+        vpos = 0
+        self._ageClasses = []
+        for age_class in self._topWindow.inventory.classes['ageClasses']:
+            _ageclassrow = dict()
+            _ageclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  age_class.name)
+            _ageclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._ageClassSizer.Add(_ageclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._ageClassSizer.Add(_ageclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._ageClasses.append(_ageclassrow)
+            vpos +=1
+
+        vpos = 0
+        self._houseClasses = []
+        for house_class in self._topWindow.inventory.classes['houseClasses']:
+            _houseclassrow = dict()
+            _houseclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  house_class.name)
+            _houseclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._houseClassSizer.Add(_houseclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._houseClassSizer.Add(_houseclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._houseClasses.append(_houseclassrow)
+            vpos +=1
 
 
-class BymurWxLeftPanel(BymurWxPanel):
+    def updateView(self, **kwargs):
+        super(BymurWxDataPanel, self).updateView(**kwargs)
+
+    def clearPoint(self):
+        self._dataHazTC.SetValue('')
+        self._dataProbTC.SetValue('')
+
+    def updatePointData(self):
+        if self._topWindow.selected_point.haz_value:
+            self._dataHazTC.SetValue(
+                str(self._topWindow.selected_point.haz_value))
+        else:
+            self._dataHazTC.SetValue("")
+
+        if self._topWindow.selected_point.prob_value:
+            self._dataProbTC.SetValue(
+                str(self._topWindow.selected_point.prob_value))
+        else:
+            self._dataProbTC.SetValue("")
+
+        area_inventory = self._topWindow.selected_area['inventory']
+        if area_inventory.areaID:
+            self._invAreaIDTC.SetValue(
+                str(area_inventory.areaID))
+        else:
+            self._invAreaIDTC.SetValue('')
+
+        if area_inventory.sectionID:
+            self._invSecIDTC.SetValue(
+                str(area_inventory.sectionID))
+        else:
+            self._invSecIDTC.SetValue('')
+
+        if area_inventory.centroid:
+            print area_inventory.centroid[0]
+            self._invCentroidXTC.SetValue(
+                str(area_inventory.centroid[0]))
+            self._invCentroidYTC.SetValue(
+                str(area_inventory.centroid[1]))
+        else:
+            self._invCentroidXTC.SetValue('')
+            self._invCentroidYTC.SetValue('')
+
+        if area_inventory.asset.total:
+            self._invTotalTC.SetValue(
+                str(area_inventory.asset.total))
+        else:
+            self._invTotalTC.SetValue('')
+
+
+        print area_inventory.asset.counts
+
+        if isinstance(self._topWindow.inventory.classes, dict):
+            if self._topWindow.inventory.classes['generalClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['generalClasses'])):
+                    try:
+                        self._genClasses[i_class]['value'].SetValue(
+                            str(area_inventory.asset.
+                                counts['genClassCount'][i_class]))
+                    except:
+                        self._genClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._genClasses)):
+                    self._genClasses[i_class]['value'].SetValue('')
+
+            if self._topWindow.inventory.classes['ageClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['ageClasses'])):
+                    try:
+                        self._ageClasses[i_class]['value'].SetValue(
+                            str(area_inventory.asset.
+                                counts['ageClassCount'][i_class]))
+                    except:
+                        self._ageClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._ageClasses)):
+                    self._ageClasses[i_class]['value'].SetValue('')
+
+            if self._topWindow.inventory.classes['houseClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['houseClasses'])):
+                    try:
+                        self._houseClasses[i_class]['value'].SetValue(
+                            str(area_inventory.asset.
+                                counts['houseClassCount'][i_class]))
+                    except:
+                        self._houseClasses[i_class]['value'].SetValue('')
+            else:
+                for i_class in range(len(self._houseClasses)):
+                    self._houseClasses[i_class]['value'].SetValue('')
+
+    # @property
+    # def pointID(self):
+    #     return self._pointIDCB.GetValue()
+    #
+    # @pointID.setter
+    # def pointID(self, data):
+    #     self._pointIDCB.SetValue(data)
+
+
+class BymurWxCtrlsPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
         self._ctrlsBoxTitle = kwargs.pop('title', "Controls")
-        super(BymurWxLeftPanel, self).__init__(*args, **kwargs)
+        super(BymurWxCtrlsPanel, self).__init__(*args, **kwargs)
         self._topWindow = wx.GetTopLevelParent(self)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
 
@@ -1456,197 +1832,8 @@ class BymurWxLeftPanel(BymurWxPanel):
         self._pointSizer.Add(self._pointButton, flag=wx.EXPAND, pos=(vpos, 0),
                               span=(2, 4))
 
-        ## Nearest data point coordinates and values
-        self._dataBox = wx.StaticBox(
-            self,
-            wx.ID_ANY,
-            "Selected point data")
-        self._dataBoxSizer = wx.StaticBoxSizer(
-            self._dataBox,
-            orient=wx.VERTICAL)
-        self._dataSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._dataBoxSizer.Add(self._dataSizer)
-
-        vpos = 0
-        self._dataHazLabel = wx.StaticText(self, wx.ID_ANY, 'Hazard ')
-        self._dataHazTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
-        self._dataSizer.Add(self._dataHazLabel, pos=(vpos, 0), span=(1, 1),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataHazTC, pos=(vpos, 1), span=(1, 1))
-
-        self._dataProbLabel = wx.StaticText(self, wx.ID_ANY, 'Probability ')
-        self._dataProbTC = wx.TextCtrl(self, wx.ID_ANY,
-                                       style=wx.TE_READONLY)
-        self._dataSizer.Add(self._dataProbLabel, pos=(vpos, 2), span=(1, 1),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataProbTC, pos=(vpos, 3), span=(1, 1))
-
-        ## Area Inventory details
-        self._invBox = wx.StaticBox(
-            self,
-            wx.ID_ANY,
-            "Selected area data")
-        self._invBoxSizer = wx.StaticBoxSizer(
-            self._invBox,
-            orient=wx.VERTICAL)
-        self._invSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._invBoxSizer.Add(self._invSizer)
-
-        vpos = 0
-        self._invAreaIDLabel = wx.StaticText(self, wx.ID_ANY,
-                                    "Area ID")
-        self._invAreaIDTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
-        self._invSizer.Add(self._invAreaIDLabel,
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 1))
-        self._invSizer.Add(self._invAreaIDTC, flag=wx.EXPAND,
-                             pos=(vpos, 1), span=(1, 1))
-
-        self._invSecIDLabel = wx.StaticText(self, wx.ID_ANY,
-                                    "Section ID")
-        self._invSecIDTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
-        self._invSizer.Add(self._invSecIDLabel,
-                             flag=wx.EXPAND, pos=(vpos, 3),
-                             span=(1, 1))
-        self._invSizer.Add(self._invSecIDTC, flag=wx.EXPAND,
-                             pos=(vpos, 4), span=(1, 1))
-
-        vpos += 1
-        self._invCentroidLabel = wx.StaticText(self, wx.ID_ANY,
-                                    "Centroid coordinates")
-        self._invCentroidXTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
-        self._invCentroidYTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
-        self._invSizer.Add(self._invCentroidLabel,
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 2))
-        self._invSizer.Add(self._invCentroidXTC, flag=wx.EXPAND,
-                             pos=(vpos, 2), span=(1, 2))
-        self._invSizer.Add(self._invCentroidYTC, flag=wx.EXPAND,
-                             pos=(vpos, 4), span=(1, 2))
-
-        vpos += 1
-        self._invTotalLabel = wx.StaticText(self, wx.ID_ANY,
-                                    "Total buildings number")
-        self._invTotalTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
-        self._invSizer.Add(self._invTotalLabel,
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 2))
-        self._invSizer.Add(self._invTotalTC, flag=wx.EXPAND,
-                             pos=(vpos, 2), span=(1, 3))
-
-        self._classBox = wx.StaticBox(
-            self,
-            wx.ID_ANY,
-            "Classes")
-        self._classBoxSizer = wx.StaticBoxSizer(
-            self._classBox,
-            orient=wx.HORIZONTAL)
-        self._classSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._classBoxSizer.Add(self._classSizer)
-
-        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
-
-        # General Classes
-        self._genClassBox = wx.StaticBox(
-            self,
-            wx.ID_ANY,
-            "General")
-        self._genClassBoxSizer = wx.StaticBoxSizer(
-            self._genClassBox,
-            orient=wx.VERTICAL)
-        self._genClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._genClassBoxSizer.Add(self._genClassSizer)
-        
-        vpos = 0
-        self._genClasses = []
-        for gen_class in self._topWindow.inventory.classes['generalClasses']:
-            _genclassrow = dict()
-            _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
-                                                  gen_class.name)
-            _genclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
-                                                style=wx.TE_READONLY,
-                                                size=(40,20))
-            self._genClassSizer.Add(_genclassrow['label'],
-                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
-
-            self._genClassSizer.Add(_genclassrow['value'],
-                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
-            self._genClasses.append(_genclassrow)
-            vpos +=1
-
-        self._classBoxSizer.Add(self._genClassBoxSizer, flag=wx.EXPAND)
-        
-        # Age Classes
-        self._ageClassBox = wx.StaticBox(
-            self,
-            wx.ID_ANY,
-            "Ages")
-        self._ageClassBoxSizer = wx.StaticBoxSizer(
-            self._ageClassBox,
-            orient=wx.VERTICAL)
-        self._ageClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._ageClassBoxSizer.Add(self._ageClassSizer)
-        
-        vpos = 0
-        self._ageClasses = []
-        for age_class in self._topWindow.inventory.classes['ageClasses']:
-            _ageclassrow = dict()
-            _ageclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
-                                                  age_class.name)
-            _ageclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
-                                                style=wx.TE_READONLY,
-                                                size=(40,20))
-            self._ageClassSizer.Add(_ageclassrow['label'],
-                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
-
-            self._ageClassSizer.Add(_ageclassrow['value'],
-                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
-            self._ageClasses.append(_ageclassrow)
-            vpos +=1
-            
-        self._classBoxSizer.Add(self._ageClassBoxSizer, flag=wx.EXPAND)
-        
-        # House Classes
-        self._houseClassBox = wx.StaticBox(
-            self,
-            wx.ID_ANY,
-            "Houses")
-        self._houseClassBoxSizer = wx.StaticBoxSizer(
-            self._houseClassBox,
-            orient=wx.VERTICAL)
-        self._houseClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._houseClassBoxSizer.Add(self._houseClassSizer)
-        
-        vpos = 0
-        self._houseClasses = []
-        for house_class in self._topWindow.inventory.classes['houseClasses']:
-            _houseclassrow = dict()
-            _houseclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
-                                                  house_class.name)
-            _houseclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
-                                                style=wx.TE_READONLY,
-                                                size=(40,20))
-            self._houseClassSizer.Add(_houseclassrow['label'],
-                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
-
-            self._houseClassSizer.Add(_houseclassrow['value'],
-                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
-            self._houseClasses.append(_houseclassrow)
-            vpos +=1
-            
-        
-        self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
-        
-
         self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
         self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
-        self._sizer.Add(self._dataBoxSizer, flag=wx.EXPAND)
-        self._sizer.Add(self._invBoxSizer, flag=wx.EXPAND)
         self.SetSizer(self._sizer)
         # self.Enable(False)
 
@@ -1657,8 +1844,6 @@ class BymurWxLeftPanel(BymurWxPanel):
     def clearPoint(self):
         self._pointEastSC.SetValueString('')
         self._pointNortSC.SetValueString('')
-        self._dataHazTC.SetValue('')
-        self._dataProbTC.SetValue('')
 
     def updatePointSel(self, ev=None, easting='', northing=''):
         self._pointEastSC.SetValueString(easting)
@@ -1676,90 +1861,6 @@ class BymurWxLeftPanel(BymurWxPanel):
                 str(self._topWindow.selected_point.northing))
         else:
             self._pointNortSC.SetValueString("")
-
-        if self._topWindow.selected_point.haz_value:
-            self._dataHazTC.SetValue(
-                str(self._topWindow.selected_point.haz_value))
-        else:
-            self._dataHazTC.SetValue("")
-
-        if self._topWindow.selected_point.prob_value:
-            self._dataProbTC.SetValue(
-                str(self._topWindow.selected_point.prob_value))
-        else:
-            self._dataProbTC.SetValue("")
-
-        if self._topWindow.selected_area.areaID:
-            self._invAreaIDTC.SetValue(
-                str(self._topWindow.selected_area.areaID))
-        else:
-            self._invAreaIDTC.SetValue('')
-
-        if self._topWindow.selected_area.sectionID:
-            self._invSecIDTC.SetValue(
-                str(self._topWindow.selected_area.sectionID))
-        else:
-            self._invSecIDTC.SetValue('')
-
-        if self._topWindow.selected_area.centroid:
-            print self._topWindow.selected_area.centroid[0]
-            self._invCentroidXTC.SetValue(
-                str(self._topWindow.selected_area.centroid[0]))
-            self._invCentroidYTC.SetValue(
-                str(self._topWindow.selected_area.centroid[1]))
-        else:
-            self._invCentroidXTC.SetValue('')
-            self._invCentroidYTC.SetValue('')
-
-        if self._topWindow.selected_area.asset.total:
-            self._invTotalTC.SetValue(
-                str(self._topWindow.selected_area.asset.total))
-        else:
-            self._invTotalTC.SetValue('')
-
-
-        print self._topWindow.selected_area.asset.counts
-
-        if isinstance(self._topWindow.inventory.classes, dict):
-            if self._topWindow.inventory.classes['generalClasses']:
-                for i_class in range(len(self._topWindow.inventory.
-                        classes['generalClasses'])):
-                    try:
-                        self._genClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
-                                counts['genClassCount'][i_class]))
-                    except:
-                        self._genClasses[i_class]['value'].SetValue('')
-            else:
-                for i_class in range(len(self._genClasses)):
-                    self._genClasses[i_class]['value'].SetValue('')
-                    
-            if self._topWindow.inventory.classes['ageClasses']:
-                for i_class in range(len(self._topWindow.inventory.
-                        classes['ageClasses'])):
-                    try:
-                        self._ageClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
-                                counts['ageClassCount'][i_class]))
-                    except:
-                        self._ageClasses[i_class]['value'].SetValue('')
-            else:
-                for i_class in range(len(self._ageClasses)):
-                    self._ageClasses[i_class]['value'].SetValue('')
-                    
-            if self._topWindow.inventory.classes['houseClasses']:
-                for i_class in range(len(self._topWindow.inventory.
-                        classes['houseClasses'])):
-                    try:
-                        self._houseClasses[i_class]['value'].SetValue(
-                            str(self._topWindow.selected_area.asset.
-                                counts['houseClassCount'][i_class]))
-                    except:
-                        self._houseClasses[i_class]['value'].SetValue('')
-            else:
-                for i_class in range(len(self._houseClasses)):
-                    self._houseClasses[i_class]['value'].SetValue('')
-
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
@@ -1801,7 +1902,7 @@ class BymurWxLeftPanel(BymurWxPanel):
                 if len(self._gridCB.Items) > 0:
                     self._gridCB.SetSelection(0)
                 _grid_sel = self._gridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name and
@@ -1823,19 +1924,20 @@ class BymurWxLeftPanel(BymurWxPanel):
                 if len(self._gridCB.Items) > 0:
                     self._gridCB.SetSelection(0)
                 _grid_sel = self._gridCB.GetValue()
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name and
                                 haz['grid_name'] == _grid_sel)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
+                print _exptimelist
                 self._expTimeCB.AppendItems(list(set(_exptimelist)))
                 if len(self._expTimeCB.Items) > 0:
                     self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
             elif ev.GetEventObject() == self._gridCB:
-                _exptimelist = [haz['exposure_time'] for haz in
+                _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name and
@@ -1850,7 +1952,7 @@ class BymurWxLeftPanel(BymurWxPanel):
                 pass
 
     def updateView(self, **kwargs):
-        super(BymurWxLeftPanel, self).updateView(**kwargs)
+        super(BymurWxCtrlsPanel, self).updateView(**kwargs)
 
     def updatePointInterval(self):
         self._pointEastSC.SetRange(
@@ -1909,13 +2011,6 @@ class BymurWxLeftPanel(BymurWxPanel):
         values['exp_time'] = self._expTimeCB.GetStringSelection()
         return values
 
-    @property
-    def pointID(self):
-        return self._pointIDCB.GetValue()
-
-    @pointID.setter
-    def pointID(self, data):
-        self._pointIDCB.SetValue(data)
 
 
 class BymurWxMenu(wx.MenuBar):
@@ -2075,14 +2170,23 @@ class BymurWxView(wx.Frame):
 
         # Main panel
         self.mainSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self._leftPanel = BymurWxLeftPanel(parent=self,
+        self._leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._ctrlsPanel = BymurWxCtrlsPanel(parent=self,
                                            controller=self._controller,
                                            title="Hazard",
-                                           label="LeftPanel")
+                                           label="CtrlsPanel")
+
+        self._dataPanel = BymurWxDataPanel(parent=self,
+                                           controller=self._controller,
+                                           title="Data",
+                                           label="DataPanel")
+
         self._rightPanel = BymurWxRightPanel(parent=self,
                                              controller=self._controller,
                                              label="RightPanel")
-        self.mainSizer.Add(self._leftPanel, 0, wx.EXPAND)
+        self._leftSizer.Add(self._ctrlsPanel, 0, wx.EXPAND)
+        self._leftSizer.Add(self._dataPanel, 1, wx.EXPAND)
+        self.mainSizer.Add(self._leftSizer, 0, wx.EXPAND)
         self.mainSizer.Add(self._rightPanel, 1, wx.EXPAND)
         self.SetSizer(self.mainSizer)
         self.SetSize((950, 750))
@@ -2189,32 +2293,36 @@ class BymurWxView(wx.Frame):
         if event.GetEventType() == bf.wxBYMUR_DB_CONNECTED:
             print "bf.wxBYMUR_DB_CONNECTED"
             self.dbConnected = True
-            self.leftPanel.updateCtrls()
+            self.ctrlsPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_DB_CLOSED:
             self.dbConnected = False
             self.reset()
-            self.leftPanel.clearCtrls()
-            self.leftPanel.clearPoint()
+            self.ctrlsPanel.clearCtrls()
+            self.ctrlsPanel.clearPoint()
+            self.dataPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
             self.rightPanel.mapPanel.clear()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
             print "bf.wxBYMUR_UPDATE_CTRLS"
-            self.leftPanel.updateCtrls()
+            self.ctrlsPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_DIALOG:
             print "bf.wxBYMUR_UPDATE_DIALOG"
-            self.leftPanel.updateCtrls()
+            self.ctrlsPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
             print "bf.wxBYMUR_UPDATE_ALL"
-            self.leftPanel.updateCtrls(event)
-            self.leftPanel.updatePointInterval()
-            self.leftPanel.clearPoint()
+            self.ctrlsPanel.updateCtrls(event)
+            self.dataPanel.updateInventory()
+            self.ctrlsPanel.updatePointInterval()
+            self.ctrlsPanel.clearPoint()
+            self.dataPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
             self.rightPanel.mapPanel.clear()
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_POINT:
             print "bf.wxBYMUR_UPDATE_POINT"
-            self.leftPanel.updatePointData()
+            self.ctrlsPanel.updatePointData()
+            self.dataPanel.updatePointData()
             self.rightPanel.mapPanel.updatePoint()
             self.rightPanel.curvesPanel.updateView()
 
@@ -2227,13 +2335,16 @@ class BymurWxView(wx.Frame):
         return self._rightPanel
 
     @property
-    def leftPanel(self):
-        return self._leftPanel
+    def ctrlsPanel(self):
+        return self._ctrlsPanel
+
+    @property
+    def dataPanel(self):
+        return self._dataPanel
 
     @property
     def hazard_options(self):
-        return self._leftPanel.hazard_options
-
+        return self._ctrlsPanel.hazard_options
 
     @property
     def busymsg(self):
@@ -2321,6 +2432,22 @@ class BymurWxView(wx.Frame):
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
+        
+    @property
+    def fragility(self):
+        return self._fragility
+
+    @fragility.setter
+    def fragility(self, data):
+        self._fragility = data
+
+    # @property
+    # def inventory_sections(self):
+    #     return self._inventory_sections
+    #
+    # @inventory_sections.setter
+    # def inventory_sections(self, data):
+    #     self._inventory_sections = data
         
     @property
     def selected_area(self):

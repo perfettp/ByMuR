@@ -195,8 +195,9 @@ class HazardGraph(BymurPlot):
             patch_list = []
             for sec in inventory.sections:
                 geometry_array =  np.array([[float(coord)*1e-3
-                                             for coord in v.strip().split(" ")]
-                                            for v in sec.geometry])
+                                    for coord in v]
+                                        for v in sec.geometry])
+
                 path_tmp = mpl.path.Path(geometry_array, closed=True)
                 patch_list.append(path_tmp)
 
@@ -401,6 +402,96 @@ class HazardCurve(BymurPlot):
         # self.axes.axis([0,1,0,1])
         self._canvas.draw()
 
+class FragCurve(BymurPlot):
+
+    def __init__(self, *args, **kwargs):
+        super(FragCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs ):
+        self._hazard = kwargs.pop('hazard', None)
+        self._fragility = kwargs.pop('fragility', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._area_fragility = kwargs.pop('area_fragility', None)
+        stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
+        stat_colors = ['k', 'g', 'b', 'r']
+
+        # here order of classes is important!
+        area_class_set = set([af['general_class'] for af in
+                              self._area_fragility])
+        area_general_classes = [c.name for c in self._inventory.classes[
+                                            'generalClasses']
+                              if c.name in  area_class_set]
+
+
+        self._figure.clf()
+        print self._fragility.limit_states
+        row_num = len(self._fragility.limit_states)
+        col_num = len(area_general_classes)
+        subplot_arr = []
+        gridspec = pyplot.GridSpec(row_num, col_num)
+        gridspec.update(hspace = 0.4)
+        for i_row in range(row_num):
+            for i_col in range(col_num):
+                # subplot_tmp = pyplot.subplot2grid((row_num, col_num),
+                #                                   (i_row, i_col))
+                # subplot_tmp = self._figure.add_subplot(row_num, col_num,
+                #                                        i_row+i_col+1)
+                # print "subplot (%s, %s) (%s, %s)" % (row_num, col_num, i_row,
+                #                                      i_col)
+
+                subplot_spec = gridspec.new_subplotspec((i_row, i_col))
+                subplot_tmp = self._figure.add_subplot(subplot_spec)
+
+
+                for c in self._area_fragility:
+                    if (c['limit_state'] == self._fragility.limit_states[i_row]) \
+                            and (c['general_class'] ==
+                                     area_general_classes[i_col]):
+                        # print "dentro if: %s, %s" % (c['limit_state'],
+                        #                              c['general_class'])
+                        # subplot_tmp.plot([1, 2])
+
+                        if c['statistic'] in stat_to_plot:
+                            # print "%s: %s " % (c['statistic'], [float(y) for
+                            #                                     y in
+                            #                  c['fragility_curve'].split(" ")])
+                            subplot_tmp.plot(self._fragility.iml,
+                                            [float(y) for  y in
+                                             c['fragility_curve'].split(" ")],
+                                            linewidth=1,
+                                            alpha=1,
+                                            label = c['statistic'],
+                                            color = stat_colors[
+                                                stat_to_plot.index(c[
+                                                    'statistic'])])
+                        subplot_tmp.tick_params(axis='x', labelsize=8)
+                        subplot_tmp.tick_params(axis='y', labelsize=8)
+                        subplot_tmp.set_ylim((0,1))
+                        # print subplot_tmp
+                        subplot_tmp.set_title("Prob. of " + c['limit_state'] +
+                                              " for " + c['general_class'],
+                                                  fontsize=9)
+                subplot_tmp.legend(loc=2, prop={'size':6})
+                subplot_arr.append(subplot_tmp)
+        # gridspec.tight_layout(self._figure)
+        self._canvas.draw()
+
+
+class LossCurve(BymurPlot):
+
+    def __init__(self, *args, **kwargs):
+        super(LossCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        pass
+
+class RiskCurve(BymurPlot):
+
+    def __init__(self, *args, **kwargs):
+        super(RiskCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        pass
 
 
 class InvCurve(BymurPlot):
@@ -418,16 +509,13 @@ class InvCurve(BymurPlot):
     def plot(self, **kwargs):
         self._hazard = kwargs.pop('hazard', None)
         self._inventory = kwargs.pop('inventory', None)
-        self._area = kwargs.pop('area', None)
-        # print "InvCurve plot hazard phen= %s" % self._hazard.phenomenon_name
-        # print "InvCurve plot inventory = %s" % self._inventory
-        # print "InvCurve plot area = %s" % self._area
+        self._area_inventory = kwargs.pop('area_inventory', None)
         self._figure.clf()
 
         subplot_arr = []
 
         #if there area any builging, plot fragility and cost classes probability
-        if int(self._area.asset.total) > 0:
+        if int(self._area_inventory.asset.total) > 0:
 
             # Fragility class probabilities
             subplot_tmp = pyplot.subplot2grid((2,2), (0,0))
@@ -447,7 +535,7 @@ class InvCurve(BymurPlot):
             for i_class in range(len(self._inventory.classes['fragilityClasses'][
                 self._hazard.phenomenon_name.lower()])):
                 subplot_tmp.bar(i_class*width,
-                    np.float(self._area.asset.frag_class_prob[
+                    np.float(self._area_inventory.asset.frag_class_prob[
                         self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
                     width, color=self._colors[i_class],
                     label=self._inventory.classes['fragilityClasses'][
@@ -472,7 +560,7 @@ class InvCurve(BymurPlot):
             for i_class in range(len(self._inventory.classes['costClasses'][
                 self._hazard.phenomenon_name.lower()])):
                 subplot_tmp.bar(i_class*width,
-                    np.float(self._area.asset.cost_class_prob[
+                    np.float(self._area_inventory.asset.cost_class_prob[
                         self._hazard.phenomenon_name.lower()]['fnc'][i_class]),
                     width, color=self._colors[i_class],
                     label=self._inventory.classes['costClasses'][
@@ -503,10 +591,9 @@ class InvCurve(BymurPlot):
                 bar_offset = 0
             for i_class in range(len(self._inventory.classes['fragilityClasses'][
                 self._hazard.phenomenon_name.lower()])):
-                sub_probs = [float(x) for x  in self._area.asset.frag_class_prob[
+                sub_probs = [float(x) for x  in self._area_inventory.asset.frag_class_prob[
                     self._hazard.phenomenon_name.lower()][
                     'fntGivenGeneralClass'][i_class]]
-                print sub_probs
                 for i_p in range(len(sub_probs)):
                     subplot_tmp.bar(i_class*width+bar_width*i_p+bar_offset,
                         sub_probs[i_p], bar_width, color=self._bar_colors[
@@ -528,6 +615,7 @@ class InvCurve(BymurPlot):
             subplot_arr.append(subplot_tmp)
 
         self._canvas.draw()
+
 
 class VulnCurve(BymurPlot):
     def __init__(self, *args, **kwargs):

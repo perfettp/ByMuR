@@ -10,9 +10,9 @@ class BymurController(object):
 
     _exception_debug = False
     _basedir = os.getcwd()
-    _dbDetails = dict(db_host='***REMOVED***', db_port='3306',
+    _dbDetails = dict(db_host='127.0.0.1', db_port='3306',
                       db_user='***REMOVED***', db_password='***REMOVED***',
-                      db_name='***REMOVED***_def')
+                      db_name='***REMOVED***')
 
     _addDBDataDetails = dict()
 
@@ -256,7 +256,7 @@ class BymurController(object):
         """
 
         try:
-            data = self.get_gui().leftPanel.hazard_options
+            data = self.get_gui().ctrlsPanel.hazard_options
             print "Setting hazard_options data: %s" % data
             if (data['ret_per'] is None) or (data['int_thresh'] is None) or \
                     (data['hazard_name'] is None) or (data['exp_time'] is None):
@@ -297,8 +297,6 @@ class BymurController(object):
         """
 
         if pathID is not None:
-            print "pathID: %s" % pathID
-            print "areaID: %s" % (pathID+1)
             self._core.set_area_by_ID(pathID+1)
         if self._core.set_point_by_index(index):
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
@@ -344,6 +342,8 @@ class BymurController(object):
         self._set_hazard_options()
         self._set_selected_point()
         self._set_inventory()
+        self._set_fragility()
+        # self._set_inventory_sections()
         self._set_selected_area()
 
     def _set_ctrls_data(self):
@@ -363,6 +363,13 @@ class BymurController(object):
 
     def _set_inventory(self):
         self.get_gui().inventory = self._core.inventory
+        
+    def _set_fragility(self):
+        self.get_gui().fragility = self._core.fragility
+
+    # def _set_inventory_sections(self):
+    #     print "Set inventory_sections"
+    #     self.get_gui().inventory_sections = self._core.inventory_sections
 
     def _set_selected_area(self):
         self.get_gui().selected_area = self._core.selected_area

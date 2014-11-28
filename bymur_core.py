@@ -400,10 +400,11 @@ class BymurCore(object):
         self._hazard = None
         self._hazard_data = None
         self._selected_point = HazardPoint(self)
-        self._selected_area = bf.InventorySection()
-        self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
-        print self._inventory.classes
-        print self._inventory.sections[1].asset.counts
+        self._selected_area = dict(inventory=bf.InventorySection(),
+                                   fragility=None)
+        # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
+        self._inventory = None
+        self._fragility = None
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -517,6 +518,123 @@ class BymurCore(object):
         # print "phenomena %s " % ret['phenomena']
         return ret
 
+    def read_fragility_model(self, phenomenon_id):
+        frag_dic = self.db.get_fragility_model_by_phenid(phenomenon_id)
+        _fragility = bf.FragilityModel()
+        _fragility.id = frag_dic['id']
+        _fragility.model_name = frag_dic['model_name']
+        _fragility.description = frag_dic['description']
+        _fragility.imt = frag_dic['imt']
+        _fragility.iml = [float(l) for l in frag_dic['iml'].split(" ")]
+        _fragility.hazard_type = self.db.get_phenomenon_by_id(
+            frag_dic['phenomenon_id'])['name']
+        _fragility.limit_states = [ls['name'] for ls in
+                            self.db.get_limitstates_by_frag_id(frag_dic['id'])]
+        _fragility.statistics = [st['name'] for st in
+                            self.db.get_statistics_by_frag_id(frag_dic['id'])]
+        return _fragility
+    
+    def read_loss_model(self, phenomenon_id, frag_id):
+        loss_dic = self.db.get_loss_model_by_phenid(phenomenon_id)
+        _loss = bf.LossModel()
+        _loss.id = loss_dic['id']
+        _loss.model_name = loss_dic['model_name']
+        _loss.description = loss_dic['description']
+        _loss.unit = loss_dic['unit']
+        _loss.hazard_type = self.db.get_phenomenon_by_id(
+            loss_dic['phenomenon_id'])['name']
+        _loss.limit_states = [ls['name'] for ls in
+                            self.db.get_limitstates_by_frag_id(frag_id)]
+        _loss.statistics = [st['name'] for st in
+                            self.db.get_statistics_by_loss_id(loss_dic['id'])]
+        return _loss
+
+
+    def read_inventory_model(self, grid_id):
+        inv_dic = self.db.get_inventory_by_datagrid_id(grid_id)
+        _inventory = bf.InventoryXML(name=inv_dic['name'])
+        _inventory.classes.update({'generalClasses':[],
+                                        'ageClasses':[],
+                                        'houseClasses':[]})
+        for c in inv_dic['general_classes']:
+            _inventory.classes['generalClasses'].append(
+                bf.InventoryGeneralClass(name=c['name'],
+                                         label=c['label']))
+        for c in inv_dic['age_classes']:
+            _inventory.classes['ageClasses'].append(
+                bf.InventoryAgeClass(name=c['name'],
+                                     label=c['label']))
+        for c in inv_dic['house_classes']:
+            _inventory.classes['houseClasses'].append(
+                bf.InventoryHouseClass(name=c['name'],
+                                       label=c['label']))
+
+        _inventory.classes['costClasses'] = dict()
+        for phen_class in inv_dic['cost_classes']:
+            phen = phen_class['phenomenon_name']
+            _inventory.classes['costClasses'][phen.lower()] = []
+            for c_str in phen_class['classes'].split(":"):
+                c_name, c_label = c_str.lstrip("(").rstrip(")").split(",")
+                c_tmp = bf.InventoryCostClass(phenomenon=phen.lower(),
+                                              name=c_name,
+                                              label=c_label)
+                _inventory.classes['costClasses']\
+                        [phen.lower()].append(c_tmp)
+
+        _inventory.classes['fragilityClasses'] = dict()
+        for phen_class in inv_dic['fragility_classes']:
+            phen = phen_class['phenomenon_name'].lower()
+            _inventory.classes['fragilityClasses'][phen] = []
+            for c_str in phen_class['classes'].split(":"):
+                c_name, c_label = c_str.lstrip("(").rstrip(")").split(",")
+                c_tmp = bf.InventoryFragilityClass(phenomenon=phen,
+                                                   name=c_name,
+                                                   label=c_label)
+                _inventory.classes['fragilityClasses']\
+                        [phen].append(c_tmp)
+
+        _inventory_sections = self.db.get_sections_by_inventory_id(
+            inv_dic['inventory_id'])
+
+        for sec in _inventory_sections:
+            sec_tmp = bf.InventorySection()
+            sec_tmp.areaID = int(sec['areaID'])
+            sec_tmp.sectionID = int(sec['sectionID'])
+            sec_tmp.centroid =  (float(sec['centroidX']),
+                                 float(sec['centroidY']))
+            sec_tmp.geometry = [(float(p.strip().split(" ")[0]),
+                                 float(p.strip().split(" ")[1]))
+                                for p in sec['geometry'].split(",")]
+            sec_tmp.asset = bf.InventoryAsset()
+            sec_tmp.asset.total = int(sec['total_buildings'])
+            if sec_tmp.asset.total > 0:
+                sec_tmp.asset.counts['genClassCount'] = \
+                    [int(i) for i in sec['general_classes_count'].split(" ")]
+                sec_tmp.asset.counts['ageClassCount'] = \
+                    [int(i) for i in sec['age_classes_count'].split(" ")]
+                sec_tmp.asset.counts['houseClassCount'] = \
+                    [int(i) for i in sec['house_classes_count'].split(" ")]
+
+                cc_prob = self.db.get_costclass_prob_by_area_id(sec['id'])
+                for phen_class in cc_prob:
+                    phen = phen_class['phenomenon_name'].lower()
+                    fnc_tmp = [float(f) for f in phen_class['fnc'].split(" ")]
+                    sec_tmp.asset.cost_class_prob[phen] = dict(fnc=fnc_tmp)
+
+                fc_prob = self.db.get_fragclass_prob_by_area_id(sec['id'])
+                for phen_class in fc_prob:
+                    phen = phen_class['phenomenon_name'].lower()
+                    fnt_tmp = [float(f) for f in phen_class['fnt'].split(" ")]
+                    fnt_given_tmp = [[float(x) for x in c_list.split(" ")]
+                            for c_list in
+                            phen_class['fnt_given_general_class'].split(",")]
+                    sec_tmp.asset.frag_class_prob[phen] = \
+                        dict(fnt=fnt_tmp,
+                             fntGivenGeneralClass = fnt_given_tmp)
+            _inventory.sections.append(sec_tmp)
+
+        return _inventory
+
 
     def updateModel(self, **ctrls_options):
 
@@ -534,6 +652,13 @@ class BymurCore(object):
                                    self.hazard_options['hazard_name'],
                                    exp_time=self.hazard_options['exp_time'])
 
+        self.inventory = self.read_inventory_model(self._hazard.datagrid_id)
+        self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
+        self.loss = self.read_loss_model(self._hazard.phenomenon_id,
+                                         self.fragility.id)
+
+        print self.loss
+
         # TODO: grid_point should be eliminated from here
         # TODO: or from
         self.grid_points = self._hazard.grid_points
@@ -544,18 +669,13 @@ class BymurCore(object):
             self.hazard_options['hazard_threshold'])
 
     def set_area_by_ID(self, areaID):
-        print "section aread id %s" % self.inventory.sections[areaID-1].areaID
-
-        self.selected_area.areaID = \
-            self.inventory.sections[areaID-1].areaID
-        self.selected_area.sectionID = \
-            self.inventory.sections[areaID-1].sectionID
-        self.selected_area.geometry = \
-            self.inventory.sections[areaID-1].geometry
-        self.selected_area.centroid = \
-            self.inventory.sections[areaID-1].centroid
-        self.selected_area.asset = \
-            self.inventory.sections[areaID-1].asset
+        for sec in self.inventory.sections:
+            if sec.areaID == areaID:
+                self.selected_area['inventory'] = sec
+                # TODO: questo dovrebbe diventare un oggetto
+                self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
+                            self.fragility.id, areaID)
+                break
 
     def set_point_by_index(self, index):
         """
@@ -1106,6 +1226,14 @@ class BymurCore(object):
     def inventory(self, data):
         self._inventory = data
         
+    @property
+    def fragility(self):
+        return self._fragility
+
+    @fragility.setter
+    def fragility(self, data):
+        self._fragility = data
+
     @property
     def selected_area(self):
         return self._selected_area
