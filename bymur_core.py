@@ -658,8 +658,6 @@ class BymurCore(object):
                             self.fragility.id, areaID)
                 break
 
-        print self.selected_area['fragility']
-
     def set_point_by_index(self, index):
         """
         Set selected point by index in model.

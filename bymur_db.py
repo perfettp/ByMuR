@@ -1294,6 +1294,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             `limit_states` `ls` ON
             `frag_ls`.`id_limitstate`=`ls`.`id`
             WHERE `frag_ls`.`id_fragility_model`= %s
+            ORDER BY `frag_ls`.`position`
         """
         sqlquery %= str(frag_id)
         self._cursor.execute(sqlquery)

@@ -412,41 +412,64 @@ class FragCurve(BymurPlot):
         self._fragility = kwargs.pop('fragility', None)
         self._inventory = kwargs.pop('inventory', None)
         self._area_fragility = kwargs.pop('area_fragility', None)
+        stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
+        stat_colors = ['k', 'g', 'b', 'r']
 
+        # here order of classes is important!
+        area_class_set = set([af['general_class'] for af in
+                              self._area_fragility])
+        area_general_classes = [c.name for c in self._inventory.classes[
+                                            'generalClasses']
+                              if c.name in  area_class_set]
 
-        # TODO: sistemare questa lista perche' sia unica ma in ordine
-        area_class = [af['general_class'] for af in self._area_fragility]
-        print area_class
-        area_class = list(set(area_class))
-        print area_class
 
         self._figure.clf()
+        print self._fragility.limit_states
         row_num = len(self._fragility.limit_states)
-        col_num = len(area_class)
+        col_num = len(area_general_classes)
         subplot_arr = []
+        gridspec = pyplot.GridSpec(row_num, col_num)
+        gridspec.update(hspace = 0.4)
         for i_row in range(row_num):
             for i_col in range(col_num):
-                subplot_tmp = pyplot.subplot2grid((row_num, col_num),
-                                                  (i_row, i_col))
-                print "subplot (%s, %s) (%s, %s)" % (row_num, col_num, i_row,
-                                                     i_col)
-                for c in self._area_fragility:
-                    if (c['statistic'] == 'mean') and \
-                        (c['limit_state'] ==
-                         self._fragility.limit_states[i_row]) and \
-                            (c['general_class'] == area_class[i_col]):
-                        print "dentro if: %s, %s" % (c['limit_state'],
-                                                     c['general_class'])
-                        subplot_tmp.plot(self._fragility.iml,
-                                        [float(y) for  y in
-                                         c['fragility_curve'].split(" ")],
-                                        linewidth=1,
-                                        alpha=1)
-                        print subplot_tmp
-                        # subplot_tmp.set_title(c['limit_state'] + c['general_class'],
-                        #                           fontsize=10)
-                subplot_arr.append(subplot_tmp)
+                # subplot_tmp = pyplot.subplot2grid((row_num, col_num),
+                #                                   (i_row, i_col))
+                # subplot_tmp = self._figure.add_subplot(row_num, col_num,
+                #                                        i_row+i_col+1)
+                # print "subplot (%s, %s) (%s, %s)" % (row_num, col_num, i_row,
+                #                                      i_col)
 
+                subplot_spec = gridspec.new_subplotspec((i_row, i_col))
+                subplot_tmp = self._figure.add_subplot(subplot_spec)
+
+
+                for c in self._area_fragility:
+                    if (c['limit_state'] == self._fragility.limit_states[i_row]) \
+                            and (c['general_class'] ==
+                                     area_general_classes[i_col]):
+                        # print "dentro if: %s, %s" % (c['limit_state'],
+                        #                              c['general_class'])
+                        # subplot_tmp.plot([1, 2])
+                        if c['statistic'] in stat_to_plot:
+                            subplot_tmp.plot(self._fragility.iml,
+                                            [float(y) for  y in
+                                             c['fragility_curve'].split(" ")],
+                                            linewidth=1,
+                                            alpha=1,
+                                            label = c['statistic'],
+                                            color = stat_colors[
+                                                stat_to_plot.index(c[
+                                                    'statistic'])])
+                        subplot_tmp.tick_params(axis='x', labelsize=8)
+                        subplot_tmp.tick_params(axis='y', labelsize=8)
+                        subplot_tmp.set_ylim((0,1))
+                        # print subplot_tmp
+                        subplot_tmp.set_title("Prob. of " + c['limit_state'] +
+                                              " for " + c['general_class'],
+                                                  fontsize=9)
+                subplot_tmp.legend(loc=2, prop={'size':6})
+                subplot_arr.append(subplot_tmp)
+        # gridspec.tight_layout(self._figure)
         self._canvas.draw()
 
 
