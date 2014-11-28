@@ -411,13 +411,13 @@ class FragCurve(BymurPlot):
         self._hazard = kwargs.pop('hazard', None)
         self._fragility = kwargs.pop('fragility', None)
         self._inventory = kwargs.pop('inventory', None)
-        self._area_fragility = kwargs.pop('area_fragility', None)
+        self._area= kwargs.pop('area', None)
         stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
         stat_colors = ['k', 'g', 'b', 'r']
 
         # here order of classes is important!
         area_class_set = set([af['general_class'] for af in
-                              self._area_fragility])
+                              self._area['fragility']])
         area_general_classes = [c.name for c in self._inventory.classes[
                                             'generalClasses']
                               if c.name in  area_class_set]
@@ -441,7 +441,7 @@ class FragCurve(BymurPlot):
                 subplot_tmp = self._figure.add_subplot(subplot_spec)
 
 
-                for c in self._area_fragility:
+                for c in self._area['fragility']:
                     if (c['limit_state'] == self._fragility.limit_states[i_row]) \
                             and (c['general_class'] ==
                                      area_general_classes[i_col]):
@@ -490,6 +490,7 @@ class LossCurve(BymurPlot):
         self._figure.clf()
         row_num = len(self._fragility.limit_states)
         gridspec = pyplot.GridSpec(row_num, 1)
+        gridspec.update(hspace = 0.4)
         print self._area['inventory']
         if self._area['inventory'].asset.total == 0:
             return
@@ -515,7 +516,7 @@ class LossCurve(BymurPlot):
                     subplot_tmp.tick_params(axis='y', labelsize=8)
                     subplot_tmp.set_ylim((0, 1.2))
                     # print subplot_tmp
-                    subplot_tmp.set_title("Prob. of loss for " + c[
+                    subplot_tmp.set_title("Prob. of loss given " + c[
                         'limit_state'], fontsize=9)
             subplot_tmp.legend(loc=1, prop={'size':6})
         # gridspec.tight_layout(self._figure)

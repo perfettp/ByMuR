@@ -1225,8 +1225,7 @@ class BymurWxNBFragPage(BymurWxPanel):
         self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
                        fragility=wx.GetTopLevelParent(self).fragility,
                        inventory=wx.GetTopLevelParent(self).inventory,
-                       area_fragility=wx.GetTopLevelParent(
-                           self).selected_area['fragility'])
+                       area=wx.GetTopLevelParent(self).selected_area)
         self.Enable(True)
 
     @property
