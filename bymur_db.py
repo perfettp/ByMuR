@@ -1282,6 +1282,24 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         res = self._cursor.fetchall()
         return [dict(zip(['statistic', 'limit_state', 'loss_function'], x))
                 for x in res]
+    
+    def get_riskdata_by_areaid(self, risk_id, area_id):
+
+        area_db_id = self.get_area_dbid_by_areaid(area_id)
+        print "area_db_id %s " % area_db_id
+        sqlquery = """
+                    SELECT `st`.`name`, `rd`.`risk_function`,
+                    `rd`.`average_risk`
+                    FROM `risk_data` `rd` LEFT JOIN `statistics` `st` ON
+                      `rd`.`id_statistic` = `st`.`id`
+                    WHERE `rd`.`id_risk_model`={0} AND
+                     `rd`.`id_area`={1}
+        """
+        query = sqlquery.format(risk_id, area_db_id)
+        self._cursor.execute(query)
+        res = self._cursor.fetchall()
+        return [dict(zip(['statistic', 'risk_function', 'average_disk'], x))
+                for x in res]
 
 
 
@@ -1517,6 +1535,23 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                          'iml', 'imt'],
                         self._cursor.fetchone()))
 
+    def get_fragility_model_by_id(self, frag_id):
+        sqlquery = """ SELECT `frag_mod`.`id`,
+                    `frag_mod`.`id_phenomenon`,
+                    `frag_mod`.`model_name`,
+                    `frag_mod`.`description`,
+                    `frag_mod`.`iml`,
+                    `frag_mod`.`imt`
+            FROM `fragility_models` `frag_mod`
+            WHERE `frag_mod`.`id`= %s
+        """
+        sqlquery %= (str(frag_id))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['id', 'phenomenon_id',
+                         'model_name', 'description',
+                         'iml', 'imt'],
+                        self._cursor.fetchone()))
+
 
     def get_loss_model_by_name(self, loss_name):
         sqlquery = """ SELECT `loss_mod`.`id`,
@@ -1529,6 +1564,23 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             WHERE `loss_mod`.`model_name`= '%s'
         """
         sqlquery %= (str(loss_name.upper()))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['id', 'loss_type', 'phenomenon_id',
+                         'model_name', 'description',
+                         'unit'],
+                        self._cursor.fetchone()))
+
+    def get_loss_model_by_id(self, loss_id):
+        sqlquery = """ SELECT `loss_mod`.`id`,
+                    `loss_mod`.`loss_type`,
+                    `loss_mod`.`id_phenomenon`,
+                    `loss_mod`.`model_name`,
+                    `loss_mod`.`description`,
+                    `loss_mod`.`unit`
+            FROM `loss_models` `loss_mod`
+            WHERE `loss_mod`.`id`= %s
+        """
+        sqlquery %= (str(loss_id))
         self._cursor.execute(sqlquery)
         return dict(zip(['id', 'loss_type', 'phenomenon_id',
                          'model_name', 'description',
@@ -1551,6 +1603,30 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                          'model_name', 'description',
                          'unit'],
                         self._cursor.fetchone()))
+    
+    def get_risk_model_by_hazid(self, haz_id):
+        sqlquery = """ SELECT `risk_mod`.`id`,
+                    `risk_mod`.`risk_type`,
+                    `risk_mod`.`id_phenomenon`,
+                    `risk_mod`.`id_hazard_model`,
+                    `risk_mod`.`id_fragility_model`,
+                    `risk_mod`.`id_loss_model`,
+                    `risk_mod`.`model_name`,
+                    `risk_mod`.`investigation_time`,
+                    `risk_mod`.`description`
+            FROM `risk_models` `risk_mod`
+            WHERE `risk_mod`.`id_hazard_model`= %s
+        """
+        sqlquery %= (str(haz_id))
+        self._cursor.execute(sqlquery)
+        res = self._cursor.fetchone()
+        if res is None:
+            return None
+        else:
+            return dict(zip(['id', 'risk_type', 'phenomenon_id',
+                         'hazard_id', 'fragility_id', 'loss_id',
+                         'model_name', 'investigation_time', 'description'],
+                        res))
     
     
     def insert_id_risk_model(self, id_phen, risk_type, model_name,
@@ -1585,6 +1661,18 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                                  model_name.upper(),
                                                  investigation_time))
             return self._cursor.lastrowid
+
+    def get_statistics_by_risk_id(self, risk_id):
+        sqlquery = """ SELECT `st`.`id`, `st`.`name`
+            FROM `riskmodel_statistics` `risk_stat` LEFT JOIN
+            `statistics` `st` ON
+            `risk_stat`.`id_statistic`=`st`.`id`
+            WHERE `risk_stat`.`id_risk_model`= %s
+        """
+        sqlquery %= str(risk_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'name'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
 
     def insert_risk_statistic_rel(self, risk_id, statistic_id):
         """

@@ -63,6 +63,106 @@ _basedir = os.path.dirname(__file__)
 _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
 
+class  RiskModel(object):
+    def __init__(self):
+        self._id = None
+        self._risk_type = None
+        self._model_name = None
+        self._loss_model_name = None
+        self._hazard_model_name = None
+        self._hazard_type = None
+        self._fragility_model_name = None
+        self._statistics = []
+        self._investigation_time = None
+        self._areas = []
+        pass
+
+
+    def dump(self):
+        print "Risk id: %s " % self.id
+        print "Risk type: %s " % self.risk_type
+        print "Risk model name: %s " % self.model_name
+        print "Loss model name: %s " % self.loss_model_name
+        print "Hazard model name: %s " % self.hazard_model_name
+        print "Hazard type: %s " % self.hazard_type
+        print "Fragility model name: %s " % self.fragility_model_name
+        print "Investigation time: %s " % self.investigation_time
+        print "Statistics: %s " % self.statistics
+        for a in self.areas:
+            a.dump()
+        pass
+
+    @property
+    def id(self):
+        return self._id
+    @id.setter
+    def id(self, data):
+        self._id = data
+
+    @property
+    def risk_type(self):
+        return self._risk_type
+    @risk_type.setter
+    def risk_type(self, data):
+        self._risk_type = data
+
+    @property
+    def model_name(self):
+        return self._model_name
+    @model_name.setter
+    def model_name(self, data):
+        self._model_name = data
+
+    @property
+    def loss_model_name(self):
+        return self._loss_model_name
+    @loss_model_name.setter
+    def loss_model_name(self, data):
+        self._loss_model_name = data
+
+    @property
+    def fragility_model_name(self):
+        return self._fragility_model_name
+    @fragility_model_name.setter
+    def fragility_model_name(self, data):
+        self._fragility_model_name = data
+
+    @property
+    def hazard_model_name(self):
+        return self._hazard_model_name
+    @hazard_model_name.setter
+    def hazard_model_name(self, data):
+        self._hazard_model_name = data
+
+    @property
+    def hazard_type(self):
+        return self._hazard_type
+    @hazard_type.setter
+    def hazard_type(self, data):
+        self._hazard_type = data
+
+    @property
+    def statistics(self):
+        return self._statistics
+    @statistics.setter
+    def statistics(self, data):
+        self._statistics = data
+
+    @property
+    def investigation_time(self):
+        return self._investigation_time
+    @investigation_time.setter
+    def investigation_time(self, data):
+        self._investigation_time = data
+
+
+    @property
+    def areas(self):
+        return self._areas
+    @areas.setter
+    def areas(self, data):
+        self._areas = data
+
 class LossModel(object):
     def __init__(self):
         self._id = None
@@ -119,13 +219,6 @@ class LossModel(object):
     @statistics.setter
     def statistics(self, data):
         self._statistics = data
-
-    @property
-    def quantile_value(self):
-        return self._quantile_value
-    @quantile_value.setter
-    def quantile_value(self, data):
-        self._quantile_value = float(data)
 
     @property
     def unit(self):

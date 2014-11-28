@@ -1294,6 +1294,16 @@ class BymurWxNBRiskPage(BymurWxPanel):
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
+    def updateView(self, **kwargs):
+        super(BymurWxNBRiskPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       fragility=wx.GetTopLevelParent(self).fragility,
+                       loss=wx.GetTopLevelParent(self).loss,
+                       risk=wx.GetTopLevelParent(self).risk,
+                       area = wx.GetTopLevelParent(self).selected_area)
+        self.Enable(True)
+
     @property
     def title(self):
         """Get the current page title."""
