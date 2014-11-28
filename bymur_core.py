@@ -405,6 +405,7 @@ class BymurCore(object):
         # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
         self._inventory = None
         self._fragility = None
+        self._loss = None
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -538,6 +539,7 @@ class BymurCore(object):
         loss_dic = self.db.get_loss_model_by_phenid(phenomenon_id)
         _loss = bf.LossModel()
         _loss.id = loss_dic['id']
+        _loss.loss_type = loss_dic['loss_type']
         _loss.model_name = loss_dic['model_name']
         _loss.description = loss_dic['description']
         _loss.unit = loss_dic['unit']
@@ -657,7 +659,6 @@ class BymurCore(object):
         self.loss = self.read_loss_model(self._hazard.phenomenon_id,
                                          self.fragility.id)
 
-        print self.loss
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
@@ -671,10 +672,15 @@ class BymurCore(object):
     def set_area_by_ID(self, areaID):
         for sec in self.inventory.sections:
             if sec.areaID == areaID:
+                self.selected_area['areaID'] = areaID
+                self.selected_area['area_db_id'] = \
+                    self.db.get_area_dbid_by_areaid(areaID)
                 self.selected_area['inventory'] = sec
                 # TODO: questo dovrebbe diventare un oggetto
                 self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
                             self.fragility.id, areaID)
+                self.selected_area['loss'] = self.db.get_lossdata_by_areaid(
+                            self.loss.id, areaID)
                 break
 
     def set_point_by_index(self, index):

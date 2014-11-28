@@ -1114,9 +1114,9 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBFragPage")
-        self._curvesNBVuln = BymurWxNBVulnPage(parent=self._nb,
+        self._curvesNBLoss = BymurWxNBLossPage(parent=self._nb,
                                                controller=self._controller,
-                                               label="NBVulnPage")
+                                               label="NBLossPage")
         self._curvesNBRisk = BymurWxNBRiskPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBRiskPage")
@@ -1126,7 +1126,7 @@ class BymurWxCurvesPanel(BymurWxPanel):
 
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
         self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
-        self._nb.AddPage(self._curvesNBVuln, self._curvesNBVuln.title)
+        self._nb.AddPage(self._curvesNBLoss, self._curvesNBLoss.title)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
         self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
 
@@ -1225,8 +1225,7 @@ class BymurWxNBFragPage(BymurWxPanel):
         self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
                        fragility=wx.GetTopLevelParent(self).fragility,
                        inventory=wx.GetTopLevelParent(self).inventory,
-                       area_fragility=wx.GetTopLevelParent(
-                           self).selected_area['fragility'])
+                       area=wx.GetTopLevelParent(self).selected_area)
         self.Enable(True)
 
     @property
@@ -1259,20 +1258,30 @@ class BymurWxNBHazPage(BymurWxPanel):
         return self._title
 
 
-class BymurWxNBVulnPage(BymurWxPanel):
+class BymurWxNBLossPage(BymurWxPanel):
     def __init__(self, *args, **kwargs):
-        self._title = kwargs.pop('title', "Vulnerability")
-        super(BymurWxNBVulnPage, self).__init__(*args, **kwargs)
+        self._title = kwargs.pop('title', "Loss")
+        super(BymurWxNBLossPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        self._map = bymur_plots.VulnCurve(parent=self)
+        self._map = bymur_plots.LossCurve(parent=self)
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxNBLossPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       fragility=wx.GetTopLevelParent(self).fragility,
+                       loss=wx.GetTopLevelParent(self).loss,
+                       area = wx.GetTopLevelParent(self).selected_area)
+        self.Enable(True)
 
     @property
     def title(self):
         """Get the current page title."""
         return self._title
+
 
 
 class BymurWxNBRiskPage(BymurWxPanel):
@@ -2440,6 +2449,14 @@ class BymurWxView(wx.Frame):
     @fragility.setter
     def fragility(self, data):
         self._fragility = data
+        
+    @property
+    def loss(self):
+        return self._loss
+
+    @loss.setter
+    def loss(self, data):
+        self._loss = data
 
     # @property
     # def inventory_sections(self):

@@ -343,6 +343,7 @@ class BymurController(object):
         self._set_selected_point()
         self._set_inventory()
         self._set_fragility()
+        self._set_loss()
         # self._set_inventory_sections()
         self._set_selected_area()
 
@@ -366,6 +367,9 @@ class BymurController(object):
         
     def _set_fragility(self):
         self.get_gui().fragility = self._core.fragility
+        
+    def _set_loss(self):
+        self.get_gui().loss = self._core.loss
 
     # def _set_inventory_sections(self):
     #     print "Set inventory_sections"
