@@ -1298,7 +1298,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         query = sqlquery.format(risk_id, area_db_id)
         self._cursor.execute(query)
         res = self._cursor.fetchall()
-        return [dict(zip(['statistic', 'risk_function', 'average_disk'], x))
+        return [dict(zip(['statistic', 'risk_function', 'average_risk'], x))
                 for x in res]
 
 
