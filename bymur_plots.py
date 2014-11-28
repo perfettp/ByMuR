@@ -686,11 +686,11 @@ class RiskCurve(BymurPlot):
                                  color = stat_colors[
                                      stat_to_plot.index(c[
                                          'statistic'])])
-            subplot_tmp.set_yscale('log')
-            subplot_tmp.tick_params(axis='x', labelsize=8)
-            subplot_tmp.tick_params(axis='y', labelsize=8)
-            subplot_tmp.set_title("Risk curve", fontsize=9)
-            subplot_tmp.legend(loc=1, prop={'size':6})
+        subplot_tmp.set_yscale('log')
+        subplot_tmp.tick_params(axis='x', labelsize=8)
+        subplot_tmp.tick_params(axis='y', labelsize=8)
+        subplot_tmp.set_title("Risk curve", fontsize=9)
+        subplot_tmp.legend(loc=1, prop={'size':6})
 
         # Plot risk index
         subplot_spec = gridspec.new_subplotspec((0, 1))
@@ -698,10 +698,9 @@ class RiskCurve(BymurPlot):
         values = []
         for c in self._area['risk']:
             if c['statistic'] == 'mean':
-                print c
                 subplot_tmp.axvline(
                     x=float(c['average_risk']),
-                    color="#000000",
+                    color='r',
                     linewidth=1,
                     alpha=1,
                     label="Mean")
@@ -709,7 +708,7 @@ class RiskCurve(BymurPlot):
                 subplot_tmp.axvline(
                     x=float(c['average_risk']),
                     linestyle='--',
-                    color="#000000",
+                    color='b',
                     linewidth=1,
                     alpha=1,
                     label="Median")
@@ -717,9 +716,7 @@ class RiskCurve(BymurPlot):
                 values.append((c['average_risk'],
                                float(c['statistic'][len("quantile"):])/100))
 
-        print values
         values = sorted(values, key = lambda val: val[0])
-        print values
         subplot_tmp.plot([v[0] for v in values],
                          [v[1] for v in values],
                          linewidth=1,
@@ -732,6 +729,5 @@ class RiskCurve(BymurPlot):
         subplot_tmp.tick_params(axis='y', labelsize=8)
         subplot_tmp.set_title("Risk index", fontsize=9)
         subplot_tmp.legend(loc=1, prop={'size':6})
-        # self.risk.dump()
 
         self._canvas.draw()
