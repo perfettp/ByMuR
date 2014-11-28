@@ -344,7 +344,7 @@ class BymurController(object):
         self._set_inventory()
         self._set_fragility()
         self._set_loss()
-        # self._set_inventory_sections()
+        self._set_risk()
         self._set_selected_area()
 
     def _set_ctrls_data(self):
@@ -370,6 +370,9 @@ class BymurController(object):
         
     def _set_loss(self):
         self.get_gui().loss = self._core.loss
+
+    def _set_risk(self):
+        self.get_gui().risk = self._core.risk
 
     # def _set_inventory_sections(self):
     #     print "Set inventory_sections"

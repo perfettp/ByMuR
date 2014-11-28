@@ -406,6 +406,7 @@ class BymurCore(object):
         self._inventory = None
         self._fragility = None
         self._loss = None
+        self._risk = None
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -550,6 +551,29 @@ class BymurCore(object):
         _loss.statistics = [st['name'] for st in
                             self.db.get_statistics_by_loss_id(loss_dic['id'])]
         return _loss
+    
+    def read_risk_model(self, haz_id):
+        risk_dic = self.db.get_risk_model_by_hazid(haz_id)
+        print "Risk dic: %s"  % risk_dic
+        if risk_dic is None:
+            return None
+        _risk = bf.RiskModel()
+        _risk.id = risk_dic['id']
+        _risk.risk_type = risk_dic['risk_type']
+        _risk.model_name = risk_dic['model_name']
+        _risk.hazard_model_name = self.db.get_hazard_model_by_id(risk_dic[
+            'hazard_id'])['hazard_name']
+        _risk.fragility_model_name = self.db.get_fragility_model_by_id(risk_dic[
+            'fragility_id'])['model_name']
+        _risk.loss_model_name = self.db.get_loss_model_by_id(risk_dic[
+            'loss_id'])['model_name']
+        _risk.description = risk_dic['description']
+        _risk.investigation_time = risk_dic['investigation_time']
+        _risk.hazard_type = self.db.get_phenomenon_by_id(
+            risk_dic['phenomenon_id'])['name']
+        _risk.statistics = [st['name'] for st in
+                            self.db.get_statistics_by_risk_id(risk_dic['id'])]
+        return _risk
 
 
     def read_inventory_model(self, grid_id):
@@ -658,6 +682,10 @@ class BymurCore(object):
         self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
         self.loss = self.read_loss_model(self._hazard.phenomenon_id,
                                          self.fragility.id)
+        print "Hazard id: %s, %s" % (self._hazard.hazard_id,
+                                     type(self._hazard.hazard_id))
+        self.risk = self.read_risk_model(self._hazard.hazard_id)
+
 
 
         # TODO: grid_point should be eliminated from here
@@ -676,11 +704,14 @@ class BymurCore(object):
                 self.selected_area['area_db_id'] = \
                     self.db.get_area_dbid_by_areaid(areaID)
                 self.selected_area['inventory'] = sec
-                # TODO: questo dovrebbe diventare un oggetto
+                # TODO: questi dovrebbero diventare oggetti
                 self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
                             self.fragility.id, areaID)
                 self.selected_area['loss'] = self.db.get_lossdata_by_areaid(
                             self.loss.id, areaID)
+                if self.risk is not None:
+                    self.selected_area['risk'] = self.db.get_riskdata_by_areaid(
+                            self.risk.id, areaID)
                 break
 
     def set_point_by_index(self, index):
@@ -1235,10 +1266,23 @@ class BymurCore(object):
     @property
     def fragility(self):
         return self._fragility
-
     @fragility.setter
     def fragility(self, data):
         self._fragility = data
+
+    @property
+    def loss(self):
+        return self._loss
+    @loss.setter
+    def loss(self, data):
+        self._loss = data
+        
+    @property
+    def risk(self):
+        return self._risk
+    @risk.setter
+    def risk(self, data):
+        self._risk = data
 
     @property
     def selected_area(self):
