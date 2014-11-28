@@ -62,6 +62,76 @@ BYMUR_DB_CLOSED = wx.PyEventBinder(wxBYMUR_DB_CLOSED)
 _basedir = os.path.dirname(__file__)
 _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
+
+class LossModel(object):
+    def __init__(self):
+        self._loss_type = None
+        self._hazard_type = None
+        self._model_name = None
+        self._statistics = []
+        self._unit = None
+        self._areas = []
+        pass
+
+    def dump(self):
+        print "Model name: %s " % self.model_name
+        print "Loss type: %s " % self.loss_type
+        print "Hazard type: %s" % self.hazard_type
+        print "Statistics: %s " % self.statistics
+        print "Unit: %s " % self.unit
+        for a in self.areas:
+            a.dump()
+        pass
+
+    @property
+    def loss_type(self):
+        return self._loss_type
+    @loss_type.setter
+    def loss_type(self, data):
+        self._loss_type = data
+
+    @property
+    def hazard_type(self):
+        return self._hazard_type
+    @hazard_type.setter
+    def hazard_type(self, data):
+        self._hazard_type = data
+
+    @property
+    def model_name(self):
+        return self._model_name
+    @model_name.setter
+    def model_name(self, data):
+        self._model_name = data
+
+    @property
+    def statistics(self):
+        return self._statistics
+    @statistics.setter
+    def statistics(self, data):
+        self._statistics = data
+
+    @property
+    def quantile_value(self):
+        return self._quantile_value
+    @quantile_value.setter
+    def quantile_value(self, data):
+        self._quantile_value = float(data)
+
+    @property
+    def unit(self):
+        return self._unit
+    @unit.setter
+    def unit(self, data):
+        self._unit = data
+
+    @property
+    def areas(self):
+        return self._areas
+    @areas.setter
+    def areas(self, data):
+        self._areas = data
+
 class  FragilityModel(object):
     def __init__(self):
         self._id = None

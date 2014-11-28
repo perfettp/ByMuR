@@ -1340,6 +1340,8 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                 fragility_xml.statistic,
                 fragility_xml.quantile_value)
 
+
+        # TODO: to add position!
         self.insert_fragility_statistic_rel(frag_id, stat_id)
 
         ls_id_dic = dict()
@@ -1396,6 +1398,18 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                     (id_loss_model, id_statistic)
                         VALUES ({0}, {1})"""
         return self._cursor.execute(sqlquery.format(loss_id, statistic_id))
+    
+    def get_statistics_by_loss_id(self, loss_id):
+        sqlquery = """ SELECT `st`.`id`, `st`.`name`
+            FROM `lossmodel_statistics` `loss_stat` LEFT JOIN
+            `statistics` `st` ON
+            `loss_stat`.`id_statistic`=`st`.`id`
+            WHERE `loss_stat`.`id_loss_model`= %s
+        """
+        sqlquery %= str(loss_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'name'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
 
     def insert_loss_data(self, loss_id, stat_id, loss_entries):
         sqlquery = """
@@ -1499,6 +1513,22 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         sqlquery %= (str(loss_name.upper()))
         self._cursor.execute(sqlquery)
         return dict(zip(['id', 'loss_type', 'phenomenon_id',
+                         'model_name', 'description',
+                         'unit'],
+                        self._cursor.fetchone()))
+    
+    def get_loss_model_by_phenid(self, phen_id):
+        sqlquery = """ SELECT `loss_mod`.`id`,
+                    `loss_mod`.`id_phenomenon`,
+                    `loss_mod`.`model_name`,
+                    `loss_mod`.`description`,
+                    `loss_mod`.`unit`
+            FROM `loss_models` `loss_mod`
+            WHERE `loss_mod`.`id_phenomenon`= %s
+        """
+        sqlquery %= (str(phen_id))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['id', 'phenomenon_id',
                          'model_name', 'description',
                          'unit'],
                         self._cursor.fetchone()))

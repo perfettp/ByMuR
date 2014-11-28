@@ -450,7 +450,11 @@ class FragCurve(BymurPlot):
                         # print "dentro if: %s, %s" % (c['limit_state'],
                         #                              c['general_class'])
                         # subplot_tmp.plot([1, 2])
+
                         if c['statistic'] in stat_to_plot:
+                            # print "%s: %s " % (c['statistic'], [float(y) for
+                            #                                     y in
+                            #                  c['fragility_curve'].split(" ")])
                             subplot_tmp.plot(self._fragility.iml,
                                             [float(y) for  y in
                                              c['fragility_curve'].split(" ")],

@@ -533,6 +533,21 @@ class BymurCore(object):
         _fragility.statistics = [st['name'] for st in
                             self.db.get_statistics_by_frag_id(frag_dic['id'])]
         return _fragility
+    
+    def read_loss_model(self, phenomenon_id, frag_id):
+        loss_dic = self.db.get_loss_model_by_phenid(phenomenon_id)
+        _loss = bf.LossModel()
+        _loss.id = loss_dic['id']
+        _loss.model_name = loss_dic['model_name']
+        _loss.description = loss_dic['description']
+        _loss.unit = loss_dic['unit']
+        _loss.hazard_type = self.db.get_phenomenon_by_id(
+            loss_dic['phenomenon_id'])['name']
+        _loss.limit_states = [ls['name'] for ls in
+                            self.db.get_limitstates_by_frag_id(frag_id)]
+        _loss.statistics = [st['name'] for st in
+                            self.db.get_statistics_by_loss_id(loss_dic['id'])]
+        return _loss
 
 
     def read_inventory_model(self, grid_id):
@@ -639,6 +654,10 @@ class BymurCore(object):
 
         self.inventory = self.read_inventory_model(self._hazard.datagrid_id)
         self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
+        self.loss = self.read_loss_model(self._hazard.phenomenon_id,
+                                         self.fragility.id)
+
+        print self.loss
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
