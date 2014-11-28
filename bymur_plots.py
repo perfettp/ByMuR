@@ -424,10 +424,8 @@ class FragCurve(BymurPlot):
 
 
         self._figure.clf()
-        print self._fragility.limit_states
         row_num = len(self._fragility.limit_states)
         col_num = len(area_general_classes)
-        subplot_arr = []
         gridspec = pyplot.GridSpec(row_num, col_num)
         gridspec.update(hspace = 0.4)
         for i_row in range(row_num):
@@ -472,7 +470,6 @@ class FragCurve(BymurPlot):
                                               " for " + c['general_class'],
                                                   fontsize=9)
                 subplot_tmp.legend(loc=2, prop={'size':6})
-                subplot_arr.append(subplot_tmp)
         # gridspec.tight_layout(self._figure)
         self._canvas.draw()
 
@@ -483,7 +480,49 @@ class LossCurve(BymurPlot):
         super(LossCurve, self).__init__(*args, **kwargs)
 
     def plot(self, **kwargs):
-        pass
+        self._hazard = kwargs.pop('hazard', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._fragility = kwargs.pop('fragility', None)
+        self._loss = kwargs.pop('loss', None)
+        self._area = kwargs.pop('area', None)
+        stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
+        stat_colors = ['k', 'g', 'b', 'r']
+        self._figure.clf()
+        row_num = len(self._fragility.limit_states)
+        gridspec = pyplot.GridSpec(row_num, 1)
+        print self._area['inventory']
+        if self._area['inventory'].asset.total == 0:
+            return
+        for i_row in range(row_num):
+            subplot_spec = gridspec.new_subplotspec((i_row, 0))
+            subplot_tmp = self._figure.add_subplot(subplot_spec)
+            for c in self._area['loss']:
+                if c['limit_state'] == self._fragility.limit_states[i_row]:
+                    if c['statistic'] in stat_to_plot:
+                        loss_x_values = [float(p.split(" ")[0]) for p in
+                                          c['loss_function'].split(",")]
+                        loss_y_values = [float(p.split(" ")[1]) for p in
+                                          c['loss_function'].split(",")]
+                        subplot_tmp.plot(loss_x_values,
+                                         loss_y_values,
+                                         linewidth=1,
+                                         alpha=1,
+                                         label = c['statistic'],
+                                         color = stat_colors[
+                                             stat_to_plot.index(c[
+                                                 'statistic'])])
+                    subplot_tmp.tick_params(axis='x', labelsize=8)
+                    subplot_tmp.tick_params(axis='y', labelsize=8)
+                    subplot_tmp.set_ylim((0, 1.2))
+                    # print subplot_tmp
+                    subplot_tmp.set_title("Prob. of loss for " + c[
+                        'limit_state'], fontsize=9)
+            subplot_tmp.legend(loc=1, prop={'size':6})
+        # gridspec.tight_layout(self._figure)
+        self._canvas.draw()
+
+
+
 
 class RiskCurve(BymurPlot):
 
@@ -615,11 +654,6 @@ class InvCurve(BymurPlot):
             subplot_arr.append(subplot_tmp)
 
         self._canvas.draw()
-
-
-class VulnCurve(BymurPlot):
-    def __init__(self, *args, **kwargs):
-        super(VulnCurve, self).__init__(*args, **kwargs)
 
 class RiskCurve(BymurPlot):
     def __init__(self, *args, **kwargs):

@@ -1265,6 +1265,24 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                           'fragility_curve'], x))
                 for x in res]
 
+    def get_lossdata_by_areaid(self, loss_id, area_id):
+
+        area_db_id = self.get_area_dbid_by_areaid(area_id)
+        sqlquery = """
+                    SELECT `st`.`name`, `ls`.`name`, `ld`.`loss_function`
+                    FROM (`loss_data` `ld` JOIN `statistics` `st` ON
+                      `ld`.`id_statistic` = `st`.`id`) LEFT JOIN
+                        `limit_states` `ls` ON
+                        `ld`.`id_limit_state` = `ls`.`id`
+                    WHERE `ld`.`id_loss_model`={0} AND
+                     `ld`.`id_area`={1}
+        """
+        query = sqlquery.format(loss_id, area_db_id)
+        self._cursor.execute(query)
+        res = self._cursor.fetchall()
+        return [dict(zip(['statistic', 'limit_state', 'loss_function'], x))
+                for x in res]
+
 
 
     def insert_id_limitstate(self, limit_state):
@@ -1519,6 +1537,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     
     def get_loss_model_by_phenid(self, phen_id):
         sqlquery = """ SELECT `loss_mod`.`id`,
+                    `loss_mod`.`loss_type`,
                     `loss_mod`.`id_phenomenon`,
                     `loss_mod`.`model_name`,
                     `loss_mod`.`description`,
@@ -1528,7 +1547,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         """
         sqlquery %= (str(phen_id))
         self._cursor.execute(sqlquery)
-        return dict(zip(['id', 'phenomenon_id',
+        return dict(zip(['id', 'loss_type', 'phenomenon_id',
                          'model_name', 'description',
                          'unit'],
                         self._cursor.fetchone()))
