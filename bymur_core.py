@@ -661,7 +661,6 @@ class BymurCore(object):
 
         return _inventory
 
-
     def updateModel(self, **ctrls_options):
 
         """Update HazardModel reflecting selected options. """

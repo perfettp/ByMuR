@@ -447,6 +447,18 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             self._cursor.execute(sqlquery.format(statistic_name))
             return self._cursor.lastrowid
 
+    def insert_id_statistic_new(self, statistic):
+        sqlquery = "SELECT id FROM statistics WHERE name = '{0}'"
+
+        self._cursor.execute(sqlquery.format(statistic))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = "INSERT INTO statistics (name) VALUES('{0}')"
+            self._cursor.execute(sqlquery.format(statistic))
+            return self._cursor.lastrowid
+
     def get_statistic_by_value(self, statistic_name):
         sqlquery = """ SELECT `st`.`id`
             FROM `statistics` `st`  WHERE `st`.`name`= '{0}'
@@ -1633,9 +1645,10 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                              fragility_model_name, hazard_model_name,
                              loss_model_name, investigation_time):
         sqlquery = """SELECT id FROM risk_models
-                   WHERE model_name = '{0}'
+                   WHERE model_name = '{0}' AND investigation_time = {1}
                    """
-        self._cursor.execute(sqlquery.format(model_name.upper()))
+        self._cursor.execute(sqlquery.format(model_name.upper(),
+                                             investigation_time))
         id = self._cursor.fetchone()
         if id:
             return id[0]
@@ -1708,6 +1721,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             `risk_mod`.`investigation_time`= '%s'
         """
         sqlquery %= (str(risk_name.upper()), str(investigation_time))
+        print sqlquery
         self._cursor.execute(sqlquery)
         return dict(zip(['id', 'phenomenon_id', 'hazard_id', 'fragility_id',
                          'loss_id', 'risk_type', 'model_name',
@@ -1733,14 +1747,14 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         risk_model = self.get_risk_model_by_name_invtime(risk_xml.model_name,
                                                 risk_xml.investigation_time)
         print "Inserted risk model %s" % risk_model
+        area_dic = dict()
+        for stat in list(set([a.statistic for a in risk_xml.areas])):
+            print "Insert id stat: %s" % stat
+            area_dic[stat] = dict(stat_id=self.insert_id_statistic_new(stat),
+                                  risk_entries=[])
+            print "Insert risk stat rel, stat_id: %s" % area_dic[stat]['stat_id']
+            self.insert_risk_statistic_rel(risk_id, area_dic[stat]['stat_id'])
 
-        stat_id = self.insert_id_statistic(
-                risk_xml.statistic,
-                risk_xml.quantile_value)
-
-        self.insert_risk_statistic_rel(risk_id, stat_id)
-
-        risk_entries = []
         for a in risk_xml.areas:
                 function_point_list = []
                 if len(a.functions['losses']) != len(a.functions['poEs']):
@@ -1750,10 +1764,16 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                   " " + str(a.functions['poEs'][i_x])
                     function_point_list.append(function_point)
 
-                f_tmp = ( self.get_area_dbid_by_areaid(a.areaID),
+                f_tmp = (self.get_area_dbid_by_areaid(a.areaID),
                           ",".join(function_point_list),
                           a.average_risk
                 )
-                risk_entries.append(f_tmp)
+                area_dic[a.statistic]['risk_entries'].append(f_tmp)
 
-        self.insert_risk_data(risk_id, stat_id, risk_entries)
+        for stat in area_dic.keys():
+            print "Insert risk data, risk_id %s" % risk_id
+            print "Insert risk data, stat_id %s" % area_dic[stat]['stat_id'],
+            print "Insert risk data, risk entries %s" % area_dic[stat][
+                'risk_entries']
+            self.insert_risk_data(risk_id, area_dic[stat]['stat_id'],
+                                  area_dic[stat]['risk_entries'])

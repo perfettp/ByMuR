@@ -1194,7 +1194,7 @@ class BymurWxNBInvPage(BymurWxPanel):
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._map = bymur_plots.InvCurve(parent=self)
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        # self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
@@ -1217,7 +1217,7 @@ class BymurWxNBFragPage(BymurWxPanel):
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._map = bymur_plots.FragCurve(parent=self)
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        # self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
@@ -1242,7 +1242,7 @@ class BymurWxNBHazPage(BymurWxPanel):
         self._map = bymur_plots.HazardCurve(parent=self)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        # self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
@@ -1265,7 +1265,7 @@ class BymurWxNBLossPage(BymurWxPanel):
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._map = bymur_plots.LossCurve(parent=self)
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        # self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
@@ -1291,7 +1291,7 @@ class BymurWxNBRiskPage(BymurWxPanel):
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._map = bymur_plots.RiskCurve(parent=self)
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
-        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        # self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):

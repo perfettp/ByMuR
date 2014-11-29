@@ -54,13 +54,14 @@ show_areas = True
 
 
 class BymurPlot(object):
+    _stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
+    _stat_colors = ['k', 'g', 'b', 'r']
     def __init__(self, *args, **kwargs):
         self.x_points = None
         self.y_points = None
         self._parent = kwargs.get('parent', None)
         self._figure = pyplot.figure()
         self._canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
-        self._toolbar = NavigationToolbar2WxAgg(self._canvas)
         self._figure.clf()
         self._figure.subplots_adjust(left=None, bottom=None, right=None,
                                     top=None, wspace=None, hspace=0.3)
@@ -89,6 +90,7 @@ class HazardGraph(BymurPlot):
         else:
             self._figure.canvas.mpl_connect('pick_event',
                                         self.on_pick)
+        self._toolbar = NavigationToolbar2WxAgg(self._canvas)
         self._points_data = None
         self._selected_point = None
 
@@ -412,8 +414,6 @@ class FragCurve(BymurPlot):
         self._fragility = kwargs.pop('fragility', None)
         self._inventory = kwargs.pop('inventory', None)
         self._area= kwargs.pop('area', None)
-        stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
-        stat_colors = ['k', 'g', 'b', 'r']
 
         self._figure.clf()
         if self._area['inventory'].asset.total == 0:
@@ -451,7 +451,7 @@ class FragCurve(BymurPlot):
                         #                              c['general_class'])
                         # subplot_tmp.plot([1, 2])
 
-                        if c['statistic'] in stat_to_plot:
+                        if c['statistic'] in self._stat_to_plot:
                             # print "%s: %s " % (c['statistic'], [float(y) for
                             #                                     y in
                             #                  c['fragility_curve'].split(" ")])
@@ -461,8 +461,8 @@ class FragCurve(BymurPlot):
                                             linewidth=1,
                                             alpha=1,
                                             label = c['statistic'],
-                                            color = stat_colors[
-                                                stat_to_plot.index(c[
+                                            color = self._stat_colors[
+                                                self._stat_to_plot.index(c[
                                                     'statistic'])])
                         subplot_tmp.tick_params(axis='x', labelsize=8)
                         subplot_tmp.tick_params(axis='y', labelsize=8)
@@ -487,8 +487,6 @@ class LossCurve(BymurPlot):
         self._fragility = kwargs.pop('fragility', None)
         self._loss = kwargs.pop('loss', None)
         self._area = kwargs.pop('area', None)
-        stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
-        stat_colors = ['k', 'g', 'b', 'r']
         self._figure.clf()
         row_num = len(self._fragility.limit_states)
         gridspec = pyplot.GridSpec(row_num, 1)
@@ -502,7 +500,7 @@ class LossCurve(BymurPlot):
             subplot_tmp = self._figure.add_subplot(subplot_spec)
             for c in self._area['loss']:
                 if c['limit_state'] == self._fragility.limit_states[i_row]:
-                    if c['statistic'] in stat_to_plot:
+                    if c['statistic'] in self._stat_to_plot:
                         loss_x_values = [float(p.split(" ")[0]) for p in
                                           c['loss_function'].split(",")]
                         loss_y_values = [float(p.split(" ")[1]) for p in
@@ -512,17 +510,100 @@ class LossCurve(BymurPlot):
                                          linewidth=1,
                                          alpha=1,
                                          label = c['statistic'],
-                                         color = stat_colors[
-                                             stat_to_plot.index(c[
+                                         color = self._stat_colors[
+                                             self._stat_to_plot.index(c[
                                                  'statistic'])])
                     subplot_tmp.tick_params(axis='x', labelsize=8)
                     subplot_tmp.tick_params(axis='y', labelsize=8)
-                    subplot_tmp.set_ylim((0, 1.2))
+                    subplot_tmp.set_ylim((0, 1.05))
                     # print subplot_tmp
                     subplot_tmp.set_title("Prob. of loss given " + c[
                         'limit_state'], fontsize=9)
             subplot_tmp.legend(loc=1, prop={'size':6})
         # gridspec.tight_layout(self._figure)
+        self._canvas.draw()
+
+
+class RiskCurve(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(RiskCurve, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        self._hazard = kwargs.pop('hazard', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._fragility = kwargs.pop('fragility', None)
+        self._loss = kwargs.pop('loss', None)
+        self._risk = kwargs.pop('risk', None)
+        self._area = kwargs.pop('area', None)
+        self._figure.clf()
+        print "Risk curve plot"
+        if (self._risk is None) or (self._area['inventory'].asset.total == 0):
+            print "No risk to plot"
+            self._canvas.draw()
+            return
+        gridspec = pyplot.GridSpec(1, 2)
+        gridspec.update(wspace = 0.4)
+        # Plot risk curve
+        subplot_spec = gridspec.new_subplotspec((0, 0))
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
+        for c in self._area['risk']:
+            if c['statistic'] in self._stat_to_plot:
+                risk_x_values = [float(p.split(" ")[0]) for p in
+                                  c['risk_function'].split(",")]
+                risk_y_values = [float(p.split(" ")[1]) for p in
+                                  c['risk_function'].split(",")]
+                subplot_tmp.plot(risk_x_values,
+                                 risk_y_values,
+                                 linewidth=1,
+                                 alpha=1,
+                                 label = c['statistic'],
+                                 color = self._stat_colors[
+                                     self._stat_to_plot.index(c[
+                                         'statistic'])])
+        subplot_tmp.set_yscale('log')
+        subplot_tmp.tick_params(axis='x', labelsize=8)
+        subplot_tmp.tick_params(axis='y', labelsize=8)
+        subplot_tmp.set_title("Risk curve", fontsize=9)
+        subplot_tmp.legend(loc=1, prop={'size':6})
+
+        # Plot risk index
+        subplot_spec = gridspec.new_subplotspec((0, 1))
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
+        values = []
+        for c in self._area['risk']:
+            if c['statistic'] == 'mean':
+                subplot_tmp.axvline(
+                    x=float(c['average_risk']),
+                    color='r',
+                    linewidth=1,
+                    alpha=1,
+                    label="Mean")
+            elif c['statistic'] == 'quantile50.0':
+                subplot_tmp.axvline(
+                    x=float(c['average_risk']),
+                    linestyle='--',
+                    color='b',
+                    linewidth=1,
+                    alpha=1,
+                    label="Median")
+            else:
+                values.append((c['average_risk'],
+                               float(c['statistic'][len("quantile"):])/100))
+
+        values = sorted(values, key = lambda val: val[0])
+        subplot_tmp.plot([v[0] for v in values],
+                         [v[1] for v in values],
+                         linewidth=1,
+                         linestyle='-.',
+                         alpha=1,
+                         label = "Percentiles",
+                         color = 'k')
+        subplot_tmp.set_ylim((0,1))
+        subplot_tmp.tick_params(axis='x', labelsize=8)
+        subplot_tmp.tick_params(axis='y', labelsize=8)
+        subplot_tmp.set_title("Risk index", fontsize=9)
+        subplot_tmp.legend(loc=1, prop={'size':6})
+
         self._canvas.draw()
 
 
@@ -645,89 +726,5 @@ class InvCurve(BymurPlot):
                                borderaxespad=0.)
 
             subplot_arr.append(subplot_tmp)
-
-        self._canvas.draw()
-
-class RiskCurve(BymurPlot):
-    def __init__(self, *args, **kwargs):
-        super(RiskCurve, self).__init__(*args, **kwargs)
-
-    def plot(self, **kwargs):
-        self._hazard = kwargs.pop('hazard', None)
-        self._inventory = kwargs.pop('inventory', None)
-        self._fragility = kwargs.pop('fragility', None)
-        self._loss = kwargs.pop('loss', None)
-        self._risk = kwargs.pop('risk', None)
-        self._area = kwargs.pop('area', None)
-        stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
-        stat_colors = ['k', 'g', 'b', 'r']
-        self._figure.clf()
-        print "Risk curve plot"
-        if (self._risk is None) or (self._area['inventory'].asset.total == 0):
-            print "No risk to plot"
-            self._canvas.draw()
-            return
-        gridspec = pyplot.GridSpec(1, 2)
-        gridspec.update(wspace = 0.4)
-        # Plot risk curve
-        subplot_spec = gridspec.new_subplotspec((0, 0))
-        subplot_tmp = self._figure.add_subplot(subplot_spec)
-        for c in self._area['risk']:
-            if c['statistic'] in stat_to_plot:
-                risk_x_values = [float(p.split(" ")[0]) for p in
-                                  c['risk_function'].split(",")]
-                risk_y_values = [float(p.split(" ")[1]) for p in
-                                  c['risk_function'].split(",")]
-                subplot_tmp.plot(risk_x_values,
-                                 risk_y_values,
-                                 linewidth=1,
-                                 alpha=1,
-                                 label = c['statistic'],
-                                 color = stat_colors[
-                                     stat_to_plot.index(c[
-                                         'statistic'])])
-        subplot_tmp.set_yscale('log')
-        subplot_tmp.tick_params(axis='x', labelsize=8)
-        subplot_tmp.tick_params(axis='y', labelsize=8)
-        subplot_tmp.set_title("Risk curve", fontsize=9)
-        subplot_tmp.legend(loc=1, prop={'size':6})
-
-        # Plot risk index
-        subplot_spec = gridspec.new_subplotspec((0, 1))
-        subplot_tmp = self._figure.add_subplot(subplot_spec)
-        values = []
-        for c in self._area['risk']:
-            if c['statistic'] == 'mean':
-                subplot_tmp.axvline(
-                    x=float(c['average_risk']),
-                    color='r',
-                    linewidth=1,
-                    alpha=1,
-                    label="Mean")
-            elif c['statistic'] == 'quantile50.0':
-                subplot_tmp.axvline(
-                    x=float(c['average_risk']),
-                    linestyle='--',
-                    color='b',
-                    linewidth=1,
-                    alpha=1,
-                    label="Median")
-            else:
-                values.append((c['average_risk'],
-                               float(c['statistic'][len("quantile"):])/100))
-
-        values = sorted(values, key = lambda val: val[0])
-        subplot_tmp.plot([v[0] for v in values],
-                         [v[1] for v in values],
-                         linewidth=1,
-                         linestyle='-.',
-                         alpha=1,
-                         label = "Percentiles",
-                         color = 'k')
-        subplot_tmp.set_ylim((0,1))
-        subplot_tmp.tick_params(axis='x', labelsize=8)
-        subplot_tmp.tick_params(axis='y', labelsize=8)
-        subplot_tmp.set_title("Risk index", fontsize=9)
-        subplot_tmp.legend(loc=1, prop={'size':6})
 
         self._canvas.draw()

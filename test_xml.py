@@ -2,6 +2,8 @@ __author__ = 'hades'
 from lxml import etree
 import bymur_db
 import os
+import bymur_functions as bf
+
 
 class InventoryClass(object):
     def __init__(self, type='', name='', label=''):
@@ -682,143 +684,143 @@ def parse_xml_loss(filename):
         raise Exception(str(e))
     return loss_xml
 
-class  RiskFunction(object):
-    def __init__(self, areaID=None):
-        self._areaID = areaID
-        self._average_risk = None
-        self._functions = dict()
+# class  RiskFunction(object):
+#     def __init__(self, areaID=None):
+#         self._areaID = areaID
+#         self._average_risk = None
+#         self._functions = dict()
+#
+#     def dump(self):
+#         print "AreaID: %s" % self.areaID
+#         print "Functions: %s" % self.functions
+#
+#     @property
+#     def areaID(self):
+#         return self._areaID
+#     @areaID.setter
+#     def areaID(self, data):
+#         self._areaID = data
+#
+#     @property
+#     def functions(self):
+#         return self._functions
+#     @functions.setter
+#     def functions(self, data):
+#         self._functions = data
+#
+#     @property
+#     def average_risk(self):
+#         return self._average_risk
+#     @average_risk.setter
+#     def average_risk(self, data):
+#         self._average_risk = data
+#
+#     # @property
+#     # def [var](self):
+#     #     return self._[var]
+#     # @[var].setter
+#     # def [var](self, data):
+#     #     self._[var] = data
 
-    def dump(self):
-        print "AreaID: %s" % self.areaID
-        print "Functions: %s" % self.functions
-
-    @property
-    def areaID(self):
-        return self._areaID
-    @areaID.setter
-    def areaID(self, data):
-        self._areaID = data
-
-    @property
-    def functions(self):
-        return self._functions
-    @functions.setter
-    def functions(self, data):
-        self._functions = data
-        
-    @property
-    def average_risk(self):
-        return self._average_risk
-    @average_risk.setter
-    def average_risk(self, data):
-        self._average_risk = data
-
-    # @property
-    # def [var](self):
-    #     return self._[var]
-    # @[var].setter
-    # def [var](self, data):
-    #     self._[var] = data
-
-class  RiskXML(object):
-    def __init__(self):
-        self._risk_type = None
-        self._model_name = None
-        self._loss_model_name = None
-        self._hazard_model_name = None
-        self._hazard_type = None
-        self._fragility_model_name = None
-        self._statistic = None
-        self._quantile_value = None
-        self._investigation_time = None
-        self._areas = []
-        pass
-
-
-    def dump(self):
-        print "Risk type: %s " % self.risk_type
-        print "Risk model name: %s " % self.model_name
-        print "Loss model name: %s " % self.loss_model_name
-        print "Hazard model name: %s " % self.hazard_model_name
-        print "Hazard type: %s " % self.hazard_type
-        print "Fragility model name: %s " % self.fragility_model_name
-        print "Investigation time: %s " % self.investigation_time
-        print "Statistic: %s " % self.statistic
-        print "Quantile value: %s " % self.quantile_value
-        for a in self.areas:
-            a.dump()
-        pass
-
-    @property
-    def risk_type(self):
-        return self._risk_type
-    @risk_type.setter
-    def risk_type(self, data):
-        self._risk_type = data
-
-    @property
-    def model_name(self):
-        return self._model_name
-    @model_name.setter
-    def model_name(self, data):
-        self._model_name = data
-
-    @property
-    def loss_model_name(self):
-        return self._loss_model_name
-    @loss_model_name.setter
-    def loss_model_name(self, data):
-        self._loss_model_name = data
-    
-    @property
-    def fragility_model_name(self):
-        return self._fragility_model_name
-    @fragility_model_name.setter
-    def fragility_model_name(self, data):
-        self._fragility_model_name = data
-    
-    @property
-    def hazard_model_name(self):
-        return self._hazard_model_name
-    @hazard_model_name.setter
-    def hazard_model_name(self, data):
-        self._hazard_model_name = data
-        
-    @property
-    def hazard_type(self):
-        return self._hazard_type
-    @hazard_type.setter
-    def hazard_type(self, data):
-        self._hazard_type = data
-
-    @property
-    def statistic(self):
-        return self._statistic
-    @statistic.setter
-    def statistic(self, data):
-        self._statistic = data
-
-    @property
-    def quantile_value(self):
-        return self._quantile_value
-    @quantile_value.setter
-    def quantile_value(self, data):
-        self._quantile_value = float(data)
-
-    @property
-    def investigation_time(self):
-        return self._investigation_time
-    @investigation_time.setter
-    def investigation_time(self, data):
-        self._investigation_time = data
-    
-
-    @property
-    def areas(self):
-        return self._areas
-    @areas.setter
-    def areas(self, data):
-        self._areas = data
+# class  RiskXML(object):
+#     def __init__(self):
+#         self._risk_type = None
+#         self._model_name = None
+#         self._loss_model_name = None
+#         self._hazard_model_name = None
+#         self._hazard_type = None
+#         self._fragility_model_name = None
+#         self._statistic = None
+#         self._quantile_value = None
+#         self._investigation_time = None
+#         self._areas = []
+#         pass
+#
+#
+#     def dump(self):
+#         print "Risk type: %s " % self.risk_type
+#         print "Risk model name: %s " % self.model_name
+#         print "Loss model name: %s " % self.loss_model_name
+#         print "Hazard model name: %s " % self.hazard_model_name
+#         print "Hazard type: %s " % self.hazard_type
+#         print "Fragility model name: %s " % self.fragility_model_name
+#         print "Investigation time: %s " % self.investigation_time
+#         print "Statistic: %s " % self.statistic
+#         print "Quantile value: %s " % self.quantile_value
+#         for a in self.areas:
+#             a.dump()
+#         pass
+#
+#     @property
+#     def risk_type(self):
+#         return self._risk_type
+#     @risk_type.setter
+#     def risk_type(self, data):
+#         self._risk_type = data
+#
+#     @property
+#     def model_name(self):
+#         return self._model_name
+#     @model_name.setter
+#     def model_name(self, data):
+#         self._model_name = data
+#
+#     @property
+#     def loss_model_name(self):
+#         return self._loss_model_name
+#     @loss_model_name.setter
+#     def loss_model_name(self, data):
+#         self._loss_model_name = data
+#
+#     @property
+#     def fragility_model_name(self):
+#         return self._fragility_model_name
+#     @fragility_model_name.setter
+#     def fragility_model_name(self, data):
+#         self._fragility_model_name = data
+#
+#     @property
+#     def hazard_model_name(self):
+#         return self._hazard_model_name
+#     @hazard_model_name.setter
+#     def hazard_model_name(self, data):
+#         self._hazard_model_name = data
+#
+#     @property
+#     def hazard_type(self):
+#         return self._hazard_type
+#     @hazard_type.setter
+#     def hazard_type(self, data):
+#         self._hazard_type = data
+#
+#     @property
+#     def statistic(self):
+#         return self._statistic
+#     @statistic.setter
+#     def statistic(self, data):
+#         self._statistic = data
+#
+#     @property
+#     def quantile_value(self):
+#         return self._quantile_value
+#     @quantile_value.setter
+#     def quantile_value(self, data):
+#         self._quantile_value = float(data)
+#
+#     @property
+#     def investigation_time(self):
+#         return self._investigation_time
+#     @investigation_time.setter
+#     def investigation_time(self, data):
+#         self._investigation_time = data
+#
+#
+#     @property
+#     def areas(self):
+#         return self._areas
+#     @areas.setter
+#     def areas(self, data):
+#         self._areas = data
 
     # @property
     # def [var](self):
@@ -830,7 +832,7 @@ class  RiskXML(object):
 
 def parse_xml_risk(filename):
     print "Parsing risk: %s" % (filename)
-    risk_xml = RiskXML()
+    risk_xml = bf.RiskModel()
     try:
         context = etree.iterparse(filename, events=("start", "end"))
         for event, element in context:
@@ -843,14 +845,16 @@ def parse_xml_risk(filename):
                     risk_xml.hazard_type = element.get('hazardType')
                     risk_xml.fragility_model_name = \
                         element.get('fragilityModelName')
-                    risk_xml.statistic = element.get('statistics')
+                    _statistic = element.get('statistics')
+                    if _statistic == "quantile":
+                        _statistic += str(int(element.get(
+                            'quantileValue'))).zfill(2)
                     risk_xml.investigation_time = \
                         float(element.get('investigationTime'))
-                    if risk_xml.statistic == "quantile":
-                        risk_xml.quantile_value = \
-                            element.get('quantileValue')
+
                 if element.tag == 'riskCurve':
-                    rfs_xml = RiskFunction(areaID=element.get("areaID"))
+                    rfs_xml = bf.RiskFunctionModel(areaID=element.get("areaID"))
+                    rfs_xml.statistic = _statistic
             else:
                 if element.tag == 'arealRiskModel':
                     element.clear()
@@ -920,16 +924,16 @@ def parse_xml_risk(filename):
 # print i_xml.classes
 
 
-dbDetails = {'db_host': '***REMOVED***',
+dbDetails = {'db_host': '127.0.0.1',
                    'db_port': '3306',
                   'db_user': '***REMOVED***',
                   'db_password': '***REMOVED***',
                   'db_name': '***REMOVED***'
     }
 db=bymur_db.BymurDB(**dbDetails)
-
-i_xml = parse_xml_inventory("data/InventoryByMuR.xml")
-i_xml.dump()
+#
+# i_xml = parse_xml_inventory("data/InventoryByMuR.xml")
+# i_xml.dump()
 # db.add_inventory(i_xml, 6)
 
 # f_xml = parse_xml_fragility("/hades/dev/bymur-data/definitivi/risk/seismic50yr"
@@ -945,7 +949,7 @@ i_xml.dump()
 # db.add_risk(r_xml)
 
 
-rootdir = "/hades/dev/bymur-data/definitivi/risk/"
+# rootdir = "/hades/dev/bymur-data/definitivi/risk/"
 # files_array=[]
 
 # for root, dirs, files in os.walk(rootdir):
@@ -971,5 +975,6 @@ rootdir = "/hades/dev/bymur-data/definitivi/risk/"
 #             db.add_risk(r_xml)
 
 
-
-
+r_xml = parse_xml_risk("data/arealRiskModel_quantile10.xml")
+r_xml.dump()
+db.add_risk(r_xml)

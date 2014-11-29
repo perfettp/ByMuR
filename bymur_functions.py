@@ -63,7 +63,49 @@ _basedir = os.path.dirname(__file__)
 _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
 
-class  RiskModel(object):
+class RiskFunctionModel(object):
+    def __init__(self, areaID=None):
+        self._areaID = areaID
+        self._average_risk = None
+        self._statistic = None
+        self._functions = dict()
+
+    def dump(self):
+        print "AreaID: %s" % self.areaID
+        print "Statistic: %s" % self.statistic
+        print "Functions: %s" % self.functions
+        print "Average risk: %s" % self.average_risk
+
+    @property
+    def areaID(self):
+        return self._areaID
+    @areaID.setter
+    def areaID(self, data):
+        self._areaID = data
+
+    @property
+    def statistic(self):
+        return self._statistic
+    @statistic.setter
+    def statistic(self, data):
+        self._statistic = data
+
+    @property
+    def average_risk(self):
+        return self._average_risk
+    @average_risk.setter
+    def average_risk(self, data):
+        self._average_risk = data
+
+    @property
+    def functions(self):
+        return self._functions
+    @functions.setter
+    def functions(self, data):
+        self._functions = data
+
+
+class RiskModel(object):
     def __init__(self):
         self._id = None
         self._risk_type = None
@@ -72,7 +114,6 @@ class  RiskModel(object):
         self._hazard_model_name = None
         self._hazard_type = None
         self._fragility_model_name = None
-        self._statistics = []
         self._investigation_time = None
         self._areas = []
         pass
@@ -87,7 +128,6 @@ class  RiskModel(object):
         print "Hazard type: %s " % self.hazard_type
         print "Fragility model name: %s " % self.fragility_model_name
         print "Investigation time: %s " % self.investigation_time
-        print "Statistics: %s " % self.statistics
         for a in self.areas:
             a.dump()
         pass
@@ -142,19 +182,11 @@ class  RiskModel(object):
         self._hazard_type = data
 
     @property
-    def statistics(self):
-        return self._statistics
-    @statistics.setter
-    def statistics(self, data):
-        self._statistics = data
-
-    @property
     def investigation_time(self):
         return self._investigation_time
     @investigation_time.setter
     def investigation_time(self, data):
         self._investigation_time = data
-
 
     @property
     def areas(self):
