@@ -1729,33 +1729,33 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                         self._cursor.fetchone()))
 
 
-    def add_risk(self, risk_xml):
+    def add_risk(self, risk):
         phen_id_dic = dict()
         for p in self.get_phenomena_list():
             phen_id_dic.update({p['phenomenon_name']:p['phenomenon_id']})
-        phen_id = phen_id_dic[risk_xml.hazard_type.upper()]
+        phen_id = phen_id_dic[risk.hazard_type.upper()]
 
 
         risk_id = self.insert_id_risk_model(phen_id,
-                                            risk_xml.risk_type,
-                                            risk_xml.model_name,
-                                            risk_xml.fragility_model_name,
-                                            risk_xml.hazard_model_name,
-                                            risk_xml.loss_model_name,
-                                            risk_xml.investigation_time)
+                                            risk.risk_type,
+                                            risk.model_name,
+                                            risk.fragility_model_name,
+                                            risk.hazard_model_name,
+                                            risk.loss_model_name,
+                                            risk.investigation_time)
 
-        risk_model = self.get_risk_model_by_name_invtime(risk_xml.model_name,
-                                                risk_xml.investigation_time)
-        print "Inserted risk model %s" % risk_model
+        risk_model = self.get_risk_model_by_name_invtime(risk.model_name,
+                                                risk.investigation_time)
+        # print "Inserted risk model %s" % risk_model
         area_dic = dict()
-        for stat in list(set([a.statistic for a in risk_xml.areas])):
-            print "Insert id stat: %s" % stat
+        for stat in list(set([a.statistic for a in risk.areas])):
+            # print "Insert id stat: %s" % stat
             area_dic[stat] = dict(stat_id=self.insert_id_statistic_new(stat),
                                   risk_entries=[])
-            print "Insert risk stat rel, stat_id: %s" % area_dic[stat]['stat_id']
+            # print "Insert risk stat rel, stat_id: %s" % area_dic[stat]['stat_id']
             self.insert_risk_statistic_rel(risk_id, area_dic[stat]['stat_id'])
 
-        for a in risk_xml.areas:
+        for a in risk.areas:
                 function_point_list = []
                 if len(a.functions['losses']) != len(a.functions['poEs']):
                     raise Exception("different lengths")
@@ -1771,9 +1771,9 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                 area_dic[a.statistic]['risk_entries'].append(f_tmp)
 
         for stat in area_dic.keys():
-            print "Insert risk data, risk_id %s" % risk_id
-            print "Insert risk data, stat_id %s" % area_dic[stat]['stat_id'],
-            print "Insert risk data, risk entries %s" % area_dic[stat][
-                'risk_entries']
+            # print "Insert risk data, risk_id %s" % risk_id
+            # print "Insert risk data, stat_id %s" % area_dic[stat]['stat_id'],
+            # print "Insert risk data, risk entries %s" % area_dic[stat][
+            #     'risk_entries']
             self.insert_risk_data(risk_id, area_dic[stat]['stat_id'],
                                   area_dic[stat]['risk_entries'])

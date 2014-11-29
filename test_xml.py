@@ -949,7 +949,8 @@ db=bymur_db.BymurDB(**dbDetails)
 # db.add_risk(r_xml)
 
 
-# rootdir = "/hades/dev/bymur-data/definitivi/risk/"
+rootdir = "/hades/dev/bymur-data/definitivi/risk/seismic5yr/RISKs/LOC_0001-0010"
+
 # files_array=[]
 
 # for root, dirs, files in os.walk(rootdir):
@@ -967,14 +968,16 @@ db=bymur_db.BymurDB(**dbDetails)
 #             db.add_loss(l_xml)
 
 
-# for root, dirs, files in os.walk(rootdir):
-#     for file in files:
-#         if file.startswith("arealRiskModel"):
-#             r_xml = parse_xml_risk(os.path.relpath(os.path.join(root,file),
-#                                                    os.getcwd()))
-#             db.add_risk(r_xml)
+for root, dirs, files in os.walk(rootdir):
+    for file in files:
+        if file.startswith("arealRiskModel"):
+            print os.path.relpath(os.path.join(root,file),
+                                                   os.getcwd())
+            r_xml = parse_xml_risk(os.path.relpath(os.path.join(root,file),
+                                                   os.getcwd()))
+            # db.add_risk(r_xml)
 
-
-r_xml = parse_xml_risk("data/arealRiskModel_quantile10.xml")
-r_xml.dump()
-db.add_risk(r_xml)
+#
+# r_xml = parse_xml_risk("data/arealRiskModel_quantile10.xml")
+# r_xml.dump()
+# db.add_risk(r_xml)
