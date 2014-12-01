@@ -1332,7 +1332,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         """
         sqlquery = """
                     INSERT IGNORE INTO fragmodel_limitstates
-                    (id_fragility_model, id_limitstate)
+                    (id_fragility_model, id_limitstate, position)
                         VALUES ({0}, {1}, {2})"""
         return self._cursor.execute(sqlquery.format(frag_id, ls_id, pos))
     
