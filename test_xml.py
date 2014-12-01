@@ -761,6 +761,10 @@ def parse_xml_loss(filename):
 
 
 def main(*args):
+    if (len(args)<2):
+        print "Root dir is needed"
+        exit(-1)
+
     dbDetails = {'db_host': '127.0.0.1',
                    'db_port': '3306',
                   'db_user': '***REMOVED***',
@@ -769,22 +773,24 @@ def main(*args):
     }
     db=bymur_db.BymurDB(**dbDetails)
 
-    # rootdir = "/hades/dev/bymur-data/definitivi/risk/seismic5yr/RISKs
-    # /LOC_0001-0010"
-    if (len(args)<2):
-        print "Root dir is needed"
-        exit(-1)
-
     rootdir = args[1]
     print "Scanning directory %s for files" % rootdir
+
     for root, dirs, files in os.walk(rootdir):
         for file in files:
             if file.startswith("arealRiskModel"):
-                print os.path.relpath(os.path.join(root,file),
-                                                       os.getcwd())
-                r_xml = bf.parse_xml_risk(os.path.relpath(os.path.join(root,file),
-                                                    os.getcwd()))
-                # db.add_risk(r_xml)
+                r_xml = bf.parse_xml_risk(
+                    os.path.relpath(os.path.join(root,file), os.getcwd()))
+                db.add_risk(r_xml)
+            # elif file.startswith("arealLossModel"):
+            #     l_xml = bf.parse_xml_loss(
+            #         os.path.relpath(os.path.join(root, file), os.getcwd()))
+            #     # db.add_loss(l_xml)
+            # elif file.startswith("arealFragilityModel"):
+            #     f_xml = bf.parse_xml_fragility(
+            #         os.path.relpath(os.path.join(root, file), os.getcwd()))
+            #     # db.add_fragility(r_xml)
+
 
 if __name__ == "__main__":
     main(*sys.argv)
