@@ -54,7 +54,7 @@ show_areas = True
 
 
 class BymurPlot(object):
-    _stat_to_plot = ['mean', 'quantile10.0', 'quantile50.0', 'quantile90.0']
+    _stat_to_plot = ['mean', 'quantile10', 'quantile50', 'quantile90']
     _stat_colors = ['k', 'g', 'b', 'r']
     def __init__(self, *args, **kwargs):
         self.x_points = None
@@ -578,7 +578,7 @@ class RiskCurve(BymurPlot):
                     linewidth=1,
                     alpha=1,
                     label="Mean")
-            elif c['statistic'] == 'quantile50.0':
+            elif c['statistic'] == 'quantile50':
                 subplot_tmp.axvline(
                     x=float(c['average_risk']),
                     linestyle='--',
