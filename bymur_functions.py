@@ -271,7 +271,6 @@ class  FragilityModel(object):
         self._id = None
         self._hazard_type = None
         self._model_name = None
-        self._statistics = []
         self._description = None
         self._limit_states = None
         self._iml = None
@@ -283,7 +282,6 @@ class  FragilityModel(object):
         print "ID: %s" % self.id
         print "Hazard type: %s " % self.hazard_type
         print "Model name: %s " % self.model_name
-        print "Statistics: %s " % self.statistics
         print "Description: %s " % self.description
         print "Limit states: %s " % self.limit_states
         print "IML: %s " % self.imt
@@ -312,13 +310,6 @@ class  FragilityModel(object):
     @model_name.setter
     def model_name(self, data):
         self._model_name = data
-
-    @property
-    def statistics(self):
-        return self._statistics
-    @statistics.setter
-    def statistics(self, data):
-        self._statistics= data
 
     @property
     def description(self):
@@ -354,6 +345,38 @@ class  FragilityModel(object):
     @areas.setter
     def areas(self, data):
         self._areas = data
+
+class  FragilityFunctionModel(object):
+    def __init__(self, areaID=None):
+        self._areaID = areaID
+        self._statistic = None
+        self._functions = dict()
+
+    def dump(self):
+        print "AreaID: %s" % self.areaID
+        print "Statistic: %s" % self.statistic
+        print "Functions: %s" % self.functions
+
+    @property
+    def areaID(self):
+        return self._areaID
+    @areaID.setter
+    def areaID(self, data):
+        self._areaID = data
+
+    @property
+    def statistic(self):
+        return self._statistic
+    @statistic.setter
+    def statistic(self, data):
+        self._statistic = data
+
+    @property
+    def functions(self):
+        return self._functions
+    @functions.setter
+    def functions(self, data):
+        self._functions = data
 
 class InventoryClass(object):
     def __init__(self, type='', name='', label=''):
@@ -967,6 +990,66 @@ def parse_xml_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
               filename +  " : " + str(e)
         raise Exception(str(e))
     return hazard_xml_model
+
+def parse_xml_fragility(filename):
+    print "Parsing fragility: %s" % (filename)
+    fragility_xml = FragilityModel()
+    try:
+        context = etree.iterparse(filename, events=("start", "end"))
+        for event, element in context:
+            if event == "start":
+                if element.tag == 'arealFragilityModel':
+                    fragility_xml.hazard_type = element.get('hazardType')
+                    fragility_xml.model_name = element.get('modelName')
+                    _statistic = element.get('statistics')
+                    if _statistic == "quantile":
+                        _statistic += str(int(element.get(
+                            'quantileValue'))).zfill(2)
+                if element.tag == 'IML':
+                    fragility_xml.imt= element.get("IMT")
+                if element.tag == 'ffs':
+                    ffs_xml = FragilityFunctionModel(
+                        areaID=element.get("areaID"))
+                    ffs_xml.statistic = _statistic
+                if element.tag == 'taxonomy':
+                    cur_cat = element.get("categoryName")
+                    if cur_cat not in ffs_xml.functions.keys():
+                        ffs_xml.functions[cur_cat] = dict()
+                if element.tag == 'ffd':
+                    cur_ls = element.get("ls")
+                    if cur_ls not in ffs_xml.functions[cur_cat].keys():
+                        ffs_xml.functions[cur_cat][cur_ls] = []
+            else:
+                if element.tag == 'arealFragilityModel':
+                    element.clear()
+                if element.tag == 'description':
+                    fragility_xml.description = element.text.strip()
+                    element.clear()
+                if element.tag == 'limitStates':
+                    fragility_xml.limit_states = \
+                        [ls.strip() for ls in element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'IML':
+                    fragility_xml.iml = [float(i) for i in
+                                         element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'ffs':
+                    fragility_xml.areas.append(ffs_xml)
+                    element.clear()
+                if element.tag == 'taxonomy':
+                    element.clear()
+                if element.tag == 'ffd':
+                    element.clear()
+                if element.tag == 'poEs':
+                    ffs_xml.functions[cur_cat][cur_ls] = [float(p) for p in
+                                                element.text.strip().split(" ")]
+                    element.clear()
+
+    except Exception as e:
+        print "Error parsing file " + \
+              filename +  " : " + str(e)
+        raise Exception(str(e))
+    return fragility_xml
 
 def parse_xml_risk(filename):
     print "Parsing risk: %s" % (filename)
