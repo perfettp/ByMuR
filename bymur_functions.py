@@ -63,48 +63,6 @@ _basedir = os.path.dirname(__file__)
 _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
 
-class RiskFunctionModel(object):
-    def __init__(self, areaID=None):
-        self._areaID = areaID
-        self._average_risk = None
-        self._statistic = None
-        self._functions = dict()
-
-    def dump(self):
-        print "AreaID: %s" % self.areaID
-        print "Statistic: %s" % self.statistic
-        print "Functions: %s" % self.functions
-        print "Average risk: %s" % self.average_risk
-
-    @property
-    def areaID(self):
-        return self._areaID
-    @areaID.setter
-    def areaID(self, data):
-        self._areaID = data
-
-    @property
-    def statistic(self):
-        return self._statistic
-    @statistic.setter
-    def statistic(self, data):
-        self._statistic = data
-
-    @property
-    def average_risk(self):
-        return self._average_risk
-    @average_risk.setter
-    def average_risk(self, data):
-        self._average_risk = data
-
-    @property
-    def functions(self):
-        return self._functions
-    @functions.setter
-    def functions(self, data):
-        self._functions = data
-
-
 class RiskModel(object):
     def __init__(self):
         self._id = None
@@ -195,13 +153,55 @@ class RiskModel(object):
     def areas(self, data):
         self._areas = data
 
+
+class RiskFunctionModel(object):
+    def __init__(self, areaID=None):
+        self._areaID = areaID
+        self._average_risk = None
+        self._statistic = None
+        self._functions = dict()
+
+    def dump(self):
+        print "AreaID: %s" % self.areaID
+        print "Statistic: %s" % self.statistic
+        print "Functions: %s" % self.functions
+        print "Average risk: %s" % self.average_risk
+
+    @property
+    def areaID(self):
+        return self._areaID
+    @areaID.setter
+    def areaID(self, data):
+        self._areaID = data
+
+    @property
+    def statistic(self):
+        return self._statistic
+    @statistic.setter
+    def statistic(self, data):
+        self._statistic = data
+
+    @property
+    def average_risk(self):
+        return self._average_risk
+    @average_risk.setter
+    def average_risk(self, data):
+        self._average_risk = data
+
+    @property
+    def functions(self):
+        return self._functions
+    @functions.setter
+    def functions(self, data):
+        self._functions = data
+
+
 class LossModel(object):
     def __init__(self):
         self._id = None
         self._loss_type = None
         self._hazard_type = None
         self._model_name = None
-        self._statistics = []
         self._unit = None
         self._areas = []
         pass
@@ -211,7 +211,6 @@ class LossModel(object):
         print "Model name: %s " % self.model_name
         print "Loss type: %s " % self.loss_type
         print "Hazard type: %s" % self.hazard_type
-        print "Statistics: %s " % self.statistics
         print "Unit: %s " % self.unit
         for a in self.areas:
             a.dump()
@@ -246,13 +245,6 @@ class LossModel(object):
         self._model_name = data
 
     @property
-    def statistics(self):
-        return self._statistics
-    @statistics.setter
-    def statistics(self, data):
-        self._statistics = data
-
-    @property
     def unit(self):
         return self._unit
     @unit.setter
@@ -265,6 +257,40 @@ class LossModel(object):
     @areas.setter
     def areas(self, data):
         self._areas = data
+
+
+class LossFunctionModel(object):
+    def __init__(self, areaID=None):
+        self._areaID = areaID
+        self._statistic = None
+        self._functions = dict()
+
+    def dump(self):
+        print "AreaID: %s" % self.areaID
+        print "Statistic: %s" % self.statistic
+        print "Functions: %s" % self.functions
+
+    @property
+    def areaID(self):
+        return self._areaID
+    @areaID.setter
+    def areaID(self, data):
+        self._areaID = data
+
+    @property
+    def statistic(self):
+        return self._statistic
+    @statistic.setter
+    def statistic(self, data):
+        self._statistic = data
+
+    @property
+    def functions(self):
+        return self._functions
+    @functions.setter
+    def functions(self, data):
+        self._functions = data
+
 
 class  FragilityModel(object):
     def __init__(self):
@@ -1052,6 +1078,60 @@ def parse_xml_fragility(filename):
               filename +  " : " + str(e)
         raise Exception(str(e))
     return fragility_xml
+
+
+def parse_xml_loss(filename):
+    print "Parsing loss: %s" % (filename)
+    loss_xml = LossModel()
+    try:
+        context = etree.iterparse(filename, events=("start", "end"))
+        for event, element in context:
+            if event == "start":
+                if element.tag == 'arealLossModel':
+                    loss_xml.loss_type = element.get('lossType')
+                    loss_xml.hazard_type = element.get('hazardType')
+                    loss_xml.model_name = element.get('modelName')
+                    loss_xml.unit = element.get('unit')
+                    _statistic = element.get('statistics')
+                    if _statistic == "quantile":
+                        _statistic += str(int(element.get(
+                            'quantileValue'))).zfill(2)
+                if element.tag == 'lossCurve':
+                    lfs_xml = LossFunctionModel(
+                        areaID=element.get("areaID"))
+                    lfs_xml.statistic = _statistic
+                if element.tag == 'limitStateCurve':
+                    cur_ls = element.get("ls")
+                    if cur_ls not in lfs_xml.functions.keys():
+                        lfs_xml.functions[cur_ls] = dict()
+                if element.tag == 'poEs':
+                    lfs_xml.functions[cur_ls]['poEs'] = []
+                if element.tag == 'losses':
+                    lfs_xml.functions[cur_ls]['losses'] = []
+            else:
+                if element.tag == 'arealLossModel':
+                    element.clear()
+                if element.tag == 'description':
+                    loss_xml.description = element.text.strip()
+                    element.clear()
+                if element.tag == 'lossCurve':
+                    loss_xml.areas.append(lfs_xml)
+                    element.clear()
+                if element.tag == 'poEs':
+                    lfs_xml.functions[cur_ls]['poEs'] = [float(p) for p in
+                                                element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'losses':
+                    lfs_xml.functions[cur_ls]['losses'] = [float(p) for p in
+                                                element.text.strip().split(" ")]
+                    element.clear()
+
+    except Exception as e:
+        print "Error parsing file " + \
+              filename +  " : " + str(e)
+        raise Exception(str(e))
+    return loss_xml
+
 
 def parse_xml_risk(filename):
     print "Parsing risk: %s" % (filename)
