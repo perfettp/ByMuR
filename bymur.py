@@ -1704,12 +1704,13 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._expTimeCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
                                       style=wx.CB_READONLY, size=(120, -1))
         self._expTimeLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
+        self._expTimeCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
         self._ctrlsSizer.Add(self._expTimeLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._expTimeCB, pos=(vpos, 2), span=(1, 1))
         self._ctrlsSizer.Add(self._expTimeLabelBis, pos=(vpos, 3), span=(1, 1),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
-        
+        # riskModel
         vpos += 1
         self._riskModLabel = wx.StaticText(self, wx.ID_ANY,
                                           'Risk Model')
@@ -1720,7 +1721,7 @@ class BymurWxCtrlsPanel(BymurWxPanel):
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._riskModCB, pos=(vpos, 2), span=(1, 2))
 
-
+        # returnPeriod
         vpos += 1
         self._retPerLabel = wx.StaticText(self, wx.ID_ANY, 'Return Period')
         self._retPerText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
@@ -1735,6 +1736,7 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._ctrlsSizer.Add(self._retPerLabelBis, pos=(vpos, 3), span=(1, 2),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
+        # intensityThres
         vpos += 1
         self._intThresLabel = wx.StaticText(self, wx.ID_ANY, 'Intensity '
                                                              'Threshold')
@@ -1840,9 +1842,8 @@ class BymurWxCtrlsPanel(BymurWxPanel):
             self._phenCB.Enable(True)
             self.Enable(True)
         elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
-            _phen_name = self._phenCB.GetStringSelection()
-            _haz_sel = self._hazModCB.GetValue()
             if ev.GetEventObject() == self._phenCB:
+                _phen_name = self._phenCB.GetStringSelection()
                 _hlist = [haz for haz in ctrls_data['hazard_models']
                           if haz['phenomenon_name'] == _phen_name]
                 self._hazModCB.Clear()
@@ -1859,8 +1860,6 @@ class BymurWxCtrlsPanel(BymurWxPanel):
                     str(ctrls_data[_phen_name]['int_thresh']))
                 self._retPerText.Enable(True)
                 self._intThresText.Enable(True)
-                _glist = [haz for haz in ctrls_data['hazard_models']
-                          if haz['hazard_name'] == _haz_sel]
                 _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
@@ -1871,20 +1870,70 @@ class BymurWxCtrlsPanel(BymurWxPanel):
                 if len(self._expTimeCB.Items) > 0:
                     self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        (haz['risk_model_name'] is not None))]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
             elif ev.GetEventObject() == self._hazModCB:
-                _glist = [haz for haz in ctrls_data['hazard_models']
-                          if haz['hazard_name'] == _haz_sel]
+                _phen_name = self._phenCB.GetStringSelection()
+                _haz_sel = self._hazModCB.GetValue()
                 _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
                                 haz['phenomenon_name'] == _phen_name)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
-                print _exptimelist
                 self._expTimeCB.AppendItems(list(set(_exptimelist)))
                 if len(self._expTimeCB.Items) > 0:
                     self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        haz['risk_model_name'] is not
+                                         None)]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
+            elif ev.GetEventObject() == self._expTimeCB:
+                _haz_sel = self._hazModCB.GetValue()
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        haz['risk_model_name'] is not None)]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
             elif ev.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
                 pass
 
@@ -1912,21 +1961,23 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._hazModCB.SetValue('')
         self._hazModCB.Enable(False)
 
+        self._expTimeCB.Clear()
+        self._expTimeCB.SetItems([])
+        self._expTimeCB.SetValue('')
+        self._expTimeCB.Enable(False)
+
+        self._riskModCB.Clear()
+        self._riskModCB.SetValue('')
+        self._riskModCB.SetItems([])
+        self._riskModCB.Enable(False)
+        
         self._retPerText.SetValue('')
         self._retPerText.Enable(False)
 
         self._intThresText.SetValue('')
         self._intThresText.Enable(False)
 
-        self._gridCB.Clear()
-        self._gridCB.SetValue('')
-        self._gridCB.SetItems([])
-        self._gridCB.Enable(False)
-
-        self._expTimeCB.Clear()
-        self._expTimeCB.SetItems([])
-        self._expTimeCB.SetValue('')
-        self._expTimeCB.Enable(False)
+        
 
     @property
     def ctrlsBoxTitle(self):
@@ -1943,6 +1994,7 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         """Get the current ctrlsBox parameters"""
         values = {}
         values['hazard_name'] = self._hazModCB.GetStringSelection()
+        values['risk_model_name'] = self._riskModCB.GetStringSelection()
         values['ret_per'] = self._retPerText.GetValue()
         values['int_thresh'] = self._intThresText.GetValue()
         values['exp_time'] = self._expTimeCB.GetStringSelection()

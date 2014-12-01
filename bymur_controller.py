@@ -263,6 +263,7 @@ class BymurController(object):
                 raise StandardError("Hazard options are not complete")
             tmp = dict()
             tmp['hazard_name'] = data['hazard_name']
+            tmp['risk_model_name'] = data['risk_model_name']
             tmp['ret_per'] = float(data['ret_per'])
             tmp['int_thresh'] = float(data['int_thresh'])
             tmp['exp_time'] = float(data['exp_time'])
