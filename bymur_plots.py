@@ -62,6 +62,7 @@ class BymurPlot(object):
         self._parent = kwargs.get('parent', None)
         self._figure = pyplot.figure()
         self._canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
+        self._toolbar = NavigationToolbar2WxAgg(self._canvas)
         self._figure.clf()
         self._figure.subplots_adjust(left=None, bottom=None, right=None,
                                     top=None, wspace=None, hspace=0.3)
@@ -91,7 +92,6 @@ class HazardGraph(BymurPlot):
         else:
             self._figure.canvas.mpl_connect('pick_event',
                                         self.on_pick)
-        self._toolbar = NavigationToolbar2WxAgg(self._canvas)
         self._points_data = None
         self._selected_point = None
 
