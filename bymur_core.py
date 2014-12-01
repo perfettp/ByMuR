@@ -578,7 +578,7 @@ class BymurCore(object):
 
     def read_inventory_model(self, grid_id):
         inv_dic = self.db.get_inventory_by_datagrid_id(grid_id)
-        _inventory = bf.InventoryXML(name=inv_dic['name'])
+        _inventory = bf.InventoryModel(name=inv_dic['name'])
         _inventory.classes.update({'generalClasses':[],
                                         'ageClasses':[],
                                         'houseClasses':[]})

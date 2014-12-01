@@ -553,7 +553,7 @@ class InventorySection(object):
         self._asset = data
 
 
-class  InventoryXML(object):
+class InventoryModel(object):
     def __init__(self, name = ''):
         self._name = name
         self._sections = []
@@ -789,6 +789,8 @@ class BymurThread(threading.Thread):
 def read_db_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
           utm_zone_number=33, utm_zone_letter='T'):
     pass
+
+
 def parse_xml_inventory(filename):
     print "Parsing Inventory: %s" % (filename)
     try:
@@ -796,7 +798,7 @@ def parse_xml_inventory(filename):
         for event, element in context:
             if event == "start":
                 if element.tag == 'inventory':
-                    inventory_xml = InventoryXML(element.get('Name'))
+                    inventory_xml = InventoryModel(element.get('Name'))
                 elif element.tag == 'sezione':
                     section_model = InventorySection()
                     section_model.areaID = element.get('areaID')
