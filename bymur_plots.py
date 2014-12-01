@@ -79,6 +79,7 @@ class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
         self._imgfile = kwargs.get('imgfile',"naples_gmaps.png")
         self._click_callback = kwargs.get('click_callback', None)
+        self._map_limits = [425.000,448.000, 4510.000, 4533.000]
         self.haz_point = None
         self.prob_point = None
 
@@ -135,10 +136,9 @@ class HazardGraph(BymurPlot):
         self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
                                      top=0.92, wspace=0.35, hspace=0.2)
         self._figure.hold(True)
-        map_limits = [375.300, 508.500, 4449.200, 4569.800]
         self.haz_map = self.plot_hazard_map(x_mesh, y_mesh,
                              [p['haz_value'] for p in hazard_data],
-                             map_limits, hazard, inventory)
+                             hazard, inventory)
 
         self.haz_point,  = self.haz_map.plot([self.x_points[0]],
                                                   [self.y_points[0]],
@@ -149,8 +149,7 @@ class HazardGraph(BymurPlot):
                                                   zorder=5)
 
         self.prob_map = self.plot_probability_map(x_mesh, y_mesh,
-                                  [p['prob_value'] for p in hazard_data],
-                                  map_limits)
+                                  [p['prob_value'] for p in hazard_data])
 
         self.prob_point,  = self.prob_map.plot([self.x_points[0]],
                                                   [self.y_points[0]],
@@ -163,14 +162,11 @@ class HazardGraph(BymurPlot):
         self._canvas.draw()
 
     def plot_hazard_map(self, x_mesh, y_mesh, z_points,
-                 map_limits, hazard, inventory):
-        xmap1, xmap2, ymap1, ymap2 = map_limits
+                 hazard, inventory):
         haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
-
-
 
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
@@ -186,11 +182,7 @@ class HazardGraph(BymurPlot):
             img,
             zorder=0,
             origin="upper",
-            extent=(
-                xmap1,
-                xmap2,
-                ymap1,
-                ymap2))
+            extent=self._map_limits)
 
         if show_areas:
 
@@ -241,14 +233,11 @@ class HazardGraph(BymurPlot):
         haz_subplot.set_xlabel("Easting (km)")
         haz_subplot.set_ylabel("Northing (km)")
         # TODO: fix these limits
-        haz_subplot.axis([425.000,448.000, 4510.000, 4533.000])
-        # haz_subplot.axis([350.000,500.000, 4400.000, 4600.000])
+        haz_subplot.axis(self._map_limits)
         return haz_subplot
 
-    def plot_probability_map(self, x_mesh, y_mesh, z_points,
-                 map_limits):
+    def plot_probability_map(self, x_mesh, y_mesh, z_points):
 
-        xmap1, xmap2, ymap1, ymap2 = map_limits
         z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
 
@@ -263,11 +252,7 @@ class HazardGraph(BymurPlot):
         prob_subplot.imshow(
             img,
             origin="upper",
-            extent=(
-                xmap1,
-                xmap2,
-                ymap1,
-                ymap2))
+            extent=self._map_limits)
         
         prob_scatter = prob_subplot.scatter(self.x_points, self.y_points,
                                             marker='.', c = z_points,
@@ -287,7 +272,7 @@ class HazardGraph(BymurPlot):
         prob_subplot.set_xlabel("Easting (km)")
         probability_bar.draw_all()
         # TODO: fix these limits
-        prob_subplot.axis([425.000,448.000, 4510.000, 4533.000])
+        prob_subplot.axis(self._map_limits)
         # prob_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return prob_subplot
 

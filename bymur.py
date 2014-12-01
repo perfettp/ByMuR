@@ -1149,12 +1149,12 @@ class BymurWxMapPanel(BymurWxPanel):
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         print "basedir %s" %  wx.GetTopLevelParent(self).basedir
-        print "file %s" %  os.path.join(wx.GetTopLevelParent(self).basedir,
-                                     "./data/naples_gmaps.png")
+        _imgfile =  os.path.join(wx.GetTopLevelParent(self).basedir,
+                                     "./data/naples_gsatellite.png")
+        print "file %s" % _imgfile
         self._map = bymur_plots.HazardGraph(parent=self,
                             click_callback=self._controller.pick_point_by_index,
-                            imgfile = os.path.join(wx.GetTopLevelParent(
-                                self).basedir,"./data/naples_gmaps.png"))
+                            imgfile = _imgfile)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
