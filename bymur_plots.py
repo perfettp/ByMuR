@@ -417,12 +417,6 @@ class FragCurve(BymurPlot):
         gridspec.update(hspace = 0.4)
         for i_row in range(row_num):
             for i_col in range(col_num):
-                # subplot_tmp = pyplot.subplot2grid((row_num, col_num),
-                #                                   (i_row, i_col))
-                # subplot_tmp = self._figure.add_subplot(row_num, col_num,
-                #                                        i_row+i_col+1)
-                # print "subplot (%s, %s) (%s, %s)" % (row_num, col_num, i_row,
-                #                                      i_col)
 
                 subplot_spec = gridspec.new_subplotspec((i_row, i_col))
                 subplot_tmp = self._figure.add_subplot(subplot_spec)
@@ -451,7 +445,9 @@ class FragCurve(BymurPlot):
                                                     'statistic'])])
                         subplot_tmp.tick_params(axis='x', labelsize=8)
                         subplot_tmp.tick_params(axis='y', labelsize=8)
-                        subplot_tmp.set_ylim((0,1))
+                        subplot_tmp.set_xlabel(self._hazard.imt)
+                        subplot_tmp.set_ylabel("Probability")
+                        subplot_tmp.set_ylim((0,1.05))
                         # print subplot_tmp
                         subplot_tmp.set_title("Prob. of " + c['limit_state'] +
                                               " for " + c['general_class'],
@@ -500,10 +496,12 @@ class LossCurve(BymurPlot):
                                                  'statistic'])])
                     subplot_tmp.tick_params(axis='x', labelsize=8)
                     subplot_tmp.tick_params(axis='y', labelsize=8)
+                    subplot_tmp.set_xlabel(self._loss.unit)
+                    subplot_tmp.set_ylabel("Probability")
                     subplot_tmp.set_ylim((0, 1.05))
                     # print subplot_tmp
                     subplot_tmp.set_title("Prob. of loss given " + c[
-                        'limit_state'], fontsize=9)
+                        'limit_state'], fontsize=10)
             subplot_tmp.legend(loc=1, prop={'size':6})
         # gridspec.tight_layout(self._figure)
         self._canvas.draw()
@@ -546,6 +544,8 @@ class RiskCurve(BymurPlot):
                                      self._stat_to_plot.index(c[
                                          'statistic'])])
         subplot_tmp.set_yscale('log')
+        subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
+        subplot_tmp.set_ylabel("Probability")
         subplot_tmp.tick_params(axis='x', labelsize=8)
         subplot_tmp.tick_params(axis='y', labelsize=8)
         subplot_tmp.set_title("Risk curve", fontsize=9)
@@ -584,6 +584,8 @@ class RiskCurve(BymurPlot):
                          label = "Percentiles",
                          color = 'k')
         subplot_tmp.set_ylim((0,1))
+        subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
+        subplot_tmp.set_ylabel("Percentile")
         subplot_tmp.tick_params(axis='x', labelsize=8)
         subplot_tmp.tick_params(axis='y', labelsize=8)
         subplot_tmp.set_title("Risk index", fontsize=9)
