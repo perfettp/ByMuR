@@ -1108,9 +1108,13 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.SetSizer(self._sizer)
         self._nb = wx.Notebook(self)
+
         self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
                                              controller=self._controller,
                                              label="NBHazPage")
+        self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBInvPage")
         self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBFragPage")
@@ -1120,15 +1124,14 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self._curvesNBRisk = BymurWxNBRiskPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBRiskPage")
-        self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
-                                               controller=self._controller,
-                                               label="NBInvPage")
+
 
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
+        self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
         self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
         self._nb.AddPage(self._curvesNBLoss, self._curvesNBLoss.title)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
-        self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
+
 
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._controller.nbTabChanged)
         self._sizer.Add(self._nb, 1, wx.EXPAND | wx.ALL, 10)
@@ -1138,6 +1141,7 @@ class BymurWxCurvesPanel(BymurWxPanel):
     def updateView(self, **kwargs):
         super(BymurWxCurvesPanel, self).updateView(**kwargs)
         self._nb.GetCurrentPage().updateView(**kwargs)
+        self.Enable(True)
 
     def clear(self):
         self._nb.GetCurrentPage().clear()
@@ -1835,7 +1839,6 @@ class BymurWxCtrlsPanel(BymurWxPanel):
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
         if (ev is None):  # First data load
-            print "First data load"
             self._phenCB.Clear()
             self._phenCB.AppendItems([haz['phenomenon_name']
                                       for haz in ctrls_data['phenomena']])

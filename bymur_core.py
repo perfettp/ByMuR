@@ -663,13 +663,11 @@ class BymurCore(object):
     def updateModel(self, **ctrls_options):
 
         """Update HazardModel reflecting selected options. """
-        print "ctrls_options %s" % ctrls_options
+        # print "ctrls_options %s" % ctrls_options
         haz_tmp = ctrls_options
         haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time'] /
                                                    haz_tmp['ret_per'])
         self.hazard_options = haz_tmp
-
-        print "core hazard_options %s " % self.hazard_options
 
         self._hazard = HazardModel(self._db,
                                    hazard_name=
@@ -677,13 +675,18 @@ class BymurCore(object):
                                    exp_time=self.hazard_options['exp_time'])
 
         self.inventory = self.read_inventory_model(self._hazard.datagrid_id)
-        self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
-        self.loss = self.read_loss_model(self._hazard.phenomenon_id,
-                                         self.fragility.id)
-        print "Hazard id: %s, %s" % (self._hazard.hazard_id,
-                                     type(self._hazard.hazard_id))
-        self.risk = self.read_risk_model(self._hazard.hazard_id)
 
+        # print "risk [%s]: %s" % (ctrls_options['risk_model_name'],
+        #                          type(ctrls_options['risk_model_name']))
+        if ctrls_options['risk_model_name'] is not None and ctrls_options[
+                                     'risk_model_name'] != '':
+            print "Reading fragility, loss and risk models"
+            self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
+            self.loss = self.read_loss_model(self._hazard.phenomenon_id,
+                                             self.fragility.id)
+            self.risk = self.read_risk_model(self._hazard.hazard_id)
+        # else:
+        #         print "Risk Model is none"
 
 
         # TODO: grid_point should be eliminated from here
@@ -703,13 +706,13 @@ class BymurCore(object):
                     self.db.get_area_dbid_by_areaid(areaID)
                 self.selected_area['inventory'] = sec
                 # TODO: questi dovrebbero diventare oggetti
-                self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
-                            self.fragility.id, areaID)
-                self.selected_area['loss'] = self.db.get_lossdata_by_areaid(
-                            self.loss.id, areaID)
                 if self.risk is not None:
+                    self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
+                                self.fragility.id, areaID)
+                    self.selected_area['loss'] = self.db.get_lossdata_by_areaid(
+                                self.loss.id, areaID)
                     self.selected_area['risk'] = self.db.get_riskdata_by_areaid(
-                            self.risk.id, areaID)
+                                self.risk.id, areaID)
                 break
 
     def set_point_by_index(self, index):
