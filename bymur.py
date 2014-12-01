@@ -1698,6 +1698,28 @@ class BymurWxCtrlsPanel(BymurWxPanel):
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._hazModCB, pos=(vpos, 2), span=(1, 2))
 
+        # expTime
+        vpos += 1
+        self._expTimeLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
+        self._expTimeCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                      style=wx.CB_READONLY, size=(120, -1))
+        self._expTimeLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
+        self._ctrlsSizer.Add(self._expTimeLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._expTimeCB, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._expTimeLabelBis, pos=(vpos, 3), span=(1, 1),
+                             flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
+        
+        vpos += 1
+        self._riskModLabel = wx.StaticText(self, wx.ID_ANY,
+                                          'Risk Model')
+        self._riskModCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                     style=wx.CB_READONLY, size=(200, -1))
+        self._riskModCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._riskModLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._riskModCB, pos=(vpos, 2), span=(1, 2))
+
         vpos += 1
         self._gridLabel = wx.StaticText(self, wx.ID_ANY, 'Reference grid')
         self._gridCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
@@ -1736,17 +1758,6 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._ctrlsSizer.Add(self._intThresLabelBis, pos=(vpos, 3), span=(1, 1),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
-        # expTime
-        vpos += 1
-        self._expTimeLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
-        self._expTimeCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
-                                      style=wx.CB_READONLY, size=(120, -1))
-        self._expTimeLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
-        self._ctrlsSizer.Add(self._expTimeLabel, pos=(vpos, 0), span=(1, 2),
-                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._expTimeCB, pos=(vpos, 2), span=(1, 1))
-        self._ctrlsSizer.Add(self._expTimeLabelBis, pos=(vpos, 3), span=(1, 1),
-                             flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
         vpos += 1
         self._updateButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
@@ -2138,7 +2149,7 @@ class BymurWxView(wx.Frame):
         self._leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._ctrlsPanel = BymurWxCtrlsPanel(parent=self,
                                            controller=self._controller,
-                                           title="Hazard",
+                                           title="Model",
                                            label="CtrlsPanel")
 
         self._dataPanel = BymurWxDataPanel(parent=self,

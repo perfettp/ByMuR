@@ -516,7 +516,6 @@ class BymurCore(object):
 
         ret['hazard_models'] = hazard_models
         ret['phenomena'] = self.db.get_phenomena_list()
-        # print "hazard_models %s:" % ret['hazard_models']
         # print "phenomena %s " % ret['phenomena']
         return ret
 
