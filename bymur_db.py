@@ -1327,14 +1327,14 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             self._cursor.execute(sqlquery.format(limit_state))
             return self._cursor.lastrowid
 
-    def insert_fragmodel_limitstate_rel(self, frag_id, ls_id):
+    def insert_fragmodel_limitstate_rel(self, frag_id, ls_id, pos):
         """
         """
         sqlquery = """
                     INSERT IGNORE INTO fragmodel_limitstates
-                    (id_fragility_model, id_limitstate)
-                        VALUES ({0}, {1})"""
-        return self._cursor.execute(sqlquery.format(frag_id, ls_id))
+                    (id_fragility_model, id_limitstate, position)
+                        VALUES ({0}, {1}, {2})"""
+        return self._cursor.execute(sqlquery.format(frag_id, ls_id, pos))
     
     def get_limitstates_by_frag_id(self, frag_id):
         sqlquery = """ SELECT `ls`.`id`, `ls`.`name`
@@ -1368,54 +1368,54 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
 
         return self._cursor.executemany(sqlquery, frag_entries)
 
-    def add_fragility(self, fragility_xml):
+    def add_fragility(self, fragility):
         phen_id_dic = dict()
         for p in self.get_phenomena_list():
             phen_id_dic.update({p['phenomenon_name']:p['phenomenon_id']})
-        phen_id = phen_id_dic[fragility_xml.hazard_type.upper()]
+        phen_id = phen_id_dic[fragility.hazard_type.upper()]
 
         frag_id = self.insert_id_fragility_model(phen_id,
-                            fragility_xml.model_name,
-                            fragility_xml.description,
-                            " ".join([str(f) for f in fragility_xml.iml]),
-                            fragility_xml.imt)
+                            fragility.model_name,
+                            fragility.description,
+                            " ".join([str(f) for f in fragility.iml]),
+                            fragility.imt)
         
         fragility_model = self.get_fragility_model_by_name(
-            fragility_xml.model_name)
-        # print "Inserted fragility model %s" % fragility_model
+            fragility.model_name)
 
-        stat_id = self.insert_id_statistic(
-                fragility_xml.statistic,
-                fragility_xml.quantile_value)
-
-
-        # TODO: to add position!
-        self.insert_fragility_statistic_rel(frag_id, stat_id)
+        area_dic = dict()
+        for stat in list(set([a.statistic for a in fragility.areas])):
+            area_dic[stat] = dict(stat_id=self.insert_id_statistic_new(stat),
+                                  frag_entries=[])
+            self.insert_fragility_statistic_rel(frag_id, area_dic[stat][
+                'stat_id'])
 
         ls_id_dic = dict()
 
-        for ls in fragility_xml.limit_states:
+        for ls in fragility.limit_states:
             ls_id = self.insert_id_limitstate(ls)
             ls_id_dic.update({ls.lower():ls_id})
-            self.insert_fragmodel_limitstate_rel(frag_id, ls_id)
+            self.insert_fragmodel_limitstate_rel(frag_id, ls_id,
+                                        fragility.limit_states.index(ls))
 
         general_class_id_dic = dict()
         for c in self.get_general_classes_list():
             general_class_id_dic.update({c['name'].lower():c['id']})
 
-        frag_entries = []
-        for a in fragility_xml.areas:
+        for a in fragility.areas:
             for cat_key in a.functions.keys():
                 for ls_key in a.functions[cat_key].keys():
-                    f_tmp = ( self.get_area_dbid_by_areaid(a.areaID),
+                    f_tmp = (self.get_area_dbid_by_areaid(a.areaID),
                               ls_id_dic[ls_key.lower()],
                               general_class_id_dic[cat_key.lower()],
                               " ".join([str(x) for x in
                                         a.functions[cat_key][ls_key]]))
-                    frag_entries.append(f_tmp)
-        self.insert_fragility_data(frag_id, stat_id, frag_entries)
-        
-    
+                    area_dic[a.statistic]['frag_entries'].append(f_tmp)
+
+        for stat in area_dic.keys():
+            self.insert_fragility_data(frag_id, area_dic[stat]['stat_id'],
+                                       area_dic[stat]['frag_entries'])
+
 
     def insert_id_loss_model(self, id_phen, loss_type, model_name, unit):
         sqlquery = """SELECT id FROM loss_models
@@ -1469,30 +1469,30 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
 
         return self._cursor.executemany(sqlquery, loss_entries)
 
-    def add_loss(self, loss_xml):
+    def add_loss(self, loss):
         phen_id_dic = dict()
         for p in self.get_phenomena_list():
             phen_id_dic.update({p['phenomenon_name']:p['phenomenon_id']})
-        phen_id = phen_id_dic[loss_xml.hazard_type.upper()]
+        phen_id = phen_id_dic[loss.hazard_type.upper()]
 
         loss_id = self.insert_id_loss_model(phen_id,
-                                            loss_xml.loss_type,
-                                            loss_xml.model_name,
-                                            loss_xml.unit)
+                                            loss.loss_type,
+                                            loss.model_name,
+                                            loss.unit)
 
-        loss_model = self.get_loss_model_by_name(loss_xml.model_name)
-        print "Inserted loss model %s" % loss_model
-        
-        stat_id = self.insert_id_statistic(
-                loss_xml.statistic,
-                loss_xml.quantile_value)
+        loss_model = self.get_loss_model_by_name(loss.model_name)
+        # print "Inserted loss model %s" % loss_model
 
-        self.insert_loss_statistic_rel(loss_id, stat_id)
+        area_dic = dict()
+        for stat in list(set([a.statistic for a in loss.areas])):
+            area_dic[stat] = dict(stat_id=self.insert_id_statistic_new(stat),
+                                  loss_entries=[])
+            self.insert_loss_statistic_rel(loss_id, area_dic[stat][
+                'stat_id'])
 
         ls_id_dic = dict()
 
-        loss_entries = []
-        for a in loss_xml.areas:
+        for a in loss.areas:
             for ls_key in a.functions.keys():
                 if ls_key not in ls_id_dic.keys():
                     ls_id = self.insert_id_limitstate(ls_key)
@@ -1510,8 +1510,13 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                 f_tmp = ( self.get_area_dbid_by_areaid(a.areaID),
                           ls_id,
                           ",".join(function_point_list))
-                loss_entries.append(f_tmp)
-        self.insert_loss_data(loss_id, stat_id, loss_entries)
+                area_dic[a.statistic]['loss_entries'].append(f_tmp)
+
+        print area_dic
+        for stat in area_dic.keys():
+            self.insert_loss_data(loss_id, area_dic[stat]['stat_id'],
+                                       area_dic[stat]['loss_entries'])
+        # self.insert_loss_data(loss_id, stat_id, loss_entries)
 
     def get_fragility_model_by_name(self, frag_name):
         sqlquery = """ SELECT `frag_mod`.`id`,

@@ -63,48 +63,6 @@ _basedir = os.path.dirname(__file__)
 _hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
 
 
-class RiskFunctionModel(object):
-    def __init__(self, areaID=None):
-        self._areaID = areaID
-        self._average_risk = None
-        self._statistic = None
-        self._functions = dict()
-
-    def dump(self):
-        print "AreaID: %s" % self.areaID
-        print "Statistic: %s" % self.statistic
-        print "Functions: %s" % self.functions
-        print "Average risk: %s" % self.average_risk
-
-    @property
-    def areaID(self):
-        return self._areaID
-    @areaID.setter
-    def areaID(self, data):
-        self._areaID = data
-
-    @property
-    def statistic(self):
-        return self._statistic
-    @statistic.setter
-    def statistic(self, data):
-        self._statistic = data
-
-    @property
-    def average_risk(self):
-        return self._average_risk
-    @average_risk.setter
-    def average_risk(self, data):
-        self._average_risk = data
-
-    @property
-    def functions(self):
-        return self._functions
-    @functions.setter
-    def functions(self, data):
-        self._functions = data
-
-
 class RiskModel(object):
     def __init__(self):
         self._id = None
@@ -195,13 +153,55 @@ class RiskModel(object):
     def areas(self, data):
         self._areas = data
 
+
+class RiskFunctionModel(object):
+    def __init__(self, areaID=None):
+        self._areaID = areaID
+        self._average_risk = None
+        self._statistic = None
+        self._functions = dict()
+
+    def dump(self):
+        print "AreaID: %s" % self.areaID
+        print "Statistic: %s" % self.statistic
+        print "Functions: %s" % self.functions
+        print "Average risk: %s" % self.average_risk
+
+    @property
+    def areaID(self):
+        return self._areaID
+    @areaID.setter
+    def areaID(self, data):
+        self._areaID = data
+
+    @property
+    def statistic(self):
+        return self._statistic
+    @statistic.setter
+    def statistic(self, data):
+        self._statistic = data
+
+    @property
+    def average_risk(self):
+        return self._average_risk
+    @average_risk.setter
+    def average_risk(self, data):
+        self._average_risk = data
+
+    @property
+    def functions(self):
+        return self._functions
+    @functions.setter
+    def functions(self, data):
+        self._functions = data
+
+
 class LossModel(object):
     def __init__(self):
         self._id = None
         self._loss_type = None
         self._hazard_type = None
         self._model_name = None
-        self._statistics = []
         self._unit = None
         self._areas = []
         pass
@@ -211,7 +211,6 @@ class LossModel(object):
         print "Model name: %s " % self.model_name
         print "Loss type: %s " % self.loss_type
         print "Hazard type: %s" % self.hazard_type
-        print "Statistics: %s " % self.statistics
         print "Unit: %s " % self.unit
         for a in self.areas:
             a.dump()
@@ -246,13 +245,6 @@ class LossModel(object):
         self._model_name = data
 
     @property
-    def statistics(self):
-        return self._statistics
-    @statistics.setter
-    def statistics(self, data):
-        self._statistics = data
-
-    @property
     def unit(self):
         return self._unit
     @unit.setter
@@ -266,12 +258,45 @@ class LossModel(object):
     def areas(self, data):
         self._areas = data
 
+
+class LossFunctionModel(object):
+    def __init__(self, areaID=None):
+        self._areaID = areaID
+        self._statistic = None
+        self._functions = dict()
+
+    def dump(self):
+        print "AreaID: %s" % self.areaID
+        print "Statistic: %s" % self.statistic
+        print "Functions: %s" % self.functions
+
+    @property
+    def areaID(self):
+        return self._areaID
+    @areaID.setter
+    def areaID(self, data):
+        self._areaID = data
+
+    @property
+    def statistic(self):
+        return self._statistic
+    @statistic.setter
+    def statistic(self, data):
+        self._statistic = data
+
+    @property
+    def functions(self):
+        return self._functions
+    @functions.setter
+    def functions(self, data):
+        self._functions = data
+
+
 class  FragilityModel(object):
     def __init__(self):
         self._id = None
         self._hazard_type = None
         self._model_name = None
-        self._statistics = []
         self._description = None
         self._limit_states = None
         self._iml = None
@@ -283,7 +308,6 @@ class  FragilityModel(object):
         print "ID: %s" % self.id
         print "Hazard type: %s " % self.hazard_type
         print "Model name: %s " % self.model_name
-        print "Statistics: %s " % self.statistics
         print "Description: %s " % self.description
         print "Limit states: %s " % self.limit_states
         print "IML: %s " % self.imt
@@ -312,13 +336,6 @@ class  FragilityModel(object):
     @model_name.setter
     def model_name(self, data):
         self._model_name = data
-
-    @property
-    def statistics(self):
-        return self._statistics
-    @statistics.setter
-    def statistics(self, data):
-        self._statistics= data
 
     @property
     def description(self):
@@ -354,6 +371,38 @@ class  FragilityModel(object):
     @areas.setter
     def areas(self, data):
         self._areas = data
+
+class  FragilityFunctionModel(object):
+    def __init__(self, areaID=None):
+        self._areaID = areaID
+        self._statistic = None
+        self._functions = dict()
+
+    def dump(self):
+        print "AreaID: %s" % self.areaID
+        print "Statistic: %s" % self.statistic
+        print "Functions: %s" % self.functions
+
+    @property
+    def areaID(self):
+        return self._areaID
+    @areaID.setter
+    def areaID(self, data):
+        self._areaID = data
+
+    @property
+    def statistic(self):
+        return self._statistic
+    @statistic.setter
+    def statistic(self, data):
+        self._statistic = data
+
+    @property
+    def functions(self):
+        return self._functions
+    @functions.setter
+    def functions(self, data):
+        self._functions = data
 
 class InventoryClass(object):
     def __init__(self, type='', name='', label=''):
@@ -530,7 +579,7 @@ class InventorySection(object):
         self._asset = data
 
 
-class  InventoryXML(object):
+class InventoryModel(object):
     def __init__(self, name = ''):
         self._name = name
         self._sections = []
@@ -766,6 +815,8 @@ class BymurThread(threading.Thread):
 def read_db_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
           utm_zone_number=33, utm_zone_letter='T'):
     pass
+
+
 def parse_xml_inventory(filename):
     print "Parsing Inventory: %s" % (filename)
     try:
@@ -773,7 +824,7 @@ def parse_xml_inventory(filename):
         for event, element in context:
             if event == "start":
                 if element.tag == 'inventory':
-                    inventory_xml = InventoryXML(element.get('Name'))
+                    inventory_xml = InventoryModel(element.get('Name'))
                 elif element.tag == 'sezione':
                     section_model = InventorySection()
                     section_model.areaID = element.get('areaID')
@@ -967,6 +1018,175 @@ def parse_xml_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
               filename +  " : " + str(e)
         raise Exception(str(e))
     return hazard_xml_model
+
+def parse_xml_fragility(filename):
+    print "Parsing fragility: %s" % (filename)
+    fragility_xml = FragilityModel()
+    try:
+        context = etree.iterparse(filename, events=("start", "end"))
+        for event, element in context:
+            if event == "start":
+                if element.tag == 'arealFragilityModel':
+                    fragility_xml.hazard_type = element.get('hazardType')
+                    fragility_xml.model_name = element.get('modelName')
+                    _statistic = element.get('statistics')
+                    if _statistic == "quantile":
+                        _statistic += str(int(element.get(
+                            'quantileValue'))).zfill(2)
+                if element.tag == 'IML':
+                    fragility_xml.imt= element.get("IMT")
+                if element.tag == 'ffs':
+                    ffs_xml = FragilityFunctionModel(
+                        areaID=element.get("areaID"))
+                    ffs_xml.statistic = _statistic
+                if element.tag == 'taxonomy':
+                    cur_cat = element.get("categoryName")
+                    if cur_cat not in ffs_xml.functions.keys():
+                        ffs_xml.functions[cur_cat] = dict()
+                if element.tag == 'ffd':
+                    cur_ls = element.get("ls")
+                    if cur_ls not in ffs_xml.functions[cur_cat].keys():
+                        ffs_xml.functions[cur_cat][cur_ls] = []
+            else:
+                if element.tag == 'arealFragilityModel':
+                    element.clear()
+                if element.tag == 'description':
+                    fragility_xml.description = element.text.strip()
+                    element.clear()
+                if element.tag == 'limitStates':
+                    fragility_xml.limit_states = \
+                        [ls.strip() for ls in element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'IML':
+                    fragility_xml.iml = [float(i) for i in
+                                         element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'ffs':
+                    fragility_xml.areas.append(ffs_xml)
+                    element.clear()
+                if element.tag == 'taxonomy':
+                    element.clear()
+                if element.tag == 'ffd':
+                    element.clear()
+                if element.tag == 'poEs':
+                    ffs_xml.functions[cur_cat][cur_ls] = [float(p) for p in
+                                                element.text.strip().split(" ")]
+                    element.clear()
+
+    except Exception as e:
+        print "Error parsing file " + \
+              filename +  " : " + str(e)
+        raise Exception(str(e))
+    return fragility_xml
+
+
+def parse_xml_loss(filename):
+    print "Parsing loss: %s" % (filename)
+    loss_xml = LossModel()
+    try:
+        context = etree.iterparse(filename, events=("start", "end"))
+        for event, element in context:
+            if event == "start":
+                if element.tag == 'arealLossModel':
+                    loss_xml.loss_type = element.get('lossType')
+                    loss_xml.hazard_type = element.get('hazardType')
+                    loss_xml.model_name = element.get('modelName')
+                    loss_xml.unit = element.get('unit')
+                    _statistic = element.get('statistics')
+                    if _statistic == "quantile":
+                        _statistic += str(int(element.get(
+                            'quantileValue'))).zfill(2)
+                if element.tag == 'lossCurve':
+                    lfs_xml = LossFunctionModel(
+                        areaID=element.get("areaID"))
+                    lfs_xml.statistic = _statistic
+                if element.tag == 'limitStateCurve':
+                    cur_ls = element.get("ls")
+                    if cur_ls not in lfs_xml.functions.keys():
+                        lfs_xml.functions[cur_ls] = dict()
+                if element.tag == 'poEs':
+                    lfs_xml.functions[cur_ls]['poEs'] = []
+                if element.tag == 'losses':
+                    lfs_xml.functions[cur_ls]['losses'] = []
+            else:
+                if element.tag == 'arealLossModel':
+                    element.clear()
+                if element.tag == 'description':
+                    loss_xml.description = element.text.strip()
+                    element.clear()
+                if element.tag == 'lossCurve':
+                    loss_xml.areas.append(lfs_xml)
+                    element.clear()
+                if element.tag == 'poEs':
+                    lfs_xml.functions[cur_ls]['poEs'] = [float(p) for p in
+                                                element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'losses':
+                    lfs_xml.functions[cur_ls]['losses'] = [float(p) for p in
+                                                element.text.strip().split(" ")]
+                    element.clear()
+
+    except Exception as e:
+        print "Error parsing file " + \
+              filename +  " : " + str(e)
+        raise Exception(str(e))
+    return loss_xml
+
+
+def parse_xml_risk(filename):
+    print "Parsing risk: %s" % (filename)
+    risk_xml = RiskModel()
+    try:
+        context = etree.iterparse(filename, events=("start", "end"))
+        for event, element in context:
+            if event == "start":
+                if element.tag == 'arealRiskModel':
+                    risk_xml.risk_type = element.get('riskType')
+                    risk_xml.model_name = element.get('modelName')
+                    risk_xml.loss_model_name = element.get('lossModelName')
+                    risk_xml.hazard_model_name = element.get('hazardModelName')
+                    risk_xml.hazard_type = element.get('hazardType')
+                    risk_xml.fragility_model_name = \
+                        element.get('fragilityModelName')
+                    _statistic = element.get('statistics')
+                    if _statistic == "quantile":
+                        _statistic += str(int(element.get(
+                            'quantileValue'))).zfill(2)
+                    risk_xml.investigation_time = \
+                        float(element.get('investigationTime'))
+
+                if element.tag == 'riskCurve':
+                    rfs_xml = RiskFunctionModel(areaID=element.get("areaID"))
+                    rfs_xml.statistic = _statistic
+            else:
+                if element.tag == 'arealRiskModel':
+                    element.clear()
+                if element.tag == 'description':
+                    risk_xml.description = element.text.strip()
+                    element.clear()
+                if element.tag == 'riskCurve':
+                    risk_xml.areas.append(rfs_xml)
+                    element.clear()
+                if element.tag == 'poEs':
+                    rfs_xml.functions['poEs'] = [float(p) for p in
+                                            element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'losses':
+                    rfs_xml.functions['losses'] = [float(p) for p in
+                                            element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'averageRisk':
+                    rfs_xml.average_risk =  float(element.text.strip())
+                    element.clear()
+    except Exception as e:
+        print "Error parsing file " + \
+              filename +  " : " + str(e)
+        raise Exception(str(e))
+    return risk_xml
+
+
+
+
 
 def SpawnThread(target, event_type, function, function_args, callback=None,
                     wait_msg='Wait please...'):
