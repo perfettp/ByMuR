@@ -968,6 +968,61 @@ def parse_xml_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
         raise Exception(str(e))
     return hazard_xml_model
 
+def parse_xml_risk(filename):
+    print "Parsing risk: %s" % (filename)
+    risk_xml = RiskModel()
+    try:
+        context = etree.iterparse(filename, events=("start", "end"))
+        for event, element in context:
+            if event == "start":
+                if element.tag == 'arealRiskModel':
+                    risk_xml.risk_type = element.get('riskType')
+                    risk_xml.model_name = element.get('modelName')
+                    risk_xml.loss_model_name = element.get('lossModelName')
+                    risk_xml.hazard_model_name = element.get('hazardModelName')
+                    risk_xml.hazard_type = element.get('hazardType')
+                    risk_xml.fragility_model_name = \
+                        element.get('fragilityModelName')
+                    _statistic = element.get('statistics')
+                    if _statistic == "quantile":
+                        _statistic += str(int(element.get(
+                            'quantileValue'))).zfill(2)
+                    risk_xml.investigation_time = \
+                        float(element.get('investigationTime'))
+
+                if element.tag == 'riskCurve':
+                    rfs_xml = RiskFunctionModel(areaID=element.get("areaID"))
+                    rfs_xml.statistic = _statistic
+            else:
+                if element.tag == 'arealRiskModel':
+                    element.clear()
+                if element.tag == 'description':
+                    risk_xml.description = element.text.strip()
+                    element.clear()
+                if element.tag == 'riskCurve':
+                    risk_xml.areas.append(rfs_xml)
+                    element.clear()
+                if element.tag == 'poEs':
+                    rfs_xml.functions['poEs'] = [float(p) for p in
+                                            element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'losses':
+                    rfs_xml.functions['losses'] = [float(p) for p in
+                                            element.text.strip().split(" ")]
+                    element.clear()
+                if element.tag == 'averageRisk':
+                    rfs_xml.average_risk =  float(element.text.strip())
+                    element.clear()
+    except Exception as e:
+        print "Error parsing file " + \
+              filename +  " : " + str(e)
+        raise Exception(str(e))
+    return risk_xml
+
+
+
+
+
 def SpawnThread(target, event_type, function, function_args, callback=None,
                     wait_msg='Wait please...'):
         """
