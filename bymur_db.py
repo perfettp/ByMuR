@@ -1726,7 +1726,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             `risk_mod`.`investigation_time`= '%s'
         """
         sqlquery %= (str(risk_name.upper()), str(investigation_time))
-        print sqlquery
         self._cursor.execute(sqlquery)
         return dict(zip(['id', 'phenomenon_id', 'hazard_id', 'fragility_id',
                          'loss_id', 'risk_type', 'model_name',
