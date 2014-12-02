@@ -327,8 +327,6 @@ class HazardCurve(BymurPlot):
         perc_to_plot = ["10", "50", "90"]
 
         self._figure.clf()
-        print "sel %s " %selected_point
-        print "haz %s" % hazard
         if (selected_point is None) or (hazard is None):
             return
         self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
@@ -635,20 +633,21 @@ class InvCurve(BymurPlot):
         self._area_inventory = kwargs.pop('area_inventory', None)
         self._figure.clf()
 
-        subplot_arr = []
-
-
         if (self._inventory is None) or \
                 (self._area_inventory is None) or \
                 (self._area_inventory.asset.total <= 0):
             print "Inventory exiting"
             self._canvas.draw()
             return
+
+        subplot_arr = []
         #if there area any builging, plot fragility and cost classes probability
-        # if int(self._area_inventory.asset.total) > 0:
 
         # Fragility class probabilities
-        subplot_tmp = pyplot.subplot2grid((2,2), (0,0))
+        gridspec = pyplot.GridSpec(2, 2)
+        gridspec.update(hspace = 0.4)
+        subplot_spec = gridspec.new_subplotspec((0, 0))
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
         width=0.2
         subplot_tmp.set_xlim((0, width*len(self._inventory.classes[
             'fragilityClasses'][self._hazard.phenomenon_name.lower()])))
@@ -672,9 +671,9 @@ class InvCurve(BymurPlot):
                     self._hazard.phenomenon_name.lower()][i_class].label)
         subplot_arr.append(subplot_tmp)
 
-
         # Cost class probabilities
-        subplot_tmp = pyplot.subplot2grid((2,2), (0,1))
+        subplot_spec = gridspec.new_subplotspec((0, 1))
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
         subplot_tmp.set_ylim((0,1))
         subplot_tmp.set_xlim((0,
             width*len(self._inventory.classes['costClasses'][
@@ -697,12 +696,11 @@ class InvCurve(BymurPlot):
                     self._hazard.phenomenon_name.lower()][i_class].name)
         subplot_arr.append(subplot_tmp)
 
-
-
         # Plot the probability to be in a specific fragility class given
         # a certain generic class (plotted with the same color accross
         # differents target fragility class ==> same bar color sum == 1)
-        subplot_tmp = pyplot.subplot2grid((2,2), (1,0), colspan=2)
+        subplot_spec = gridspec.new_subplotspec((1, 0), colspan=2)
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
         subplot_tmp.set_title("Fragility given class")
         ticks = np.arange(0,width*len(self._inventory.classes[
             'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
@@ -731,7 +729,6 @@ class InvCurve(BymurPlot):
 
         # Build legend for graph
         legend_handles = []
-
         for i_leg in \
             range(len(self._inventory.classes['generalClasses'])):
             lh_tmp = mpl.patches.Patch(color=self._bar_colors[i_leg],
@@ -741,7 +738,5 @@ class InvCurve(BymurPlot):
         subplot_tmp.legend(handles=legend_handles, prop={'size': 9},
                            frameon = False, labelspacing=0.2,
                            borderaxespad=0.)
-
         subplot_arr.append(subplot_tmp)
-
         self._canvas.draw()

@@ -1140,13 +1140,19 @@ class BymurWxCurvesPanel(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxCurvesPanel, self).updateView(**kwargs)
+        self._nb.GetCurrentPage().updateView(**kwargs)
+        self.Enable(True)
+
+    def updatePages(self):
+        all_pages_enable = self.GetTopLevelParent()._hazard is not None
         risk_pages_enable = self.GetTopLevelParent()._risk is not None
+        print "all page enable = %s " % all_pages_enable
         print "risk page enable = %s " % risk_pages_enable
+        self._curvesNBHaz.Enable(all_pages_enable)
+        self._curvesNBInv.Enable(all_pages_enable)
         self._curvesNBFrag.Enable(risk_pages_enable)
         self._curvesNBLoss.Enable(risk_pages_enable)
         self._curvesNBRisk.Enable(risk_pages_enable)
-        self._nb.GetCurrentPage().updateView(**kwargs)
-        self.Enable(True)
 
     def clear(self):
         for i_p in range(self._nb.GetPageCount()):
@@ -2316,6 +2322,7 @@ class BymurWxView(wx.Frame):
             self.ctrlsPanel.clearPoint()
             self.dataPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
+            self.rightPanel.curvesPanel.updatePages()
             self.rightPanel.curvesPanel.updateView()
             self.rightPanel.mapPanel.clear()
             self.rightPanel.mapPanel.updateView()

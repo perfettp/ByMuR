@@ -694,8 +694,6 @@ class BymurCore(object):
 
         self.inventory = self.read_inventory_model(self._hazard.datagrid_id)
 
-        # print "risk [%s]: %s" % (ctrls_options['risk_model_name'],
-        #                          type(ctrls_options['risk_model_name']))
         if ctrls_options['risk_model_name'] is not None and ctrls_options[
                                      'risk_model_name'] != '':
             print "Reading fragility, loss and risk models"
@@ -703,9 +701,6 @@ class BymurCore(object):
             self.loss = self.read_loss_model(self._hazard.phenomenon_id,
                                              self.fragility.id)
             self.risk = self.read_risk_model(self._hazard.hazard_id)
-        # else:
-        #         print "Risk Model is none"
-
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
