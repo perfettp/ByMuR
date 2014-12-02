@@ -740,3 +740,66 @@ class InvCurve(BymurPlot):
                            borderaxespad=0.)
         subplot_arr.append(subplot_tmp)
         self._canvas.draw()
+
+
+class CompareRisk(BymurPlot):
+    def __init__(self, *args, **kwargs):
+        super(CompareRisk, self).__init__(*args, **kwargs)
+
+    def plot(self, **kwargs):
+        # Plot risk index
+        print "Compare risk, plot"
+        self._loss = kwargs.pop('loss', None)
+        self._risk = kwargs.pop('risk', None)
+        self._area = kwargs.pop('area', None)
+        self._figure.clf()
+
+        if (self._loss is None) or (self._risk is None) or \
+                (self._area['inventory'] is None) or \
+                (self._area['fragility'] is None) or \
+                (self._area['loss'] is None) or \
+                (self._area['risk'] is None) or \
+                (self._area['inventory'].asset.total == 0):
+            self._canvas.draw()
+            return
+
+        gridspec = pyplot.GridSpec(1, 1)
+        subplot_spec = gridspec.new_subplotspec((0, 0))
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
+        values = []
+        for c in self._area['risk']:
+            if c['statistic'] == 'mean':
+                subplot_tmp.axvline(
+                    x=float(c['average_risk']),
+                    color='r',
+                    linewidth=1,
+                    alpha=1,
+                    label="Mean")
+            elif c['statistic'] == 'quantile50':
+                subplot_tmp.axvline(
+                    x=float(c['average_risk']),
+                    linestyle='--',
+                    color='b',
+                    linewidth=1,
+                    alpha=1,
+                    label="Median")
+            else:
+                values.append((c['average_risk'],
+                               float(c['statistic'][len("quantile"):])/100))
+
+        values = sorted(values, key = lambda val: val[0])
+        subplot_tmp.plot([v[0] for v in values],
+                         [v[1] for v in values],
+                         linewidth=1,
+                         linestyle='-.',
+                         alpha=1,
+                         label = "Percentiles",
+                         color = 'k')
+        subplot_tmp.set_ylim((0,1))
+        subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
+        subplot_tmp.set_ylabel("Percentile")
+        subplot_tmp.tick_params(axis='x', labelsize=8)
+        subplot_tmp.tick_params(axis='y', labelsize=8)
+        subplot_tmp.set_title("Risk index", fontsize=9)
+        subplot_tmp.legend(loc=1, prop={'size':6})
+        self._canvas.draw()

@@ -1082,6 +1082,62 @@ class BymurExportHazDlg(wx.Dialog):
             result = -1
         return (result, self._localData)
 
+class BymurCmpRiskBoxSizer(BymurStaticBoxSizer):
+
+    def __init__(self, *args, **kwargs):
+        self._data = kwargs.pop('data', {})
+        super(BymurCmpRiskBoxSizer, self).__init__(*args, **kwargs)
+        self._map = bymur_plots.CompareRisk(parent=self._parent)
+        self.Add(self._map._canvas, flag=wx.EXPAND)
+        self.Add(self._map._toolbar, flag=wx.EXPAND)
+
+
+class BymurCmpRiskDlg(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        self._riskBoxSizer = None
+        self._title = kwargs.pop('title', '')
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localData = dict()
+        self._localData['risks'] = kwargs.pop('risks', [])
+        self._localData['area'] = kwargs.pop('area', [])
+        print "BymurCmpRiskDialog init"
+        print "data keys %s " % self._localData.keys()
+        super(BymurCmpRiskDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        self._riskBoxSizer = BymurCmpRiskBoxSizer(parent=self,
+                                             label="Compare risks",
+                                             orient=wx.VERTICAL,
+                                             data=self._localData)
+
+        self._riskBoxSizer.Add(self.CreateButtonSizer(flags=wx.OK),
+                              flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+
+        self._sizer.Add(self._riskBoxSizer)
+        self.SetSizerAndFit(self._sizer)
+
+        self.SetTitle(self._title)
+
+    def update_plot(self):
+        print "update plot"
+        self._riskBoxSizer._map.plot()
+
+    def Show(self, **kwargs):
+        result = super(BymurCmpRiskDlg, self).Show(**kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localData = {}
+            print "CmpRisk parameters %s" % self._localData
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localData)
+
+
 class BymurWxPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
         self._map = None
@@ -1306,8 +1362,20 @@ class BymurWxNBRiskPage(BymurWxPanel):
         super(BymurWxNBRiskPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._map = bymur_plots.RiskCurve(parent=self)
+        # self._cmpPanel = BymurWxRiskPanel(parent=self,
+        #                                   controller=self._controller,
+        #                                   title="Compare Risks",
+        #                                   label="CmpRisk")
+        self._cmpButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+                                       'Compare Risks',
+                                       size=(-1, -1))
+        self.Bind(wx.EVT_BUTTON, self._controller.compare_risks,
+                  self._cmpButton)
+        self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
+
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._cmpButton, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
@@ -1362,20 +1430,19 @@ class BymurWxRightPanel(BymurWxPanel):
     def mapPanel(self):
         return self._mapPanel
 
-# class BymurInventorySizer(BymurStaticBoxSizer):
-#     def __init__(self, **kwargs):
-#         self.areaID=kwargs.pop('areaID', '')
-#         self._invBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
-#         self.Add(self._invBoxGrid)
-#         grid_row = 0
-#         self._invBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
-#                                            style=wx.EXPAND,
-#                                            label="Selected area: "),
-#                              flag=wx.EXPAND, pos=(0, 0), span=(1, 3))
-#         self._invAreaTC = wx.TextCtrl(self._parent, wx.ID_ANY,
-#                                       style=wx.TE_READONLY)
-#         self._invBoxGrid.Add(self._invAreaTC, flag=wx.EXPAND,
-#                              pos=(grid_row, 3), span=(1, 3))
+# class BymurWxRiskPanel(BymurWxPanel):
+#     def __init__(self, *args, **kwargs):
+#         self._title = kwargs.pop('title', "Compare risks")
+#         super(BymurWxRiskPanel, self).__init__(*args, **kwargs)
+#         self._topWindow = wx.GetTopLevelParent(self)
+#         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+#         self._cmpButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+#                                        'Compare Risks',
+#                                        size=(-1, -1))
+#         self.Bind(wx.EVT_BUTTON, self._controller.compare_risks,
+#                   self._cmpButton)
+#         self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
+#         self.SetSizer(self._sizer)
 
 class BymurWxDataPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
@@ -2153,6 +2220,8 @@ class BymurWxView(wx.Frame):
         self._selected_point = None
         self._selected_area = None
 
+        self._compare_dialog = False
+
 
         # TODO: make a list for events
         self.Bind(bf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
@@ -2242,7 +2311,7 @@ class BymurWxView(wx.Frame):
                                kind="BYMUR_ERROR",
                                caption="Error")
 
-    def showDlg(self, dialog_type, **kwargs):
+    def showModalDlg(self, dialog_type, **kwargs):
         """
         :param dialog_type: class name of the dialog to show
         :param **kwargs: argument to the specific dialog
@@ -2253,6 +2322,22 @@ class BymurWxView(wx.Frame):
         dlg = eval(dialog_type)(parent=self, **kwargs)
         while result < 0:
             result, data = dlg.ShowModal()
+        if result > 0:
+            return data
+        else:
+            return None
+
+    def showDlg(self, dialog_type, **kwargs):
+        """
+        :param dialog_type: class name of the dialog to show
+        :param **kwargs: argument to the specific dialog
+        :return: dictionary containing dialog data on success, None on failure
+        """
+        result = -1
+        data = {}
+        dlg = eval(dialog_type)(parent=self, **kwargs)
+        while result < 0:
+            result, data = dlg.Show(True)
         if result > 0:
             return data
         else:
@@ -2333,6 +2418,10 @@ class BymurWxView(wx.Frame):
             self.dataPanel.updatePointData()
             self.rightPanel.mapPanel.updatePoint()
             self.rightPanel.curvesPanel.updateView()
+            if self.compare_dialog:
+                self.rightPanel.curvesPanel._curvesNBRisk._cmpPanel._map.plot(
+
+                )
 
 
         if self.GetBusy():
@@ -2476,10 +2565,16 @@ class BymurWxView(wx.Frame):
     @property
     def selected_area(self):
         return self._selected_area
-
     @selected_area.setter
     def selected_area(self, data):
         self._selected_area = data
+        
+    @property
+    def compare_dialog(self):
+        return self._compare_dialog
+    @compare_dialog.setter
+    def compare_dialog(self, data):
+        self._compare_dialog = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

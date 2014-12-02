@@ -49,7 +49,7 @@ class BymurController(object):
             else:
                 return
 
-        dialogResult = self._wxframe.showDlg("BymurDBLoadDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurDBLoadDlg",
                                              **self._dbDetails)
         if dialogResult:
             self._dbDetails.update(dialogResult)
@@ -81,7 +81,7 @@ class BymurController(object):
                 self.close_db()
             else:
                 return
-        dialogResult = self._wxframe.showDlg("BymurDBCreateDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurDBCreateDlg",
                                              **self._createDBDetails)
         if dialogResult:
             self._createDBDetails.update(dialogResult)
@@ -121,7 +121,7 @@ class BymurController(object):
 
         print "loadGrid"
         gridData = dict(basedir=self._basedir, filepath='')
-        dialogResult = self._wxframe.showDlg("BymurLoadGridDlg", **gridData)
+        dialogResult = self._wxframe.showModalDlg("BymurLoadGridDlg", **gridData)
         if dialogResult:
             gridData.update(dialogResult)
             try:
@@ -151,7 +151,7 @@ class BymurController(object):
         _localDBDataDetails['phenomena_list'] = [p['phenomenon_name'] for p
                                                     in
                                                     self._core.db.get_phenomena_list()]
-        dialogResult = self._wxframe.showDlg("BymurAddDBDataDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurAddDBDataDlg",
                                                        **_localDBDataDetails)
         if dialogResult:
             _localDBDataDetails.update(dialogResult)
@@ -202,7 +202,7 @@ class BymurController(object):
         """Define a new ensemble model combining available hazard models."""
 
         print "openEnsemble"
-        dialogResult = self._wxframe.showDlg("BymurEnsembleDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurEnsembleDlg",
                                              **{'data': self._core.ctrls_data})
         if dialogResult:
             try:
@@ -225,11 +225,25 @@ class BymurController(object):
             finally:
                 self.get_gui().busy = False
 
+    def compare_risks(self, ev):
+        """Define a new ensemble model combining available hazard models."""
+
+        print "compare risks"
+        print ev
+        print "Dialog true"
+        self._wxframe.compare_dialog = True
+        dialogResult = self._wxframe.showDlg("BymurCmpRiskDlg",
+                                             **{'risks': [self._core._risk],
+                                                'area':self._core.selected_area})
+        print "Dialog false"
+        self._wxframe.compare_dialog = False
+
+
     def export_hazard(self):
         """Export hazard model to XMLs file"""
 
         print "export Hazard"
-        dialogResult = self._wxframe.showDlg("BymurExportHazDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurExportHazDlg",
                                              **{'data': self._core.ctrls_data})
         if dialogResult:
             try:
