@@ -1082,6 +1082,62 @@ class BymurExportHazDlg(wx.Dialog):
             result = -1
         return (result, self._localData)
 
+class BymurCmpRiskBoxSizer(BymurStaticBoxSizer):
+
+    def __init__(self, *args, **kwargs):
+        self._data = kwargs.pop('data', {})
+        super(BymurCmpRiskBoxSizer, self).__init__(*args, **kwargs)
+        self._map = bymur_plots.CompareRisk(parent=self._parent)
+        self.Add(self._map._canvas, flag=wx.EXPAND)
+        self.Add(self._map._toolbar, flag=wx.EXPAND)
+
+
+class BymurCmpRiskDlg(wx.MultiChoiceDialog):
+    def __init__(self, *args, **kwargs):
+        self._riskBoxSizer = None
+        self._title = kwargs.pop('title', '')
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localData = dict()
+        self._localData['risks'] = kwargs.pop('risks', [])
+        self._localData['area'] = kwargs.pop('area', [])
+        print "BymurCmpRiskDialog init"
+        print "data keys %s " % self._localData.keys()
+        super(BymurCmpRiskDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        self._riskBoxSizer = BymurCmpRiskBoxSizer(parent=self,
+                                             label="Compare risks",
+                                             orient=wx.VERTICAL,
+                                             data=self._localData)
+
+        self._riskBoxSizer.Add(self.CreateButtonSizer(flags=wx.OK),
+                              flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+
+        self._sizer.Add(self._riskBoxSizer)
+        self.SetSizerAndFit(self._sizer)
+
+        self.SetTitle(self._title)
+
+    # def update_plot(self):
+    #     print "update plot"
+    #     self._riskBoxSizer._map.plot()
+
+    # def Show(self, **kwargs):
+    #     result = super(BymurCmpRiskDlg, self).Show(**kwargs)
+    #     if (result == wx.ID_OK):
+    #         result = 1
+    #         self._localData = {}
+    #         print "CmpRisk parameters %s" % self._localData
+    #     elif (result == wx.ID_CANCEL):
+    #         result = 0
+    #     else:
+    #         result = -1
+    #     return (result, self._localData)
+
+
 class BymurWxPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
         self._map = None
@@ -1108,9 +1164,13 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.SetSizer(self._sizer)
         self._nb = wx.Notebook(self)
+
         self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
                                              controller=self._controller,
                                              label="NBHazPage")
+        self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBInvPage")
         self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBFragPage")
@@ -1120,15 +1180,14 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self._curvesNBRisk = BymurWxNBRiskPage(parent=self._nb,
                                                controller=self._controller,
                                                label="NBRiskPage")
-        self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
-                                               controller=self._controller,
-                                               label="NBInvPage")
+
 
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
+        self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
         self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
         self._nb.AddPage(self._curvesNBLoss, self._curvesNBLoss.title)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
-        self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
+
 
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._controller.nbTabChanged)
         self._sizer.Add(self._nb, 1, wx.EXPAND | wx.ALL, 10)
@@ -1138,9 +1197,23 @@ class BymurWxCurvesPanel(BymurWxPanel):
     def updateView(self, **kwargs):
         super(BymurWxCurvesPanel, self).updateView(**kwargs)
         self._nb.GetCurrentPage().updateView(**kwargs)
+        self.Enable(True)
+
+    def updatePages(self):
+        all_pages_enable = self.GetTopLevelParent()._hazard is not None
+        risk_pages_enable = self.GetTopLevelParent()._risk is not None
+        print "all page enable = %s " % all_pages_enable
+        print "risk page enable = %s " % risk_pages_enable
+        self._curvesNBHaz.Enable(all_pages_enable)
+        self._curvesNBInv.Enable(all_pages_enable)
+        self._curvesNBFrag.Enable(risk_pages_enable)
+        self._curvesNBLoss.Enable(risk_pages_enable)
+        self._curvesNBRisk.Enable(risk_pages_enable)
 
     def clear(self):
-        self._nb.GetCurrentPage().clear()
+        for i_p in range(self._nb.GetPageCount()):
+            self._nb.GetPage(i_p).clear()
+
 
 
 class BymurWxMapPanel(BymurWxPanel):
@@ -1289,8 +1362,20 @@ class BymurWxNBRiskPage(BymurWxPanel):
         super(BymurWxNBRiskPage, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._map = bymur_plots.RiskCurve(parent=self)
+        # self._cmpPanel = BymurWxRiskPanel(parent=self,
+        #                                   controller=self._controller,
+        #                                   title="Compare Risks",
+        #                                   label="CmpRisk")
+        self._cmpButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+                                       'Compare Risks',
+                                       size=(-1, -1))
+        self.Bind(wx.EVT_BUTTON, self._controller.compare_risks_act,
+                  self._cmpButton)
+        self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
+
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
         self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._cmpButton, 0, wx.EXPAND | wx.ALL, 0)
         self.SetSizer(self._sizer)
 
     def updateView(self, **kwargs):
@@ -1300,6 +1385,7 @@ class BymurWxNBRiskPage(BymurWxPanel):
                        fragility=wx.GetTopLevelParent(self).fragility,
                        loss=wx.GetTopLevelParent(self).loss,
                        risk=wx.GetTopLevelParent(self).risk,
+                       compare_risks=wx.GetTopLevelParent(self).compare_risks,
                        area = wx.GetTopLevelParent(self).selected_area)
         self.Enable(True)
 
@@ -1345,20 +1431,19 @@ class BymurWxRightPanel(BymurWxPanel):
     def mapPanel(self):
         return self._mapPanel
 
-# class BymurInventorySizer(BymurStaticBoxSizer):
-#     def __init__(self, **kwargs):
-#         self.areaID=kwargs.pop('areaID', '')
-#         self._invBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
-#         self.Add(self._invBoxGrid)
-#         grid_row = 0
-#         self._invBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
-#                                            style=wx.EXPAND,
-#                                            label="Selected area: "),
-#                              flag=wx.EXPAND, pos=(0, 0), span=(1, 3))
-#         self._invAreaTC = wx.TextCtrl(self._parent, wx.ID_ANY,
-#                                       style=wx.TE_READONLY)
-#         self._invBoxGrid.Add(self._invAreaTC, flag=wx.EXPAND,
-#                              pos=(grid_row, 3), span=(1, 3))
+# class BymurWxRiskPanel(BymurWxPanel):
+#     def __init__(self, *args, **kwargs):
+#         self._title = kwargs.pop('title', "Compare risks")
+#         super(BymurWxRiskPanel, self).__init__(*args, **kwargs)
+#         self._topWindow = wx.GetTopLevelParent(self)
+#         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+#         self._cmpButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+#                                        'Compare Risks',
+#                                        size=(-1, -1))
+#         self.Bind(wx.EVT_BUTTON, self._controller.compare_risks,
+#                   self._cmpButton)
+#         self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
+#         self.SetSizer(self._sizer)
 
 class BymurWxDataPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
@@ -1698,15 +1783,30 @@ class BymurWxCtrlsPanel(BymurWxPanel):
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._hazModCB, pos=(vpos, 2), span=(1, 2))
 
+        # expTime
         vpos += 1
-        self._gridLabel = wx.StaticText(self, wx.ID_ANY, 'Reference grid')
-        self._gridCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
-                                   style=wx.CB_READONLY, size=(200, -1))
-        self._gridCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
-        self._ctrlsSizer.Add(self._gridLabel, pos=(vpos, 0), span=(1, 2),
+        self._expTimeLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
+        self._expTimeCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                      style=wx.CB_READONLY, size=(120, -1))
+        self._expTimeLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
+        self._expTimeCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._expTimeLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._gridCB, pos=(vpos, 2), span=(1, 2))
+        self._ctrlsSizer.Add(self._expTimeCB, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._expTimeLabelBis, pos=(vpos, 3), span=(1, 1),
+                             flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
+        # riskModel
+        vpos += 1
+        self._riskModLabel = wx.StaticText(self, wx.ID_ANY,
+                                          'Risk Model')
+        self._riskModCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                     style=wx.CB_READONLY, size=(200, -1))
+        self._riskModCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._riskModLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._riskModCB, pos=(vpos, 2), span=(1, 2))
 
+        # returnPeriod
         vpos += 1
         self._retPerLabel = wx.StaticText(self, wx.ID_ANY, 'Return Period')
         self._retPerText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
@@ -1721,6 +1821,7 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._ctrlsSizer.Add(self._retPerLabelBis, pos=(vpos, 3), span=(1, 2),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
+        # intensityThres
         vpos += 1
         self._intThresLabel = wx.StaticText(self, wx.ID_ANY, 'Intensity '
                                                              'Threshold')
@@ -1736,17 +1837,6 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._ctrlsSizer.Add(self._intThresLabelBis, pos=(vpos, 3), span=(1, 1),
                              flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
-        # expTime
-        vpos += 1
-        self._expTimeLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
-        self._expTimeCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
-                                      style=wx.CB_READONLY, size=(120, -1))
-        self._expTimeLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
-        self._ctrlsSizer.Add(self._expTimeLabel, pos=(vpos, 0), span=(1, 2),
-                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._ctrlsSizer.Add(self._expTimeCB, pos=(vpos, 2), span=(1, 1))
-        self._ctrlsSizer.Add(self._expTimeLabelBis, pos=(vpos, 3), span=(1, 1),
-                             flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
         vpos += 1
         self._updateButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
@@ -1815,32 +1905,28 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._pointNortSC.SetValueString(northing)
 
     def updatePointData(self):
-        if self._topWindow.selected_point.easting:
+        try:
             self._pointEastSC.SetValueString(
                 str(self._topWindow.selected_point.easting))
-        else:
+        except AttributeError as e:
             self._pointEastSC.SetValueString("")
-
-        if self._topWindow.selected_point.northing:
+        try:
             self._pointNortSC.SetValueString(
                 str(self._topWindow.selected_point.northing))
-        else:
+        except AttributeError as e:
             self._pointNortSC.SetValueString("")
 
     def updateCtrls(self, ev=None):
         ctrls_data = wx.GetTopLevelParent(self).ctrls_data
         if (ev is None):  # First data load
-            print "First data load"
             self._phenCB.Clear()
             self._phenCB.AppendItems([haz['phenomenon_name']
                                       for haz in ctrls_data['phenomena']])
             self._phenCB.Enable(True)
             self.Enable(True)
         elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
-            _phen_name = self._phenCB.GetStringSelection()
-            _haz_sel = self._hazModCB.GetValue()
-            _grid_sel = self._gridCB.GetValue()
             if ev.GetEventObject() == self._phenCB:
+                _phen_name = self._phenCB.GetStringSelection()
                 _hlist = [haz for haz in ctrls_data['hazard_models']
                           if haz['phenomenon_name'] == _phen_name]
                 self._hazModCB.Clear()
@@ -1857,62 +1943,80 @@ class BymurWxCtrlsPanel(BymurWxPanel):
                     str(ctrls_data[_phen_name]['int_thresh']))
                 self._retPerText.Enable(True)
                 self._intThresText.Enable(True)
-                _glist = [haz for haz in ctrls_data['hazard_models']
-                          if haz['hazard_name'] == _haz_sel]
-                self._gridCB.Clear()
-                self._gridCB.SetValue('')
-                self._gridCB.AppendItems(list(set([haz['grid_name']
-                                          for haz in _glist])))
-                self._gridCB.Enable(True)
-                if len(self._gridCB.Items) > 0:
-                    self._gridCB.SetSelection(0)
-                _grid_sel = self._gridCB.GetValue()
                 _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
-                                haz['phenomenon_name'] == _phen_name and
-                                haz['grid_name'] == _grid_sel)]
+                                haz['phenomenon_name'] == _phen_name)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
                 self._expTimeCB.AppendItems(list(set(_exptimelist)))
                 if len(self._expTimeCB.Items) > 0:
                     self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        (haz['risk_model_name'] is not None))]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
             elif ev.GetEventObject() == self._hazModCB:
-                _glist = [haz for haz in ctrls_data['hazard_models']
-                          if haz['hazard_name'] == _haz_sel]
-                self._gridCB.Clear()
-                self._gridCB.SetValue('')
-                self._gridCB.AppendItems(list(set([haz['grid_name']
-                                          for haz in _glist])))
-                self._gridCB.Enable(True)
-                if len(self._gridCB.Items) > 0:
-                    self._gridCB.SetSelection(0)
-                _grid_sel = self._gridCB.GetValue()
+                _phen_name = self._phenCB.GetStringSelection()
+                _haz_sel = self._hazModCB.GetValue()
                 _exptimelist = [str(haz['exposure_time']) for haz in
                                     ctrls_data['hazard_models']
                                     if (haz['hazard_name'] == _haz_sel and
-                                haz['phenomenon_name'] == _phen_name and
-                                haz['grid_name'] == _grid_sel)]
-                self._expTimeCB.Clear()
-                self._expTimeCB.SetValue('')
-                print _exptimelist
-                self._expTimeCB.AppendItems(list(set(_exptimelist)))
-                if len(self._expTimeCB.Items) > 0:
-                    self._expTimeCB.SetSelection(0)
-                self._expTimeCB.Enable(True)
-            elif ev.GetEventObject() == self._gridCB:
-                _exptimelist = [str(haz['exposure_time']) for haz in
-                                    ctrls_data['hazard_models']
-                                    if (haz['hazard_name'] == _haz_sel and
-                                haz['phenomenon_name'] == _phen_name and
-                                haz['grid_name'] == _grid_sel)]
+                                haz['phenomenon_name'] == _phen_name)]
                 self._expTimeCB.Clear()
                 self._expTimeCB.SetValue('')
                 self._expTimeCB.AppendItems(list(set(_exptimelist)))
                 if len(self._expTimeCB.Items) > 0:
                     self._expTimeCB.SetSelection(0)
                 self._expTimeCB.Enable(True)
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        haz['risk_model_name'] is not
+                                         None)]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
+            elif ev.GetEventObject() == self._expTimeCB:
+                _haz_sel = self._hazModCB.GetValue()
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        haz['risk_model_name'] is not None)]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
             elif ev.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
                 pass
 
@@ -1940,21 +2044,23 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._hazModCB.SetValue('')
         self._hazModCB.Enable(False)
 
+        self._expTimeCB.Clear()
+        self._expTimeCB.SetItems([])
+        self._expTimeCB.SetValue('')
+        self._expTimeCB.Enable(False)
+
+        self._riskModCB.Clear()
+        self._riskModCB.SetValue('')
+        self._riskModCB.SetItems([])
+        self._riskModCB.Enable(False)
+        
         self._retPerText.SetValue('')
         self._retPerText.Enable(False)
 
         self._intThresText.SetValue('')
         self._intThresText.Enable(False)
 
-        self._gridCB.Clear()
-        self._gridCB.SetValue('')
-        self._gridCB.SetItems([])
-        self._gridCB.Enable(False)
-
-        self._expTimeCB.Clear()
-        self._expTimeCB.SetItems([])
-        self._expTimeCB.SetValue('')
-        self._expTimeCB.Enable(False)
+        
 
     @property
     def ctrlsBoxTitle(self):
@@ -1971,6 +2077,7 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         """Get the current ctrlsBox parameters"""
         values = {}
         values['hazard_name'] = self._hazModCB.GetStringSelection()
+        values['risk_model_name'] = self._riskModCB.GetStringSelection()
         values['ret_per'] = self._retPerText.GetValue()
         values['int_thresh'] = self._intThresText.GetValue()
         values['exp_time'] = self._expTimeCB.GetStringSelection()
@@ -2108,9 +2215,13 @@ class BymurWxView(wx.Frame):
         self._hazard = None
         self._hazard_data = None
         self._hazard_options = {}
+        self._loss = None
+        self._risk = None
 
         self._selected_point = None
         self._selected_area = None
+
+        self._compare_risks = []
 
 
         # TODO: make a list for events
@@ -2138,7 +2249,7 @@ class BymurWxView(wx.Frame):
         self._leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
         self._ctrlsPanel = BymurWxCtrlsPanel(parent=self,
                                            controller=self._controller,
-                                           title="Hazard",
+                                           title="Model",
                                            label="CtrlsPanel")
 
         self._dataPanel = BymurWxDataPanel(parent=self,
@@ -2201,7 +2312,7 @@ class BymurWxView(wx.Frame):
                                kind="BYMUR_ERROR",
                                caption="Error")
 
-    def showDlg(self, dialog_type, **kwargs):
+    def showModalDlg(self, dialog_type, **kwargs):
         """
         :param dialog_type: class name of the dialog to show
         :param **kwargs: argument to the specific dialog
@@ -2216,6 +2327,30 @@ class BymurWxView(wx.Frame):
             return data
         else:
             return None
+
+    def selectRisksDlg(self, current_risk, compare_risks, risks):
+        """
+
+        """
+        opts = [r['model_name'] for r in risks
+                if r['model_name'] != current_risk.model_name]
+        dlg = wx.MultiChoiceDialog( self, "Pick some programming languages",
+                              "wx.MultiChoiceDialog", opts)
+        sel_items = []
+        for r in opts:
+            if r in [cr.model_name for cr in compare_risks]:
+                sel_items.append(opts.index(r))
+        print "Rischi gia' selezionati %s"  % sel_items
+        dlg.SetSelections(sel_items)
+        r_strings = []
+        if (dlg.ShowModal() == wx.ID_OK):
+            selections = dlg.GetSelections()
+            r_strings = [opts[x] for x in selections]
+            print "You chose:" + str(r_strings)
+            return (len(r_strings), r_strings)
+        else:
+            return (-1, r_strings)
+
 
     def GetBusy(self):
         """
@@ -2281,6 +2416,8 @@ class BymurWxView(wx.Frame):
             self.ctrlsPanel.clearPoint()
             self.dataPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
+            self.rightPanel.curvesPanel.updatePages()
+            self.rightPanel.curvesPanel.updateView()
             self.rightPanel.mapPanel.clear()
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
@@ -2290,7 +2427,9 @@ class BymurWxView(wx.Frame):
             self.dataPanel.updatePointData()
             self.rightPanel.mapPanel.updatePoint()
             self.rightPanel.curvesPanel.updateView()
-
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_MAP:
+            print "bf.wxBYMUR_UPDATE_MAP"
+            self.rightPanel.curvesPanel.updateView()
 
         if self.GetBusy():
             self.SetBusy(False)
@@ -2413,6 +2552,14 @@ class BymurWxView(wx.Frame):
     @loss.setter
     def loss(self, data):
         self._loss = data
+    
+    @property
+    def risk(self):
+        return self._risk
+
+    @risk.setter
+    def risk(self, data):
+        self._risk = data
 
     # @property
     # def inventory_sections(self):
@@ -2425,10 +2572,16 @@ class BymurWxView(wx.Frame):
     @property
     def selected_area(self):
         return self._selected_area
-
     @selected_area.setter
     def selected_area(self, data):
         self._selected_area = data
+        
+    @property
+    def compare_risks(self):
+        return self._compare_risks
+    @compare_risks.setter
+    def compare_risks(self, data):
+        self._compare_risks = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

@@ -327,6 +327,8 @@ class HazardCurve(BymurPlot):
         perc_to_plot = ["10", "50", "90"]
 
         self._figure.clf()
+        if (selected_point is None) or (hazard is None):
+            return
         self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
         self._figure.hold(True)
         self._axes.grid(True)
@@ -401,9 +403,15 @@ class FragCurve(BymurPlot):
         self._area= kwargs.pop('area', None)
 
         self._figure.clf()
-        if self._area['inventory'].asset.total == 0:
+
+
+        if (self._inventory is None) or (self._fragility is None) or \
+                (self._area['inventory'] is None) or \
+                (self._area['fragility'] is None) or \
+                (self._area['inventory'].asset.total == 0):
             self._canvas.draw()
             return
+
         # here order of classes is important!
         area_class_set = set([af['general_class'] for af in
                               self._area['fragility']])
@@ -469,13 +477,20 @@ class LossCurve(BymurPlot):
         self._loss = kwargs.pop('loss', None)
         self._area = kwargs.pop('area', None)
         self._figure.clf()
+
+        if (self._inventory is None) or (self._fragility is None) or \
+                (self._loss is None) or \
+                (self._area['inventory'] is None) or \
+                (self._area['fragility'] is None) or \
+                (self._area['loss'] is None) or \
+                (self._area['inventory'].asset.total == 0):
+            self._canvas.draw()
+            return
+
         row_num = len(self._fragility.limit_states)
         gridspec = pyplot.GridSpec(row_num, 1)
         gridspec.update(hspace = 0.4)
-        print self._area['inventory']
-        if self._area['inventory'].asset.total == 0:
-            self._canvas.draw()
-            return
+
         for i_row in range(row_num):
             subplot_spec = gridspec.new_subplotspec((i_row, 0))
             subplot_tmp = self._figure.add_subplot(subplot_spec)
@@ -508,6 +523,8 @@ class LossCurve(BymurPlot):
 
 
 class RiskCurve(BymurPlot):
+    risk_colors = ['r', 'c', 'g', 'y']
+
     def __init__(self, *args, **kwargs):
         super(RiskCurve, self).__init__(*args, **kwargs)
 
@@ -517,13 +534,22 @@ class RiskCurve(BymurPlot):
         self._fragility = kwargs.pop('fragility', None)
         self._loss = kwargs.pop('loss', None)
         self._risk = kwargs.pop('risk', None)
+        self._compare_risks = kwargs.pop('compare_risks', None)
         self._area = kwargs.pop('area', None)
         self._figure.clf()
-        print "Risk curve plot"
-        if (self._risk is None) or (self._area['inventory'].asset.total == 0):
-            print "No risk to plot"
+
+
+        print "compare risks: %s" % [r.model_name for r in self._compare_risks]
+        if (self._inventory is None) or (self._fragility is None) or \
+                (self._loss is None) or (self._risk is None) or \
+                (self._area['inventory'] is None) or \
+                (self._area['fragility'] is None) or \
+                (self._area['loss'] is None) or \
+                (self._area['risk'] is None) or \
+                (self._area['inventory'].asset.total == 0):
             self._canvas.draw()
             return
+
         gridspec = pyplot.GridSpec(1, 2)
         gridspec.update(wspace = 0.4)
         # Plot risk curve
@@ -555,22 +581,29 @@ class RiskCurve(BymurPlot):
         subplot_spec = gridspec.new_subplotspec((0, 1))
         subplot_tmp = self._figure.add_subplot(subplot_spec)
         values = []
+        r_handles = []
         for c in self._area['risk']:
             if c['statistic'] == 'mean':
                 subplot_tmp.axvline(
                     x=float(c['average_risk']),
-                    color='r',
+                    color='k',
                     linewidth=1,
                     alpha=1,
                     label="Mean")
+                l, = pyplot.plot([1,2,3], label="Mean",
+                             color = 'k')
+                r_handles.append(l)
             elif c['statistic'] == 'quantile50':
                 subplot_tmp.axvline(
                     x=float(c['average_risk']),
                     linestyle='--',
-                    color='b',
+                    color='k',
                     linewidth=1,
                     alpha=1,
                     label="Median")
+                l, = pyplot.plot([1,2,3], label="Median",
+                             color = 'k',linestyle='--' )
+                r_handles.append(l)
             else:
                 values.append((c['average_risk'],
                                float(c['statistic'][len("quantile"):])/100))
@@ -583,13 +616,62 @@ class RiskCurve(BymurPlot):
                          alpha=1,
                          label = "Percentiles",
                          color = 'k')
+        l, = pyplot.plot([1,2,3], label="Percentiles",
+                             color = 'k',linestyle='-.' )
+        r_handles.append(l)
+
+        # plot other risks for comparison
+        print "compare risks len %s " % len(self._area['compare_risks'])
+        cr_handles = []
+        for i_r in range(len(self._area['compare_risks'])):
+            values = []
+            for c in self._area['compare_risks'][i_r]:
+                if c['statistic'] == 'mean':
+                    subplot_tmp.axvline(
+                        x=float(c['average_risk']),
+                        color=self.risk_colors[i_r],
+                        linewidth=1,
+                        alpha=1)
+                elif c['statistic'] == 'quantile50':
+                    subplot_tmp.axvline(
+                        x=float(c['average_risk']),
+                        linestyle='--',
+                        color=self.risk_colors[i_r],
+                        linewidth=1,
+                        alpha=1)
+                else:
+                    values.append((c['average_risk'],
+                                   float(c['statistic'][len("quantile"):])/100))
+
+            values = sorted(values, key = lambda val: val[0])
+            subplot_tmp.plot([v[0] for v in values],
+                             [v[1] for v in values],
+                             linewidth=1,
+                             linestyle='-.',
+                             alpha=1,
+                             color=self.risk_colors[i_r])
+            l, = pyplot.plot([1,2,3], label=self._compare_risks[i_r].model_name,
+                             color = self.risk_colors[i_r])
+            cr_handles.append(l)
+
+
+        if len(cr_handles) > 0:
+            l, = pyplot.plot([1,2,3], label=self._risk.model_name,
+                             color = 'k')
+            cr_handles.append(l)
+            cr_legend = pyplot.legend(handles=cr_handles, loc=4,
+                                      prop={'size':6})
+            # Add the legend manually to the current Axes.
+            ax = pyplot.gca().add_artist(cr_legend)
+
+        subplot_tmp.legend(handles=r_handles, loc=1, prop={'size':6})
         subplot_tmp.set_ylim((0,1))
         subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
         subplot_tmp.set_ylabel("Percentile")
         subplot_tmp.tick_params(axis='x', labelsize=8)
         subplot_tmp.tick_params(axis='y', labelsize=8)
         subplot_tmp.set_title("Risk index", fontsize=9)
-        subplot_tmp.legend(loc=1, prop={'size':6})
+
 
         self._canvas.draw()
 
@@ -612,106 +694,173 @@ class InvCurve(BymurPlot):
         self._area_inventory = kwargs.pop('area_inventory', None)
         self._figure.clf()
 
+        if (self._inventory is None) or \
+                (self._area_inventory is None) or \
+                (self._area_inventory.asset.total <= 0):
+            print "Inventory exiting"
+            self._canvas.draw()
+            return
+
         subplot_arr = []
-
         #if there area any builging, plot fragility and cost classes probability
-        if int(self._area_inventory.asset.total) > 0:
 
-            # Fragility class probabilities
-            subplot_tmp = pyplot.subplot2grid((2,2), (0,0))
-            width=0.2
-            subplot_tmp.set_xlim((0, width*len(self._inventory.classes[
-                'fragilityClasses'][self._hazard.phenomenon_name.lower()])))
-            ticks = np.arange(0,width*len(self._inventory.classes[
-                'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
-                      width) + (width/2)
-            subplot_tmp.set_title("Fragility class probability")
-            subplot_tmp.set_xticks(ticks)
-            subplot_tmp.set_xticklabels([cl.label for cl in
-                                    self._inventory.classes['fragilityClasses'][
-                                        self._hazard.phenomenon_name.lower()]])
-            subplot_tmp.set_ylim((0,1))
-
-            for i_class in range(len(self._inventory.classes['fragilityClasses'][
-                self._hazard.phenomenon_name.lower()])):
-                subplot_tmp.bar(i_class*width,
-                    np.float(self._area_inventory.asset.frag_class_prob[
-                        self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
-                    width, color=self._colors[i_class],
-                    label=self._inventory.classes['fragilityClasses'][
-                        self._hazard.phenomenon_name.lower()][i_class].label)
-            subplot_arr.append(subplot_tmp)
-
-
-            # Cost class probabilities
-            subplot_tmp = pyplot.subplot2grid((2,2), (0,1))
-            subplot_tmp.set_ylim((0,1))
-            subplot_tmp.set_xlim((0,
-                width*len(self._inventory.classes['costClasses'][
-                self._hazard.phenomenon_name.lower()])))
-            ticks = np.arange(0,width*len(self._inventory.classes[
-            'costClasses'][self._hazard.phenomenon_name.lower()]),
+        # Fragility class probabilities
+        gridspec = pyplot.GridSpec(2, 2)
+        gridspec.update(hspace = 0.4)
+        subplot_spec = gridspec.new_subplotspec((0, 0))
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
+        width=0.2
+        subplot_tmp.set_xlim((0, width*len(self._inventory.classes[
+            'fragilityClasses'][self._hazard.phenomenon_name.lower()])))
+        ticks = np.arange(0,width*len(self._inventory.classes[
+            'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
                   width) + (width/2)
-            subplot_tmp.set_title("Cost class probability")
-            subplot_tmp.set_xticks(ticks)
-            subplot_tmp.set_xticklabels([cl.label for cl in
-                                self._inventory.classes['costClasses'][
+        subplot_tmp.set_title("Fragility class probability")
+        subplot_tmp.set_xticks(ticks)
+        subplot_tmp.set_xticklabels([cl.label for cl in
+                                self._inventory.classes['fragilityClasses'][
                                     self._hazard.phenomenon_name.lower()]])
-            for i_class in range(len(self._inventory.classes['costClasses'][
-                self._hazard.phenomenon_name.lower()])):
-                subplot_tmp.bar(i_class*width,
-                    np.float(self._area_inventory.asset.cost_class_prob[
-                        self._hazard.phenomenon_name.lower()]['fnc'][i_class]),
-                    width, color=self._colors[i_class],
-                    label=self._inventory.classes['costClasses'][
-                        self._hazard.phenomenon_name.lower()][i_class].name)
-            subplot_arr.append(subplot_tmp)
+        subplot_tmp.set_ylim((0,1))
 
+        for i_class in range(len(self._inventory.classes['fragilityClasses'][
+            self._hazard.phenomenon_name.lower()])):
+            subplot_tmp.bar(i_class*width,
+                np.float(self._area_inventory.asset.frag_class_prob[
+                    self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
+                width, color=self._colors[i_class],
+                label=self._inventory.classes['fragilityClasses'][
+                    self._hazard.phenomenon_name.lower()][i_class].label)
+        subplot_arr.append(subplot_tmp)
 
+        # Cost class probabilities
+        subplot_spec = gridspec.new_subplotspec((0, 1))
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
+        subplot_tmp.set_ylim((0,1))
+        subplot_tmp.set_xlim((0,
+            width*len(self._inventory.classes['costClasses'][
+            self._hazard.phenomenon_name.lower()])))
+        ticks = np.arange(0,width*len(self._inventory.classes[
+        'costClasses'][self._hazard.phenomenon_name.lower()]),
+              width) + (width/2)
+        subplot_tmp.set_title("Cost class probability")
+        subplot_tmp.set_xticks(ticks)
+        subplot_tmp.set_xticklabels([cl.label for cl in
+                            self._inventory.classes['costClasses'][
+                                self._hazard.phenomenon_name.lower()]])
+        for i_class in range(len(self._inventory.classes['costClasses'][
+            self._hazard.phenomenon_name.lower()])):
+            subplot_tmp.bar(i_class*width,
+                np.float(self._area_inventory.asset.cost_class_prob[
+                    self._hazard.phenomenon_name.lower()]['fnc'][i_class]),
+                width, color=self._colors[i_class],
+                label=self._inventory.classes['costClasses'][
+                    self._hazard.phenomenon_name.lower()][i_class].name)
+        subplot_arr.append(subplot_tmp)
 
-            # Plot the probability to be in a specific fragility class given
-            # a certain generic class (plotted with the same color accross
-            # differents target fragility class ==> same bar color sum == 1)
-            subplot_tmp = pyplot.subplot2grid((2,2), (1,0), colspan=2)
-            subplot_tmp.set_title("Fragility given class")
-            ticks = np.arange(0,width*len(self._inventory.classes[
-                'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
-                      width) + (width/2)
+        # Plot the probability to be in a specific fragility class given
+        # a certain generic class (plotted with the same color accross
+        # differents target fragility class ==> same bar color sum == 1)
+        subplot_spec = gridspec.new_subplotspec((1, 0), colspan=2)
+        subplot_tmp = self._figure.add_subplot(subplot_spec)
+        subplot_tmp.set_title("Fragility given class")
+        ticks = np.arange(0,width*len(self._inventory.classes[
+            'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
+                  width) + (width/2)
 
-            subplot_tmp.set_xticks(ticks)
-            subplot_tmp.set_xticklabels([cl.label for cl in
-                                    self._inventory.classes['fragilityClasses'][
-                                        self._hazard.phenomenon_name.lower()]])
-            subplot_tmp.set_ylim((0,1))
-            bar_width=0.05
+        subplot_tmp.set_xticks(ticks)
+        subplot_tmp.set_xticklabels([cl.label for cl in
+                                self._inventory.classes['fragilityClasses'][
+                                    self._hazard.phenomenon_name.lower()]])
+        subplot_tmp.set_ylim((0,1))
+        bar_width=0.05
 
-            if (len(self._inventory.classes['generalClasses'])%2 != 0 ):
-                bar_offset = bar_width/2
-            else:
-                bar_offset = 0
-            for i_class in range(len(self._inventory.classes['fragilityClasses'][
-                self._hazard.phenomenon_name.lower()])):
-                sub_probs = [float(x) for x  in self._area_inventory.asset.frag_class_prob[
-                    self._hazard.phenomenon_name.lower()][
-                    'fntGivenGeneralClass'][i_class]]
-                for i_p in range(len(sub_probs)):
-                    subplot_tmp.bar(i_class*width+bar_width*i_p+bar_offset,
-                        sub_probs[i_p], bar_width, color=self._bar_colors[
-                            i_p] )
+        if (len(self._inventory.classes['generalClasses'])%2 != 0 ):
+            bar_offset = bar_width/2
+        else:
+            bar_offset = 0
+        for i_class in range(len(self._inventory.classes['fragilityClasses'][
+            self._hazard.phenomenon_name.lower()])):
+            sub_probs = [float(x) for x  in self._area_inventory.asset.frag_class_prob[
+                self._hazard.phenomenon_name.lower()][
+                'fntGivenGeneralClass'][i_class]]
+            for i_p in range(len(sub_probs)):
+                subplot_tmp.bar(i_class*width+bar_width*i_p+bar_offset,
+                    sub_probs[i_p], bar_width, color=self._bar_colors[
+                        i_p] )
 
-            # Build legend for graph
-            legend_handles = []
-
-            for i_leg in \
-                range(len(self._inventory.classes['generalClasses'])):
-                lh_tmp = mpl.patches.Patch(color=self._bar_colors[i_leg],
-                                   label= self._inventory.classes[
-                                       'generalClasses'][i_leg].name)
-                legend_handles.append(lh_tmp)
-            subplot_tmp.legend(handles=legend_handles, prop={'size': 9},
-                               frameon = False, labelspacing=0.2,
-                               borderaxespad=0.)
-
-            subplot_arr.append(subplot_tmp)
-
+        # Build legend for graph
+        legend_handles = []
+        for i_leg in \
+            range(len(self._inventory.classes['generalClasses'])):
+            lh_tmp = mpl.patches.Patch(color=self._bar_colors[i_leg],
+                               label= self._inventory.classes[
+                                   'generalClasses'][i_leg].name)
+            legend_handles.append(lh_tmp)
+        subplot_tmp.legend(handles=legend_handles, prop={'size': 9},
+                           frameon = False, labelspacing=0.2,
+                           borderaxespad=0.)
+        subplot_arr.append(subplot_tmp)
         self._canvas.draw()
+
+
+# class CompareRisk(BymurPlot):
+#     def __init__(self, *args, **kwargs):
+#         super(CompareRisk, self).__init__(*args, **kwargs)
+#
+#     def plot(self, **kwargs):
+#         # Plot risk index
+#         print "Compare risk, plot"
+#         self._loss = kwargs.pop('loss', None)
+#         self._risk = kwargs.pop('risk', None)
+#         self._area = kwargs.pop('area', None)
+#         self._figure.clf()
+#
+#         if (self._loss is None) or (self._risk is None) or \
+#                 (self._area['inventory'] is None) or \
+#                 (self._area['fragility'] is None) or \
+#                 (self._area['loss'] is None) or \
+#                 (self._area['risk'] is None) or \
+#                 (self._area['inventory'].asset.total == 0):
+#             self._canvas.draw()
+#             return
+#
+#         gridspec = pyplot.GridSpec(1, 1)
+#         subplot_spec = gridspec.new_subplotspec((0, 0))
+#         subplot_tmp = self._figure.add_subplot(subplot_spec)
+#         values = []
+#         for c in self._area['risk']:
+#             if c['statistic'] == 'mean':
+#                 subplot_tmp.axvline(
+#                     x=float(c['average_risk']),
+#                     color='r',
+#                     linewidth=1,
+#                     alpha=1,
+#                     label="Mean")
+#             elif c['statistic'] == 'quantile50':
+#                 subplot_tmp.axvline(
+#                     x=float(c['average_risk']),
+#                     linestyle='--',
+#                     color='b',
+#                     linewidth=1,
+#                     alpha=1,
+#                     label="Median")
+#             else:
+#                 values.append((c['average_risk'],
+#                                float(c['statistic'][len("quantile"):])/100))
+#
+#         values = sorted(values, key = lambda val: val[0])
+#         subplot_tmp.plot([v[0] for v in values],
+#                          [v[1] for v in values],
+#                          linewidth=1,
+#                          linestyle='-.',
+#                          alpha=1,
+#                          label = "Percentiles",
+#                          color = 'k')
+#         subplot_tmp.set_ylim((0,1))
+#         subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
+#         subplot_tmp.set_ylabel("Percentile")
+#         subplot_tmp.tick_params(axis='x', labelsize=8)
+#         subplot_tmp.tick_params(axis='y', labelsize=8)
+#         subplot_tmp.set_title("Risk index", fontsize=9)
+#         subplot_tmp.legend(loc=1, prop={'size':6})
+#         self._canvas.draw()

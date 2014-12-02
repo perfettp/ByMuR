@@ -321,16 +321,19 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                             `phen`.`id` as `id_phenomenon`,
                             `phen`.`name` as `phenomenon_name`,
                             `haz`.`id_datagrid` as `grid_id`,
-                            `grid`.`name` as `grid_name`
-                    FROM (`hazard_models` haz LEFT JOIN `phenomena` phen
-                    ON `haz`.`id_phenomenon`=`phen`.`id`)
-                        JOIN `datagrids` grid WHERE
-                        `haz`.`id_datagrid`=`grid`.`id`
+                            `grid`.`name` as `grid_name`,
+                            `risk`.`model_name`
+                    FROM ((`hazard_models` haz LEFT JOIN `phenomena` phen
+                        ON `haz`.`id_phenomenon`=`phen`.`id`) JOIN
+                        `datagrids` grid ON `haz`.`id_datagrid`=`grid`.`id`)
+                            LEFT JOIN `risk_models` `risk`
+                            ON `haz`.`id` = `risk`.`id_hazard_model`
                 """
         self._cursor.execute(sqlquery)
         return [dict(zip(['hazard_id', 'hazard_name', 'exposure_time', 'iml',
                           'imt', 'date', 'phenomenon_id',
-                          'phenomenon_name', 'grid_id', 'grid_name'], x))
+                          'phenomenon_name', 'grid_id', 'grid_name',
+                          'risk_model_name'], x))
                 for x in self._cursor.fetchall()]
 
 
@@ -1731,6 +1734,26 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                          'loss_id', 'risk_type', 'model_name',
                          'investigation_time', 'description'],
                         self._cursor.fetchone()))
+
+    def get_risk_models_by_invtime(self, investigation_time):
+        sqlquery = """ SELECT `risk_mod`.`id`,
+                    `risk_mod`.`id_phenomenon`,
+                    `risk_mod`.`id_hazard_model`,
+                    `risk_mod`.`id_fragility_model`,
+                    `risk_mod`.`id_loss_model`,
+                    `risk_mod`.`risk_type`,
+                    `risk_mod`.`model_name`,
+                    `risk_mod`.`investigation_time`,
+                    `risk_mod`.`description`
+            FROM `risk_models` `risk_mod`
+            WHERE `risk_mod`.`investigation_time`= '%s'
+        """
+        sqlquery %= (str(investigation_time))
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'phenomenon_id', 'hazard_id', 'fragility_id',
+                         'loss_id', 'risk_type', 'model_name',
+                         'investigation_time', 'description'],
+                        x)) for x in  self._cursor.fetchall()]
 
 
     def add_risk(self, risk):

@@ -399,14 +399,33 @@ class BymurCore(object):
         self._hazard_options = {}
         self._hazard = None
         self._hazard_data = None
-        self._selected_point = HazardPoint(self)
-        self._selected_area = dict(inventory=bf.InventorySection(),
+        self._selected_point = None
+        # self._selected_point = HazardPoint(self)
+        # self._selected_area = dict(inventory=bf.InventorySection(),
+        self._selected_area = dict(inventory=None,
                                    fragility=None)
         # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
         self._inventory = None
         self._fragility = None
         self._loss = None
         self._risk = None
+        self._compare_risks = []
+
+    def clear(self):
+        self.grid_points = []
+        self.hazard_options = {}
+        self.hazard = None
+        self.hazard_data = None
+        self.selected_point = None
+        self.selected_area = dict(inventory=None,
+                                   fragility=None,
+                                   loss = None,
+                                   risk = None)
+        self._inventory = None
+        self._fragility = None
+        self._loss = None
+        self._risk = None
+        self._compare_risks = []
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -516,7 +535,6 @@ class BymurCore(object):
 
         ret['hazard_models'] = hazard_models
         ret['phenomena'] = self.db.get_phenomena_list()
-        # print "hazard_models %s:" % ret['hazard_models']
         # print "phenomena %s " % ret['phenomena']
         return ret
 
@@ -664,13 +682,12 @@ class BymurCore(object):
     def updateModel(self, **ctrls_options):
 
         """Update HazardModel reflecting selected options. """
-        print "ctrls_options %s" % ctrls_options
+        # print "ctrls_options %s" % ctrls_options
+        self.clear()
         haz_tmp = ctrls_options
         haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time'] /
                                                    haz_tmp['ret_per'])
         self.hazard_options = haz_tmp
-
-        print "core hazard_options %s " % self.hazard_options
 
         self._hazard = HazardModel(self._db,
                                    hazard_name=
@@ -678,14 +695,14 @@ class BymurCore(object):
                                    exp_time=self.hazard_options['exp_time'])
 
         self.inventory = self.read_inventory_model(self._hazard.datagrid_id)
-        self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
-        self.loss = self.read_loss_model(self._hazard.phenomenon_id,
-                                         self.fragility.id)
-        print "Hazard id: %s, %s" % (self._hazard.hazard_id,
-                                     type(self._hazard.hazard_id))
-        self.risk = self.read_risk_model(self._hazard.hazard_id)
 
-
+        if ctrls_options['risk_model_name'] is not None and ctrls_options[
+                                     'risk_model_name'] != '':
+            print "Reading fragility, loss and risk models"
+            self.fragility = self.read_fragility_model(self._hazard.phenomenon_id)
+            self.loss = self.read_loss_model(self._hazard.phenomenon_id,
+                                             self.fragility.id)
+            self.risk = self.read_risk_model(self._hazard.hazard_id)
 
         # TODO: grid_point should be eliminated from here
         # TODO: or from
@@ -704,13 +721,17 @@ class BymurCore(object):
                     self.db.get_area_dbid_by_areaid(areaID)
                 self.selected_area['inventory'] = sec
                 # TODO: questi dovrebbero diventare oggetti
-                self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
-                            self.fragility.id, areaID)
-                self.selected_area['loss'] = self.db.get_lossdata_by_areaid(
-                            self.loss.id, areaID)
                 if self.risk is not None:
+                    self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
+                                self.fragility.id, areaID)
+                    self.selected_area['loss'] = self.db.get_lossdata_by_areaid(
+                                self.loss.id, areaID)
                     self.selected_area['risk'] = self.db.get_riskdata_by_areaid(
-                            self.risk.id, areaID)
+                                self.risk.id, areaID)
+                    self.selected_area['compare_risks'] = []
+                    for c_r in self.compare_risks:
+                        self.selected_area['compare_risks'].append(
+                            self.db.get_riskdata_by_areaid(c_r.id, areaID))
                 break
 
     def set_point_by_index(self, index):
@@ -720,9 +741,14 @@ class BymurCore(object):
         :param index: bigint
         """
         try:
-            self.selected_point.update(self.hazard, index,
-                                       self.hazard_options['hazard_threshold'],
-                                       self.hazard_options['int_thresh'])
+            tmp = HazardPoint(self)
+            tmp.update(self.hazard, index,
+                       self.hazard_options['hazard_threshold'],
+                       self.hazard_options['int_thresh'])
+            self.selected_point = tmp
+            # self.selected_point.update(self.hazard, index,
+            #                            self.hazard_options['hazard_threshold'],
+            #                            self.hazard_options['int_thresh'])
             return True
         except Exception as e:
             print "Exception in select_point_by_index: %s" % str(e)
@@ -745,10 +771,11 @@ class BymurCore(object):
                 self.hazard.grid_limits['north_max']):
             distances = np.hypot(xsel-[p['easting'] for p in self.grid_points],
                                  ysel-[p['northing'] for p in self.grid_points])
-            self.selected_point.update(self.hazard,
-                                       distances.argmin(),
-                                       self.hazard_options['hazard_threshold'],
-                                       self.hazard_options['int_thresh'])
+            tmp = HazardPoint(self)
+            tmp.update(self.hazard, distances.argmin(),
+                       self.hazard_options['hazard_threshold'],
+                       self.hazard_options['int_thresh'])
+            self.selected_point = tmp
             return True
         else:
             return False
@@ -996,23 +1023,6 @@ class BymurCore(object):
         print "haz_stats %s" % [h['stats_labels'] for h in _haz_models]
         print "haz_y_percentiles %s" % [h['y_percentiles'] for h in _haz_models]
 
-        # point_curves structure
-        # point_curves = [ {point_id,
-        #                   point_data: {hazard_1: [ [soglia1percentile1,
-        #                                             soglia1percentile2,
-        #                                              ...               ],
-        #                                            [soglia2percentile1,
-        #                                             soglia2percentile2,
-        #                                             ...               ]
-        #                                           ],
-        #                                hazard_2: [ [soglia1percentile1,
-        #                                           .....]
-        #                                },...},
-        #                   {point_id,...
-
-        # For every point 'p', every hazard component 'h', every threshold 't'
-        # build an array point_curves[p_index]['point_data'][h_index][t_index]
-        # containing values of all percentiles stored in database
         point_curves = []
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
             p_tmp = dict()
@@ -1030,15 +1040,10 @@ class BymurCore(object):
                 p_tmp['point_data'][haz['model'].hazard_id] =\
                     np.sort(np.array(_haz_point_data))
             point_curves.append(p_tmp)
-        # print "Esempio di dati per un punto %s" % point_curves[0]
-        # print point_curves[1000]['point_data'][_haz_models[0]['model'].hazard_id][0]
-
 
         # Generate random sample points
         _samples = np.random.uniform(0, 1, self.ens_sample_number)
 
-        # For every point, for every threshold, sample data, calculate
-        # percentiles and mean, store values in point_curves array
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
             point_data = point_curves[i_point]['point_data']
             point_ensemble_hazard = []
@@ -1069,7 +1074,6 @@ class BymurCore(object):
             point_curves[i_point]['point_data']['ensemble'] = \
                 point_ensemble_hazard
 
-        # print point_curves[1000]['point_data']['ensemble'][7]
 
         # Transform point_curves array in a structure compatible with
         # points_data as returned(taken) from HazardModel(EsembleModel) class
@@ -1225,9 +1229,45 @@ class BymurCore(object):
         # self.sb.SetStatusText("... ensemble model evaluated")
         print 'Task completed!!'
         print '------------------------------'
-
-
         # update DB, table hazard#
+
+    def get_risks(self, inv_time):
+        return self.db.get_risk_models_by_invtime(inv_time)
+
+    def set_cmp_risks(self, risk_model_names, inv_time):
+        r_list = []
+        for r in  risk_model_names:
+            r_model = self.read_risk_model_by_nameinvtime(r, inv_time)
+            r_list.append(r_model)
+        print [(r.model_name, r.investigation_time) for r in r_list]
+        self.compare_risks = r_list
+
+
+
+    def read_risk_model_by_nameinvtime(self, risk_model_name, inv_time):
+        risk_dic = self.db.get_risk_model_by_name_invtime(risk_model_name,
+                                                      inv_time)
+        if risk_dic is None:
+            return None
+        _risk = bf.RiskModel()
+        _risk.id = risk_dic['id']
+        _risk.risk_type = risk_dic['risk_type']
+        _risk.model_name = risk_dic['model_name']
+        _risk.hazard_model_name = self.db.get_hazard_model_by_id(risk_dic[
+            'hazard_id'])['hazard_name']
+        _risk.fragility_model_name = self.db.get_fragility_model_by_id(risk_dic[
+            'fragility_id'])['model_name']
+        _risk.loss_model_name = self.db.get_loss_model_by_id(risk_dic[
+            'loss_id'])['model_name']
+        _risk.description = risk_dic['description']
+        _risk.investigation_time = risk_dic['investigation_time']
+        _risk.hazard_type = self.db.get_phenomenon_by_id(
+            risk_dic['phenomenon_id'])['name']
+        _risk.statistics = [st['name'] for st in
+                            self.db.get_statistics_by_risk_id(risk_dic['id'])]
+        return _risk
+
+
 
     @property
     def ctrls_data(self):
@@ -1236,11 +1276,13 @@ class BymurCore(object):
     @property
     def hazard(self):
         return self._hazard
+    @hazard.setter
+    def hazard(self, data):
+        self._hazard = data
 
     @property
     def hazard_options(self):
         return self._hazard_options
-
     @hazard_options.setter
     def hazard_options(self, data):
         self._hazard_options = data
@@ -1248,16 +1290,13 @@ class BymurCore(object):
     @property
     def hazard_data(self):
         return self._hazard_data
-
     @hazard_data.setter
     def hazard_data(self, data):
-        print "hazard_data setter"
         self._hazard_data = data
 
     @property
     def inventory(self):
         return self._inventory
-
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
@@ -1282,11 +1321,17 @@ class BymurCore(object):
     @risk.setter
     def risk(self, data):
         self._risk = data
+        
+    @property
+    def compare_risks(self):
+        return self._compare_risks
+    @compare_risks.setter
+    def compare_risks(self, data):
+        self._compare_risks = data
 
     @property
     def selected_area(self):
         return self._selected_area
-
     @selected_area.setter
     def selected_area(self, data):
         self._selected_area = data
@@ -1294,7 +1339,6 @@ class BymurCore(object):
     @property
     def selected_point(self):
         return self._selected_point
-
     @selected_point.setter
     def selected_point(self, data):
         self._selected_point = data
@@ -1302,7 +1346,6 @@ class BymurCore(object):
     @property
     def selected_point_curves(self):
         return self._selected_point_curves
-
     @selected_point_curves.setter
     def selected_point_curves(self, data):
         self._selected_point_curves = data
@@ -1310,7 +1353,6 @@ class BymurCore(object):
     @property
     def grid_points(self):
         return self._grid_points
-
     @grid_points.setter
     def grid_points(self, points_list):
         self._grid_points = points_list

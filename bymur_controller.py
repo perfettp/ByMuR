@@ -49,7 +49,7 @@ class BymurController(object):
             else:
                 return
 
-        dialogResult = self._wxframe.showDlg("BymurDBLoadDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurDBLoadDlg",
                                              **self._dbDetails)
         if dialogResult:
             self._dbDetails.update(dialogResult)
@@ -81,7 +81,7 @@ class BymurController(object):
                 self.close_db()
             else:
                 return
-        dialogResult = self._wxframe.showDlg("BymurDBCreateDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurDBCreateDlg",
                                              **self._createDBDetails)
         if dialogResult:
             self._createDBDetails.update(dialogResult)
@@ -121,7 +121,7 @@ class BymurController(object):
 
         print "loadGrid"
         gridData = dict(basedir=self._basedir, filepath='')
-        dialogResult = self._wxframe.showDlg("BymurLoadGridDlg", **gridData)
+        dialogResult = self._wxframe.showModalDlg("BymurLoadGridDlg", **gridData)
         if dialogResult:
             gridData.update(dialogResult)
             try:
@@ -151,7 +151,7 @@ class BymurController(object):
         _localDBDataDetails['phenomena_list'] = [p['phenomenon_name'] for p
                                                     in
                                                     self._core.db.get_phenomena_list()]
-        dialogResult = self._wxframe.showDlg("BymurAddDBDataDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurAddDBDataDlg",
                                                        **_localDBDataDetails)
         if dialogResult:
             _localDBDataDetails.update(dialogResult)
@@ -202,7 +202,7 @@ class BymurController(object):
         """Define a new ensemble model combining available hazard models."""
 
         print "openEnsemble"
-        dialogResult = self._wxframe.showDlg("BymurEnsembleDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurEnsembleDlg",
                                              **{'data': self._core.ctrls_data})
         if dialogResult:
             try:
@@ -225,11 +225,25 @@ class BymurController(object):
             finally:
                 self.get_gui().busy = False
 
+    def compare_risks_act(self, ev):
+        risks = self._core.get_risks(self._core.hazard_options['exp_time'])
+        dialogResult, dialogStrings = self._wxframe.selectRisksDlg(
+            self._core.risk, self._core.compare_risks, risks)
+        if dialogResult >= 0:
+            self._core.set_cmp_risks(dialogStrings,
+                                     self._core.hazard_options['exp_time'])
+            self._core.set_area_by_ID(self._core.selected_area['areaID'])
+            self._set_compare_risks()
+            self._set_selected_area()
+            bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_MAP)
+
+
+
     def export_hazard(self):
         """Export hazard model to XMLs file"""
 
         print "export Hazard"
-        dialogResult = self._wxframe.showDlg("BymurExportHazDlg",
+        dialogResult = self._wxframe.showModalDlg("BymurExportHazDlg",
                                              **{'data': self._core.ctrls_data})
         if dialogResult:
             try:
@@ -263,6 +277,7 @@ class BymurController(object):
                 raise StandardError("Hazard options are not complete")
             tmp = dict()
             tmp['hazard_name'] = data['hazard_name']
+            tmp['risk_model_name'] = data['risk_model_name']
             tmp['ret_per'] = float(data['ret_per'])
             tmp['int_thresh'] = float(data['int_thresh'])
             tmp['exp_time'] = float(data['exp_time'])
@@ -287,6 +302,7 @@ class BymurController(object):
         print "showPoints"
 
     def nbTabChanged(self, event):
+        print self.get_gui().rightPanel.curvesPanel._nb.GetCurrentPage()
         self.get_gui().rightPanel.curvesPanel.updateView()
 
     def pick_point_by_index(self, index, pathID=None):
@@ -298,7 +314,9 @@ class BymurController(object):
 
         if pathID is not None:
             self._core.set_area_by_ID(pathID+1)
+            self._set_selected_area()
         if self._core.set_point_by_index(index):
+            self._set_selected_point()
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
 
@@ -311,6 +329,7 @@ class BymurController(object):
         """
 
         if self._core.set_point_by_coordinates(easting, northing):
+            self._set_selected_point()
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
     def set_gui(self, frame):
@@ -345,6 +364,7 @@ class BymurController(object):
         self._set_fragility()
         self._set_loss()
         self._set_risk()
+        self._set_compare_risks()
         self._set_selected_area()
 
     def _set_ctrls_data(self):
@@ -380,3 +400,9 @@ class BymurController(object):
 
     def _set_selected_area(self):
         self.get_gui().selected_area = self._core.selected_area
+        
+    def _set_compare_risks(self):
+        print "set_compare_risks"
+        print self._core.compare_risks
+        self.get_gui().compare_risks = self._core.compare_risks
+        print self.get_gui().compare_risks
