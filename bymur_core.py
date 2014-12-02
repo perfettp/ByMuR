@@ -401,9 +401,25 @@ class BymurCore(object):
         self._hazard_data = None
         self._selected_point = None
         # self._selected_point = HazardPoint(self)
-        self._selected_area = dict(inventory=bf.InventorySection(),
+        # self._selected_area = dict(inventory=bf.InventorySection(),
+        self._selected_area = dict(inventory=None,
                                    fragility=None)
         # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
+        self._inventory = None
+        self._fragility = None
+        self._loss = None
+        self._risk = None
+
+    def clear(self):
+        self.grid_points = []
+        self.hazard_options = {}
+        self.hazard = None
+        self.hazard_data = None
+        self.selected_point = None
+        self.selected_area = dict(inventory=None,
+                                   fragility=None,
+                                   loss = None,
+                                   risk = None)
         self._inventory = None
         self._fragility = None
         self._loss = None
@@ -665,6 +681,7 @@ class BymurCore(object):
 
         """Update HazardModel reflecting selected options. """
         # print "ctrls_options %s" % ctrls_options
+        self.clear()
         haz_tmp = ctrls_options
         haz_tmp['hazard_threshold'] = 1 - math.exp(- haz_tmp['exp_time'] /
                                                    haz_tmp['ret_per'])
@@ -758,10 +775,6 @@ class BymurCore(object):
                        self.hazard_options['hazard_threshold'],
                        self.hazard_options['int_thresh'])
             self.selected_point = tmp
-            # self.selected_point.update(self.hazard,
-            #                            distances.argmin(),
-            #                            self.hazard_options['hazard_threshold'],
-            #                            self.hazard_options['int_thresh'])
             return True
         else:
             return False
@@ -1249,11 +1262,13 @@ class BymurCore(object):
     @property
     def hazard(self):
         return self._hazard
+    @hazard.setter
+    def hazard(self, data):
+        self._hazard = data
 
     @property
     def hazard_options(self):
         return self._hazard_options
-
     @hazard_options.setter
     def hazard_options(self, data):
         self._hazard_options = data
@@ -1261,16 +1276,13 @@ class BymurCore(object):
     @property
     def hazard_data(self):
         return self._hazard_data
-
     @hazard_data.setter
     def hazard_data(self, data):
-        print "hazard_data setter"
         self._hazard_data = data
 
     @property
     def inventory(self):
         return self._inventory
-
     @inventory.setter
     def inventory(self, data):
         self._inventory = data
@@ -1299,7 +1311,6 @@ class BymurCore(object):
     @property
     def selected_area(self):
         return self._selected_area
-
     @selected_area.setter
     def selected_area(self, data):
         self._selected_area = data
@@ -1307,7 +1318,6 @@ class BymurCore(object):
     @property
     def selected_point(self):
         return self._selected_point
-
     @selected_point.setter
     def selected_point(self, data):
         self._selected_point = data
@@ -1315,7 +1325,6 @@ class BymurCore(object):
     @property
     def selected_point_curves(self):
         return self._selected_point_curves
-
     @selected_point_curves.setter
     def selected_point_curves(self, data):
         self._selected_point_curves = data
@@ -1323,7 +1332,6 @@ class BymurCore(object):
     @property
     def grid_points(self):
         return self._grid_points
-
     @grid_points.setter
     def grid_points(self, points_list):
         self._grid_points = points_list

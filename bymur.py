@@ -1149,7 +1149,9 @@ class BymurWxCurvesPanel(BymurWxPanel):
         self.Enable(True)
 
     def clear(self):
-        self._nb.GetCurrentPage().clear()
+        for i_p in range(self._nb.GetPageCount()):
+            self._nb.GetPage(i_p).clear()
+
 
 
 class BymurWxMapPanel(BymurWxPanel):
