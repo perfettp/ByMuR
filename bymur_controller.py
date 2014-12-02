@@ -299,7 +299,9 @@ class BymurController(object):
 
         if pathID is not None:
             self._core.set_area_by_ID(pathID+1)
+            self._set_selected_area()
         if self._core.set_point_by_index(index):
+            self._set_selected_point()
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
 
@@ -312,6 +314,7 @@ class BymurController(object):
         """
 
         if self._core.set_point_by_coordinates(easting, northing):
+            self._set_selected_point()
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
     def set_gui(self, frame):

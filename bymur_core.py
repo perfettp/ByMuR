@@ -399,7 +399,8 @@ class BymurCore(object):
         self._hazard_options = {}
         self._hazard = None
         self._hazard_data = None
-        self._selected_point = HazardPoint(self)
+        self._selected_point = None
+        # self._selected_point = HazardPoint(self)
         self._selected_area = dict(inventory=bf.InventorySection(),
                                    fragility=None)
         # self._inventory = bf.parse_xml_inventory("data/InventoryByMuR.xml")
@@ -722,9 +723,14 @@ class BymurCore(object):
         :param index: bigint
         """
         try:
-            self.selected_point.update(self.hazard, index,
-                                       self.hazard_options['hazard_threshold'],
-                                       self.hazard_options['int_thresh'])
+            tmp = HazardPoint(self)
+            tmp.update(self.hazard, index,
+                       self.hazard_options['hazard_threshold'],
+                       self.hazard_options['int_thresh'])
+            self.selected_point = tmp
+            # self.selected_point.update(self.hazard, index,
+            #                            self.hazard_options['hazard_threshold'],
+            #                            self.hazard_options['int_thresh'])
             return True
         except Exception as e:
             print "Exception in select_point_by_index: %s" % str(e)
@@ -747,10 +753,15 @@ class BymurCore(object):
                 self.hazard.grid_limits['north_max']):
             distances = np.hypot(xsel-[p['easting'] for p in self.grid_points],
                                  ysel-[p['northing'] for p in self.grid_points])
-            self.selected_point.update(self.hazard,
-                                       distances.argmin(),
-                                       self.hazard_options['hazard_threshold'],
-                                       self.hazard_options['int_thresh'])
+            tmp = HazardPoint(self)
+            tmp.update(self.hazard, distances.argmin(),
+                       self.hazard_options['hazard_threshold'],
+                       self.hazard_options['int_thresh'])
+            self.selected_point = tmp
+            # self.selected_point.update(self.hazard,
+            #                            distances.argmin(),
+            #                            self.hazard_options['hazard_threshold'],
+            #                            self.hazard_options['int_thresh'])
             return True
         else:
             return False

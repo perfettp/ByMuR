@@ -1140,6 +1140,11 @@ class BymurWxCurvesPanel(BymurWxPanel):
 
     def updateView(self, **kwargs):
         super(BymurWxCurvesPanel, self).updateView(**kwargs)
+        risk_pages_enable = self.GetTopLevelParent()._risk is not None
+        print "risk page enable = %s " % risk_pages_enable
+        self._curvesNBFrag.Enable(risk_pages_enable)
+        self._curvesNBLoss.Enable(risk_pages_enable)
+        self._curvesNBRisk.Enable(risk_pages_enable)
         self._nb.GetCurrentPage().updateView(**kwargs)
         self.Enable(True)
 
@@ -1824,16 +1829,15 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._pointNortSC.SetValueString(northing)
 
     def updatePointData(self):
-        if self._topWindow.selected_point.easting:
+        try:
             self._pointEastSC.SetValueString(
                 str(self._topWindow.selected_point.easting))
-        else:
+        except AttributeError as e:
             self._pointEastSC.SetValueString("")
-
-        if self._topWindow.selected_point.northing:
+        try:
             self._pointNortSC.SetValueString(
                 str(self._topWindow.selected_point.northing))
-        else:
+        except AttributeError as e:
             self._pointNortSC.SetValueString("")
 
     def updateCtrls(self, ev=None):
@@ -2135,6 +2139,8 @@ class BymurWxView(wx.Frame):
         self._hazard = None
         self._hazard_data = None
         self._hazard_options = {}
+        self._loss = None
+        self._risk = None
 
         self._selected_point = None
         self._selected_area = None
@@ -2308,6 +2314,7 @@ class BymurWxView(wx.Frame):
             self.ctrlsPanel.clearPoint()
             self.dataPanel.clearPoint()
             self.rightPanel.curvesPanel.clear()
+            self.rightPanel.curvesPanel.updateView()
             self.rightPanel.mapPanel.clear()
             self.rightPanel.mapPanel.updateView()
             self.rightPanel.Enable(True)
@@ -2440,6 +2447,14 @@ class BymurWxView(wx.Frame):
     @loss.setter
     def loss(self, data):
         self._loss = data
+    
+    @property
+    def risk(self):
+        return self._risk
+
+    @risk.setter
+    def risk(self, data):
+        self._risk = data
 
     # @property
     # def inventory_sections(self):

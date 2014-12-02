@@ -327,6 +327,10 @@ class HazardCurve(BymurPlot):
         perc_to_plot = ["10", "50", "90"]
 
         self._figure.clf()
+        print "sel %s " %selected_point
+        print "haz %s" % hazard
+        if (selected_point is None) or (hazard is None):
+            return
         self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
         self._figure.hold(True)
         self._axes.grid(True)
