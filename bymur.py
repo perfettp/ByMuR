@@ -1092,7 +1092,7 @@ class BymurCmpRiskBoxSizer(BymurStaticBoxSizer):
         self.Add(self._map._toolbar, flag=wx.EXPAND)
 
 
-class BymurCmpRiskDlg(wx.Dialog):
+class BymurCmpRiskDlg(wx.MultiChoiceDialog):
     def __init__(self, *args, **kwargs):
         self._riskBoxSizer = None
         self._title = kwargs.pop('title', '')
@@ -1121,21 +1121,21 @@ class BymurCmpRiskDlg(wx.Dialog):
 
         self.SetTitle(self._title)
 
-    def update_plot(self):
-        print "update plot"
-        self._riskBoxSizer._map.plot()
+    # def update_plot(self):
+    #     print "update plot"
+    #     self._riskBoxSizer._map.plot()
 
-    def Show(self, **kwargs):
-        result = super(BymurCmpRiskDlg, self).Show(**kwargs)
-        if (result == wx.ID_OK):
-            result = 1
-            self._localData = {}
-            print "CmpRisk parameters %s" % self._localData
-        elif (result == wx.ID_CANCEL):
-            result = 0
-        else:
-            result = -1
-        return (result, self._localData)
+    # def Show(self, **kwargs):
+    #     result = super(BymurCmpRiskDlg, self).Show(**kwargs)
+    #     if (result == wx.ID_OK):
+    #         result = 1
+    #         self._localData = {}
+    #         print "CmpRisk parameters %s" % self._localData
+    #     elif (result == wx.ID_CANCEL):
+    #         result = 0
+    #     else:
+    #         result = -1
+    #     return (result, self._localData)
 
 
 class BymurWxPanel(wx.Panel):
@@ -1369,7 +1369,7 @@ class BymurWxNBRiskPage(BymurWxPanel):
         self._cmpButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
                                        'Compare Risks',
                                        size=(-1, -1))
-        self.Bind(wx.EVT_BUTTON, self._controller.compare_risks,
+        self.Bind(wx.EVT_BUTTON, self._controller.compare_risks_act,
                   self._cmpButton)
         self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
 
@@ -1385,6 +1385,7 @@ class BymurWxNBRiskPage(BymurWxPanel):
                        fragility=wx.GetTopLevelParent(self).fragility,
                        loss=wx.GetTopLevelParent(self).loss,
                        risk=wx.GetTopLevelParent(self).risk,
+                       compare_risks=wx.GetTopLevelParent(self).compare_risks,
                        area = wx.GetTopLevelParent(self).selected_area)
         self.Enable(True)
 
@@ -2220,7 +2221,7 @@ class BymurWxView(wx.Frame):
         self._selected_point = None
         self._selected_area = None
 
-        self._compare_dialog = False
+        self._compare_risks = []
 
 
         # TODO: make a list for events
@@ -2327,21 +2328,29 @@ class BymurWxView(wx.Frame):
         else:
             return None
 
-    def showDlg(self, dialog_type, **kwargs):
+    def selectRisksDlg(self, current_risk, compare_risks, risks):
         """
-        :param dialog_type: class name of the dialog to show
-        :param **kwargs: argument to the specific dialog
-        :return: dictionary containing dialog data on success, None on failure
+
         """
-        result = -1
-        data = {}
-        dlg = eval(dialog_type)(parent=self, **kwargs)
-        while result < 0:
-            result, data = dlg.Show(True)
-        if result > 0:
-            return data
+        opts = [r['model_name'] for r in risks
+                if r['model_name'] != current_risk.model_name]
+        dlg = wx.MultiChoiceDialog( self, "Pick some programming languages",
+                              "wx.MultiChoiceDialog", opts)
+        sel_items = []
+        for r in opts:
+            if r in [cr.model_name for cr in compare_risks]:
+                sel_items.append(opts.index(r))
+        print "Rischi gia' selezionati %s"  % sel_items
+        dlg.SetSelections(sel_items)
+        r_strings = []
+        if (dlg.ShowModal() == wx.ID_OK):
+            selections = dlg.GetSelections()
+            r_strings = [opts[x] for x in selections]
+            print "You chose:" + str(r_strings)
+            return (len(r_strings), r_strings)
         else:
-            return None
+            return (-1, r_strings)
+
 
     def GetBusy(self):
         """
@@ -2418,11 +2427,9 @@ class BymurWxView(wx.Frame):
             self.dataPanel.updatePointData()
             self.rightPanel.mapPanel.updatePoint()
             self.rightPanel.curvesPanel.updateView()
-            if self.compare_dialog:
-                self.rightPanel.curvesPanel._curvesNBRisk._cmpPanel._map.plot(
-
-                )
-
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_MAP:
+            print "bf.wxBYMUR_UPDATE_MAP"
+            self.rightPanel.curvesPanel.updateView()
 
         if self.GetBusy():
             self.SetBusy(False)
@@ -2570,11 +2577,11 @@ class BymurWxView(wx.Frame):
         self._selected_area = data
         
     @property
-    def compare_dialog(self):
-        return self._compare_dialog
-    @compare_dialog.setter
-    def compare_dialog(self, data):
-        self._compare_dialog = data
+    def compare_risks(self):
+        return self._compare_risks
+    @compare_risks.setter
+    def compare_risks(self, data):
+        self._compare_risks = data
 
 class BymurWxApp(wx.App):
     def __init__(self, *args, **kwargs):

@@ -1736,6 +1736,26 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                          'investigation_time', 'description'],
                         self._cursor.fetchone()))
 
+    def get_risk_models_by_invtime(self, investigation_time):
+        sqlquery = """ SELECT `risk_mod`.`id`,
+                    `risk_mod`.`id_phenomenon`,
+                    `risk_mod`.`id_hazard_model`,
+                    `risk_mod`.`id_fragility_model`,
+                    `risk_mod`.`id_loss_model`,
+                    `risk_mod`.`risk_type`,
+                    `risk_mod`.`model_name`,
+                    `risk_mod`.`investigation_time`,
+                    `risk_mod`.`description`
+            FROM `risk_models` `risk_mod`
+            WHERE `risk_mod`.`investigation_time`= '%s'
+        """
+        sqlquery %= (str(investigation_time))
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'phenomenon_id', 'hazard_id', 'fragility_id',
+                         'loss_id', 'risk_type', 'model_name',
+                         'investigation_time', 'description'],
+                        x)) for x in  self._cursor.fetchall()]
+
 
     def add_risk(self, risk):
         phen_id_dic = dict()

@@ -409,6 +409,7 @@ class BymurCore(object):
         self._fragility = None
         self._loss = None
         self._risk = None
+        self._compare_risks = []
 
     def clear(self):
         self.grid_points = []
@@ -424,6 +425,7 @@ class BymurCore(object):
         self._fragility = None
         self._loss = None
         self._risk = None
+        self._compare_risks = []
 
     def load_db(self, **dbDetails):
         """ Connect database and load hazard models data."""
@@ -726,6 +728,10 @@ class BymurCore(object):
                                 self.loss.id, areaID)
                     self.selected_area['risk'] = self.db.get_riskdata_by_areaid(
                                 self.risk.id, areaID)
+                    self.selected_area['compare_risks'] = []
+                    for c_r in self.compare_risks:
+                        self.selected_area['compare_risks'].append(
+                            self.db.get_riskdata_by_areaid(c_r.id, areaID))
                 break
 
     def set_point_by_index(self, index):
@@ -1017,23 +1023,6 @@ class BymurCore(object):
         print "haz_stats %s" % [h['stats_labels'] for h in _haz_models]
         print "haz_y_percentiles %s" % [h['y_percentiles'] for h in _haz_models]
 
-        # point_curves structure
-        # point_curves = [ {point_id,
-        #                   point_data: {hazard_1: [ [soglia1percentile1,
-        #                                             soglia1percentile2,
-        #                                              ...               ],
-        #                                            [soglia2percentile1,
-        #                                             soglia2percentile2,
-        #                                             ...               ]
-        #                                           ],
-        #                                hazard_2: [ [soglia1percentile1,
-        #                                           .....]
-        #                                },...},
-        #                   {point_id,...
-
-        # For every point 'p', every hazard component 'h', every threshold 't'
-        # build an array point_curves[p_index]['point_data'][h_index][t_index]
-        # containing values of all percentiles stored in database
         point_curves = []
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
             p_tmp = dict()
@@ -1051,15 +1040,10 @@ class BymurCore(object):
                 p_tmp['point_data'][haz['model'].hazard_id] =\
                     np.sort(np.array(_haz_point_data))
             point_curves.append(p_tmp)
-        # print "Esempio di dati per un punto %s" % point_curves[0]
-        # print point_curves[1000]['point_data'][_haz_models[0]['model'].hazard_id][0]
-
 
         # Generate random sample points
         _samples = np.random.uniform(0, 1, self.ens_sample_number)
 
-        # For every point, for every threshold, sample data, calculate
-        # percentiles and mean, store values in point_curves array
         for i_point in range(len(_haz_models[0]['model'].grid_points)):
             point_data = point_curves[i_point]['point_data']
             point_ensemble_hazard = []
@@ -1090,7 +1074,6 @@ class BymurCore(object):
             point_curves[i_point]['point_data']['ensemble'] = \
                 point_ensemble_hazard
 
-        # print point_curves[1000]['point_data']['ensemble'][7]
 
         # Transform point_curves array in a structure compatible with
         # points_data as returned(taken) from HazardModel(EsembleModel) class
@@ -1246,9 +1229,45 @@ class BymurCore(object):
         # self.sb.SetStatusText("... ensemble model evaluated")
         print 'Task completed!!'
         print '------------------------------'
-
-
         # update DB, table hazard#
+
+    def get_risks(self, inv_time):
+        return self.db.get_risk_models_by_invtime(inv_time)
+
+    def set_cmp_risks(self, risk_model_names, inv_time):
+        r_list = []
+        for r in  risk_model_names:
+            r_model = self.read_risk_model_by_nameinvtime(r, inv_time)
+            r_list.append(r_model)
+        print [(r.model_name, r.investigation_time) for r in r_list]
+        self.compare_risks = r_list
+
+
+
+    def read_risk_model_by_nameinvtime(self, risk_model_name, inv_time):
+        risk_dic = self.db.get_risk_model_by_name_invtime(risk_model_name,
+                                                      inv_time)
+        if risk_dic is None:
+            return None
+        _risk = bf.RiskModel()
+        _risk.id = risk_dic['id']
+        _risk.risk_type = risk_dic['risk_type']
+        _risk.model_name = risk_dic['model_name']
+        _risk.hazard_model_name = self.db.get_hazard_model_by_id(risk_dic[
+            'hazard_id'])['hazard_name']
+        _risk.fragility_model_name = self.db.get_fragility_model_by_id(risk_dic[
+            'fragility_id'])['model_name']
+        _risk.loss_model_name = self.db.get_loss_model_by_id(risk_dic[
+            'loss_id'])['model_name']
+        _risk.description = risk_dic['description']
+        _risk.investigation_time = risk_dic['investigation_time']
+        _risk.hazard_type = self.db.get_phenomenon_by_id(
+            risk_dic['phenomenon_id'])['name']
+        _risk.statistics = [st['name'] for st in
+                            self.db.get_statistics_by_risk_id(risk_dic['id'])]
+        return _risk
+
+
 
     @property
     def ctrls_data(self):
@@ -1302,6 +1321,13 @@ class BymurCore(object):
     @risk.setter
     def risk(self, data):
         self._risk = data
+        
+    @property
+    def compare_risks(self):
+        return self._compare_risks
+    @compare_risks.setter
+    def compare_risks(self, data):
+        self._compare_risks = data
 
     @property
     def selected_area(self):

@@ -225,18 +225,18 @@ class BymurController(object):
             finally:
                 self.get_gui().busy = False
 
-    def compare_risks(self, ev):
-        """Define a new ensemble model combining available hazard models."""
+    def compare_risks_act(self, ev):
+        risks = self._core.get_risks(self._core.hazard_options['exp_time'])
+        dialogResult, dialogStrings = self._wxframe.selectRisksDlg(
+            self._core.risk, self._core.compare_risks, risks)
+        if dialogResult >= 0:
+            self._core.set_cmp_risks(dialogStrings,
+                                     self._core.hazard_options['exp_time'])
+            self._core.set_area_by_ID(self._core.selected_area['areaID'])
+            self._set_compare_risks()
+            self._set_selected_area()
+            bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_MAP)
 
-        print "compare risks"
-        print ev
-        print "Dialog true"
-        self._wxframe.compare_dialog = True
-        dialogResult = self._wxframe.showDlg("BymurCmpRiskDlg",
-                                             **{'risks': [self._core._risk],
-                                                'area':self._core.selected_area})
-        print "Dialog false"
-        self._wxframe.compare_dialog = False
 
 
     def export_hazard(self):
@@ -364,6 +364,7 @@ class BymurController(object):
         self._set_fragility()
         self._set_loss()
         self._set_risk()
+        self._set_compare_risks()
         self._set_selected_area()
 
     def _set_ctrls_data(self):
@@ -399,3 +400,9 @@ class BymurController(object):
 
     def _set_selected_area(self):
         self.get_gui().selected_area = self._core.selected_area
+        
+    def _set_compare_risks(self):
+        print "set_compare_risks"
+        print self._core.compare_risks
+        self.get_gui().compare_risks = self._core.compare_risks
+        print self.get_gui().compare_risks
