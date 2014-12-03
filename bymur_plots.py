@@ -35,6 +35,7 @@ import matplotlib as mpl
 import matplotlib.mlab as mlab
 import matplotlib.pyplot as pyplot
 import matplotlib.collections as mcoll
+from matplotlib.widgets import RectangleSelector
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
 
@@ -83,12 +84,13 @@ class HazardGraph(BymurPlot):
         self._map_limits = [425.000,448.000, 4510.000, 4533.000]
         self.haz_point = None
         self.prob_point = None
+        self._selector = None
 
         super(HazardGraph, self).__init__(*args, **kwargs)
 
         if show_areas:
-            self._figure.canvas.mpl_connect('button_press_event',
-                                        self.on_press)
+            self._figure.canvas.mpl_connect('button_release_event',
+                                        self.on_release)
         else:
             self._figure.canvas.mpl_connect('pick_event',
                                         self.on_pick)
@@ -109,7 +111,7 @@ class HazardGraph(BymurPlot):
         self._click_callback(ind)
         #self._click_callback(x,y)
 
-    def on_press(self, event):
+    def on_release(self, event):
         x = event.xdata
         y = event.ydata
         ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
@@ -148,6 +150,13 @@ class HazardGraph(BymurPlot):
                                                   visible=False,
                                                   zorder=5)
 
+
+        # print "axes %s" % haz_subplot.get_axes()
+        # print "lines %s" % haz_subplot.get_lines()
+        # print "zorder %s" % haz_subplot.get_zorder()
+
+
+
         self.prob_map = self.plot_probability_map(x_mesh, y_mesh,
                                   [p['prob_value'] for p in hazard_data])
 
@@ -161,12 +170,15 @@ class HazardGraph(BymurPlot):
 
         self._canvas.draw()
 
+
+
     def plot_hazard_map(self, x_mesh, y_mesh, z_points,
                  hazard, inventory):
         haz_bar_label = hazard.imt
         # TODO: install natgrid to use natural neighbor interpolation
         z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
                                interp='linear')
+
 
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
@@ -175,6 +187,17 @@ class HazardGraph(BymurPlot):
                                                   self._cmap.N)
         # Add hazard map subfigure
         haz_subplot = self._figure.add_subplot(1, 2, 1)
+
+        self._selector = RectangleSelector(haz_subplot, self._onselect,
+                                     drawtype='box',
+                                     rectprops=dict(alpha=0.5,
+                                                      facecolor='c',
+                                                      zorder = 10),
+                                     button=1,
+                                     spancoords='data')
+
+
+        # print hazard_selector
         # TODO: tmp image plot
         img = pyplot.imread(self._imgfile)
 
@@ -216,7 +239,6 @@ class HazardGraph(BymurPlot):
                                           picker=5,
                                           linewidths=0)
 
-
         # Plot hazard bar
         hazard_bar = self._figure.colorbar(
             haz_scatter,
@@ -225,6 +247,7 @@ class HazardGraph(BymurPlot):
             ticks=z_boundaries,
             boundaries=z_boundaries,
             format='%.3f')
+
         hazard_bar.set_alpha(1)
         hazard_bar.set_label(haz_bar_label)
         hazard_bar.draw_all()
@@ -276,6 +299,24 @@ class HazardGraph(BymurPlot):
         # prob_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return prob_subplot
 
+    def _onselect(self, eclick, erelease):
+        'eclick and erelease are matplotlib events at press and release'
+        print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
+        print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
+        print ' used button   : ', eclick.button
+        x1, y1 = eclick.xdata, eclick.ydata
+        x2, y2 = erelease.xdata, erelease.ydata
+        x_min = min(x1, x2)
+        y_min = min(y1, y2)
+        x_max = max(x1, x2)
+        y_max = max(y1, y2)
+        width = abs(x2-x1)
+        height = abs(y2-y1)
+        _points = [(self.x_points[i],self.y_points[i])
+                  for i in range(len(self.x_points)) ]
+        _sel_points = [p for p in _points
+                       if (x_min<=p[0]<=x_max) and (y_min<=p[1]<=y_max)]
+        print _sel_points
         
     def levels_boundaries(self, z_array):
         max_intervals = 5
@@ -527,6 +568,7 @@ class RiskCurve(BymurPlot):
 
     def __init__(self, *args, **kwargs):
         super(RiskCurve, self).__init__(*args, **kwargs)
+        self._selector = None
 
     def plot(self, **kwargs):
         self._hazard = kwargs.pop('hazard', None)
@@ -569,6 +611,13 @@ class RiskCurve(BymurPlot):
                                  color = self._stat_colors[
                                      self._stat_to_plot.index(c[
                                          'statistic'])])
+
+        self._selector = RectangleSelector(pyplot.gca(), lambda x: x,
+                                     drawtype='box',
+                                     rectprops=dict(alpha=0.5,
+                                                      facecolor='c'),
+                                     button=1,
+                                     spancoords='data')
         subplot_tmp.set_yscale('log')
         subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
         subplot_tmp.set_ylabel("Probability")
@@ -803,64 +852,5 @@ class InvCurve(BymurPlot):
         self._canvas.draw()
 
 
-# class CompareRisk(BymurPlot):
-#     def __init__(self, *args, **kwargs):
-#         super(CompareRisk, self).__init__(*args, **kwargs)
-#
-#     def plot(self, **kwargs):
-#         # Plot risk index
-#         print "Compare risk, plot"
-#         self._loss = kwargs.pop('loss', None)
-#         self._risk = kwargs.pop('risk', None)
-#         self._area = kwargs.pop('area', None)
-#         self._figure.clf()
-#
-#         if (self._loss is None) or (self._risk is None) or \
-#                 (self._area['inventory'] is None) or \
-#                 (self._area['fragility'] is None) or \
-#                 (self._area['loss'] is None) or \
-#                 (self._area['risk'] is None) or \
-#                 (self._area['inventory'].asset.total == 0):
-#             self._canvas.draw()
-#             return
-#
-#         gridspec = pyplot.GridSpec(1, 1)
-#         subplot_spec = gridspec.new_subplotspec((0, 0))
-#         subplot_tmp = self._figure.add_subplot(subplot_spec)
-#         values = []
-#         for c in self._area['risk']:
-#             if c['statistic'] == 'mean':
-#                 subplot_tmp.axvline(
-#                     x=float(c['average_risk']),
-#                     color='r',
-#                     linewidth=1,
-#                     alpha=1,
-#                     label="Mean")
-#             elif c['statistic'] == 'quantile50':
-#                 subplot_tmp.axvline(
-#                     x=float(c['average_risk']),
-#                     linestyle='--',
-#                     color='b',
-#                     linewidth=1,
-#                     alpha=1,
-#                     label="Median")
-#             else:
-#                 values.append((c['average_risk'],
-#                                float(c['statistic'][len("quantile"):])/100))
-#
-#         values = sorted(values, key = lambda val: val[0])
-#         subplot_tmp.plot([v[0] for v in values],
-#                          [v[1] for v in values],
-#                          linewidth=1,
-#                          linestyle='-.',
-#                          alpha=1,
-#                          label = "Percentiles",
-#                          color = 'k')
-#         subplot_tmp.set_ylim((0,1))
-#         subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
-#         subplot_tmp.set_ylabel("Percentile")
-#         subplot_tmp.tick_params(axis='x', labelsize=8)
-#         subplot_tmp.tick_params(axis='y', labelsize=8)
-#         subplot_tmp.set_title("Risk index", fontsize=9)
-#         subplot_tmp.legend(loc=1, prop={'size':6})
-#         self._canvas.draw()
+def sel(eclick, erelease):
+    print "Sel"

@@ -30,7 +30,6 @@
 '''
 
 import os
-import re
 import MySQLdb as mdb
 import bymur_functions as bf
 
