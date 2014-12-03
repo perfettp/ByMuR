@@ -252,6 +252,22 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     def commit(self):
         self._connection.commit()
 
+    def drop_tables(self):
+        query = "SHOW TABLES"
+        self._cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
+        self._cursor.execute(query)
+        tables = self._cursor.fetchall()
+        print tables
+        for tab in tables:
+            query = "DROP TABLE %s"
+            query %= tab[0]
+            print query
+            self._cursor.execute(query)
+        self._cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+
+    def close(self):
+        self._connection.close()
+
     def get_datagrid_id_by_name(self, name):
         sqlquery = "SELECT id FROM datagrids WHERE name = '{0}'"
         self._cursor.execute(sqlquery.format(name.upper()))
@@ -288,6 +304,22 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             self._cursor.execute(sqlquery.format(name.upper()))
             return self._cursor.lastrowid
 
+    def insert_datagrid_points(self, datagrid_id, points):
+        """
+        """
+
+        # # Insert grid if it doesn't exists
+        # datagrid_id = self.datagrid_get_insert_id(datagrid_name)
+        # Insert points
+        # print "Point insert result: %s" % self.points_insert(points)
+        # Get list of points id
+        pointsid_list = self.get_pointsid_list_by_coords(points)
+        # print "Points id list: %s " % pointsid_list
+        # Associate grid with points
+        return self.insert_datagrid_points_rels(datagrid_id, pointsid_list)
+
+
+
     def insert_datagrid_points_rels(self, datagrid_id, points_id_list):
         """
 
@@ -309,6 +341,43 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         return [dict(zip(['id', 'easting', 'northing',
                           'zone_number', 'zone_letter'], x))
                 for x in self._cursor.fetchall()]
+
+    def get_pointsid_list_by_coords(self, points):
+        """
+        Get points id list from table 'point'
+        :param points: list of point dictionaries
+        :return:
+        """
+
+        # print points
+        sqlquery = """
+                    SELECT id FROM points WHERE (easting, northing,
+                                zone_number, zone_letter)
+                        IN (%s)
+                    """
+        if len(points) < 1:
+            return -1
+        points_list = ', '.join([str((x['easting'], x['northing'],
+                                      x['zone_number'], x['zone_letter'])) for
+                                 x in
+                                 points])
+        sqlquery %= points_list
+        self._cursor.execute(sqlquery)
+        return [item[0] for item in self._cursor.fetchall()]
+
+    def insert_utm_points(self, points):
+        """
+        Insert multiple point in table 'points' if they don't already exist
+        :param points: list of point dictionaries
+        :return: number of new points inserted
+        """
+        sqlquery = """
+                    INSERT IGNORE INTO points (easting,
+                                        northing, zone_number, zone_letter)
+                        VALUES(%(easting)s, %(northing)s,
+                        %(zone_number)s, %(zone_letter)s)
+                    """
+        return self._cursor.executemany(sqlquery, points)
 
     def get_hazard_models_list(self):
         sqlquery = """
@@ -336,58 +405,77 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                           'risk_model_name'], x))
                 for x in self._cursor.fetchall()]
 
-
-    def insert_datagrid_points(self, datagrid_id, points):
+    def get_hazard_model_by_id(self, haz_id):
+        sqlquery = """ SELECT `haz_mod`.`id`,
+                    `haz_mod`.`id_phenomenon`,
+                    `haz_mod`.`id_datagrid`,
+                    `haz_mod`.`name`,
+                    `haz_mod`.`exposure_time`,
+                    `haz_mod`.`iml`,
+                    `haz_mod`.`imt`,
+                    `haz_mod`.`date`
+            FROM `hazard_models` `haz_mod`
+            WHERE `haz_mod`.`id`= %s
         """
-        """
-
-        # # Insert grid if it doesn't exists
-        # datagrid_id = self.datagrid_get_insert_id(datagrid_name)
-        # Insert points
-        # print "Point insert result: %s" % self.points_insert(points)
-        # Get list of points id
-        pointsid_list = self.get_pointsid_list_by_coords(points)
-        # print "Points id list: %s " % pointsid_list
-        # Associate grid with points
-        return self.insert_datagrid_points_rels(datagrid_id, pointsid_list)
-
-
-    def insert_utm_points(self, points):
-        """
-        Insert multiple point in table 'points' if they don't already exist
-        :param points: list of point dictionaries
-        :return: number of new points inserted
-        """
-        sqlquery = """
-                    INSERT IGNORE INTO points (easting,
-                                        northing, zone_number, zone_letter)
-                        VALUES(%(easting)s, %(northing)s,
-                        %(zone_number)s, %(zone_letter)s)
-                    """
-        return self._cursor.executemany(sqlquery, points)
-
-    def get_pointsid_list_by_coords(self, points):
-        """
-        Get points id list from table 'point'
-        :param points: list of point dictionaries
-        :return:
-        """
-
-        # print points
-        sqlquery = """
-                    SELECT id FROM points WHERE (easting, northing,
-                                zone_number, zone_letter)
-                        IN (%s)
-                    """
-        if len(points) < 1:
-            return -1
-        points_list = ', '.join([str((x['easting'], x['northing'],
-                                      x['zone_number'], x['zone_letter'])) for
-                                 x in
-                                 points])
-        sqlquery %= points_list
+        sqlquery %= str(haz_id)
+        # print sqlquery
         self._cursor.execute(sqlquery)
-        return [item[0] for item in self._cursor.fetchall()]
+        return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
+                         'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],
+                        self._cursor.fetchone()))
+
+    # TODO: sistemare questa
+    def get_hazard_model_by_name_exptime(self, haz_name, exp_time):
+        sqlquery = """ SELECT `haz_mod`.`id`,
+                    `haz_mod`.`id_phenomenon`,
+                    `haz_mod`.`id_datagrid`,
+                    `haz_mod`.`name`,
+                    `haz_mod`.`exposure_time`,
+                    `haz_mod`.`iml`,
+                    `haz_mod`.`imt`,
+                    `haz_mod`.`date`
+            FROM `hazard_models` `haz_mod`
+            WHERE `haz_mod`.`name`= '%s' AND  `haz_mod`.`exposure_time`= '%s'
+        """
+        sqlquery %= (str(haz_name.upper()), str(exp_time))
+        self._cursor.execute(sqlquery)
+        return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
+                         'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],
+                        self._cursor.fetchone()))
+
+    def insert_id_hazard_model(self, id_phen, id_datagrid, name,
+                               exp_time, iml, imt, date='0'):
+        sqlquery = """SELECT id FROM hazard_models
+                   WHERE name = '{0}' AND exposure_time = '{1}'
+                   """
+        self._cursor.execute(sqlquery.format(name.upper(), exp_time))
+        id = self._cursor.fetchone()
+        if id:
+            return id[0]
+        else:
+            sqlquery = """
+                    INSERT INTO hazard_models (id_phenomenon, id_datagrid,
+                                        name, exposure_time, iml, imt, date)
+                                        VALUES({0}, {1}, '{2}', '{3}', '{4}',
+                                        '{5}', {6})
+                    """
+            self._cursor.execute(sqlquery.format(id_phen, id_datagrid,
+                                                 name.upper(), exp_time,
+                                                 iml, imt, date))
+            return self._cursor.lastrowid
+
+    def get_phenomena_list(self):
+        sqlquery = "SELECT id, name FROM phenomena"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('phenomenon_id', 'phenomenon_name'), phen))
+                for phen in self._cursor.fetchall()]
+
+    def get_phenomenon_by_id(self, phenomeon_id):
+        sqlquery = """ SELECT `ph`.`id`, `ph`.`name`
+            FROM `phenomena` `ph`  WHERE `ph`.`id`= '{0}'
+        """
+        self._cursor.execute(sqlquery.format(phenomeon_id))
+        return dict(zip(['id', 'name'], self._cursor.fetchone()))
 
     def insert_id_phenomenon(self, phenomenon_name):
 
@@ -401,36 +489,25 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             self._cursor.execute(sqlquery.format(phenomenon_name.upper()))
             return self._cursor.lastrowid
 
-    def get_phenomena_list(self):
-        sqlquery = "SELECT id, name FROM phenomena"
-        self._cursor.execute(sqlquery)
-        return [dict(zip(('phenomenon_id', 'phenomenon_name'), phen))
-                for phen in self._cursor.fetchall()]
-
-    def get_general_classes_list(self):
-        sqlquery = "SELECT id, name, label FROM general_classes"
-        self._cursor.execute(sqlquery)
-        return [dict(zip(('id', 'name', 'label'), c))
-                for c in self._cursor.fetchall()]
-
-    def get_age_classes_list(self):
-        sqlquery = "SELECT id, name, label FROM age_classes"
-        self._cursor.execute(sqlquery)
-        return [dict(zip(('id', 'name', 'label'), c))
-                for c in self._cursor.fetchall()]
-
-    def get_house_classes_list(self):
-        sqlquery = "SELECT id, name, label FROM house_classes"
-        self._cursor.execute(sqlquery)
-        return [dict(zip(('id', 'name', 'label'), c))
-                for c in self._cursor.fetchall()]
-
-    def get_phenomenon_by_id(self, phenomeon_id):
-        sqlquery = """ SELECT `ph`.`id`, `ph`.`name`
-            FROM `phenomena` `ph`  WHERE `ph`.`id`= '{0}'
+    def get_statistic_by_value(self, statistic_name):
+        sqlquery = """ SELECT `st`.`id`
+            FROM `statistics` `st`  WHERE `st`.`name`= '{0}'
         """
-        self._cursor.execute(sqlquery.format(phenomeon_id))
-        return dict(zip(['id', 'name'], self._cursor.fetchone()))
+        # sqlquery %= str(statistic_name)
+        self._cursor.execute(sqlquery.format(statistic_name))
+        return self._cursor.fetchone()[0]
+
+    def get_statistics_by_haz(self, haz_id):
+        sqlquery = """ SELECT `st`.`id`, `st`.`name`
+            FROM `hazmodel_statistics` `haz_stat` LEFT JOIN
+            `statistics` `st` ON
+            `haz_stat`.`id_statistic`=`st`.`id`
+            WHERE `haz_stat`.`id_hazard_model`= %s
+        """
+        sqlquery %= str(haz_id)
+        self._cursor.execute(sqlquery)
+        return [dict(zip(['id', 'name'], (x[0], x[1])))
+                for x in self._cursor.fetchall()]
 
     def insert_id_statistic(self, statistic,
                                 percentile_value):
@@ -461,26 +538,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             sqlquery = "INSERT INTO statistics (name) VALUES('{0}')"
             self._cursor.execute(sqlquery.format(statistic))
             return self._cursor.lastrowid
-
-    def get_statistic_by_value(self, statistic_name):
-        sqlquery = """ SELECT `st`.`id`
-            FROM `statistics` `st`  WHERE `st`.`name`= '{0}'
-        """
-        # sqlquery %= str(statistic_name)
-        self._cursor.execute(sqlquery.format(statistic_name))
-        return self._cursor.fetchone()[0]
-
-    def get_statistics_by_haz(self, haz_id):
-        sqlquery = """ SELECT `st`.`id`, `st`.`name`
-            FROM `hazmodel_statistics` `haz_stat` LEFT JOIN
-            `statistics` `st` ON
-            `haz_stat`.`id_statistic`=`st`.`id`
-            WHERE `haz_stat`.`id_hazard_model`= %s
-        """
-        sqlquery %= str(haz_id)
-        self._cursor.execute(sqlquery)
-        return [dict(zip(['id', 'name'], (x[0], x[1])))
-                for x in self._cursor.fetchall()]
 
     def insert_hazard_statistic_rel(self, hazard_id, statistic_id):
         """
@@ -524,95 +581,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                     (id_hazard_model, id_volcano)
                         VALUES({0}, {1})"""
         return self._cursor.execute(sqlquery.format(hazard_id, volcano_id))
-
-    def insert_id_hazard_model(self, id_phen, id_datagrid, name,
-                               exp_time, iml, imt, date='0'):
-        sqlquery = """SELECT id FROM hazard_models
-                   WHERE name = '{0}' AND exposure_time = '{1}'
-                   """
-        self._cursor.execute(sqlquery.format(name.upper(), exp_time))
-        id = self._cursor.fetchone()
-        if id:
-            return id[0]
-        else:
-            sqlquery = """
-                    INSERT INTO hazard_models (id_phenomenon, id_datagrid,
-                                        name, exposure_time, iml, imt, date)
-                                        VALUES({0}, {1}, '{2}', '{3}', '{4}',
-                                        '{5}', {6})
-                    """
-            self._cursor.execute(sqlquery.format(id_phen, id_datagrid,
-                                                 name.upper(), exp_time,
-                                                 iml, imt, date))
-            return self._cursor.lastrowid
-
-    def get_hazard_model_by_id(self, haz_id):
-        sqlquery = """ SELECT `haz_mod`.`id`,
-                    `haz_mod`.`id_phenomenon`,
-                    `haz_mod`.`id_datagrid`,
-                    `haz_mod`.`name`,
-                    `haz_mod`.`exposure_time`,
-                    `haz_mod`.`iml`,
-                    `haz_mod`.`imt`,
-                    `haz_mod`.`date`
-            FROM `hazard_models` `haz_mod`
-            WHERE `haz_mod`.`id`= %s
-        """
-        sqlquery %= str(haz_id)
-        # print sqlquery
-        self._cursor.execute(sqlquery)
-        return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
-                         'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],
-                        self._cursor.fetchone()))
-
-    # TODO: sistemare questa
-    def get_hazard_model_by_name_exptime(self, haz_name, exp_time):
-        sqlquery = """ SELECT `haz_mod`.`id`,
-                    `haz_mod`.`id_phenomenon`,
-                    `haz_mod`.`id_datagrid`,
-                    `haz_mod`.`name`,
-                    `haz_mod`.`exposure_time`,
-                    `haz_mod`.`iml`,
-                    `haz_mod`.`imt`,
-                    `haz_mod`.`date`
-            FROM `hazard_models` `haz_mod`
-            WHERE `haz_mod`.`name`= '%s' AND  `haz_mod`.`exposure_time`= '%s'
-        """
-        sqlquery %= (str(haz_name.upper()), str(exp_time))
-        self._cursor.execute(sqlquery)
-        return dict(zip(['hazard_id', 'phenomenon_id', 'datagrid_id',
-                         'hazard_name', 'exposure_time', 'iml', 'imt', 'date'],
-                        self._cursor.fetchone()))
-
-    def insert_hazard_data(self, phenomenon, hazard_model_id, stat_id,
-                           points, curves):
-
-        if phenomenon == 'VOLCANIC':
-            table_name = "volcanic_data"
-        elif phenomenon == 'SEISMIC':
-            table_name = "seismic_data"
-        elif phenomenon == 'TSUNAMIC':
-            table_name = "tsunamic_data"
-
-
-        point_curve_map = zip(points,
-                              [", ".join(map(str, x)) for x in curves])
-        sqlquery = """
-                    INSERT IGNORE INTO `{0}` (id_hazard_model,
-                        id_point, id_statistic, hazard_curve)
-                        VALUES ( """ + str(hazard_model_id) + """
-                        , %s, """ + str(stat_id) + """, %s )"""
-
-        sqlquery = sqlquery.format(table_name)
-        return self._cursor.executemany(sqlquery, point_curve_map)
-
-    def insert_volcanic_data(self, hazard_model_id, stat_id, points, curves):
-        return self.insert_hazard_data('VOLCANIC', hazard_model_id, stat_id,
-                                       points, curves)
-
-    def insert_seismic_data(self, hazard_model_id, stat_id, points, curves):
-        return self.insert_hazard_data('SEISMIC', hazard_model_id, stat_id,
-                                       points, curves)
 
     def get_point_all_curves(self, phenomenon_id, hazard_id, point_id):
         """
@@ -685,6 +653,37 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                                    (x[0], x[1], x[2], x[3], x[4]))),
                           ([float(a) for a in x[5].split(',')]))))
                 for x in self._cursor.fetchall()]
+
+
+    def insert_hazard_data(self, phenomenon, hazard_model_id, stat_id,
+                           points, curves):
+
+        if phenomenon == 'VOLCANIC':
+            table_name = "volcanic_data"
+        elif phenomenon == 'SEISMIC':
+            table_name = "seismic_data"
+        elif phenomenon == 'TSUNAMIC':
+            table_name = "tsunamic_data"
+
+
+        point_curve_map = zip(points,
+                              [", ".join(map(str, x)) for x in curves])
+        sqlquery = """
+                    INSERT IGNORE INTO `{0}` (id_hazard_model,
+                        id_point, id_statistic, hazard_curve)
+                        VALUES ( """ + str(hazard_model_id) + """
+                        , %s, """ + str(stat_id) + """, %s )"""
+
+        sqlquery = sqlquery.format(table_name)
+        return self._cursor.executemany(sqlquery, point_curve_map)
+
+    def insert_volcanic_data(self, hazard_model_id, stat_id, points, curves):
+        return self.insert_hazard_data('VOLCANIC', hazard_model_id, stat_id,
+                                       points, curves)
+
+    def insert_seismic_data(self, hazard_model_id, stat_id, points, curves):
+        return self.insert_hazard_data('SEISMIC', hazard_model_id, stat_id,
+                                       points, curves)
 
     def load_grid(self, datagridfile_path):
         datagrid_name, datagrid_ext = os.path.splitext(os.path.basename(
@@ -784,21 +783,23 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             del fileXmlModel
         return True
 
-    def drop_tables(self):
-        query = "SHOW TABLES"
-        self._cursor.execute("SET FOREIGN_KEY_CHECKS = 0")
-        self._cursor.execute(query)
-        tables = self._cursor.fetchall()
-        print tables
-        for tab in tables:
-            query = "DROP TABLE %s"
-            query %= tab[0]
-            print query
-            self._cursor.execute(query)
-        self._cursor.execute("SET FOREIGN_KEY_CHECKS = 1")
+    def get_general_classes_list(self):
+        sqlquery = "SELECT id, name, label FROM general_classes"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('id', 'name', 'label'), c))
+                for c in self._cursor.fetchall()]
 
-    def close(self):
-        self._connection.close()
+    def get_age_classes_list(self):
+        sqlquery = "SELECT id, name, label FROM age_classes"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('id', 'name', 'label'), c))
+                for c in self._cursor.fetchall()]
+
+    def get_house_classes_list(self):
+        sqlquery = "SELECT id, name, label FROM house_classes"
+        self._cursor.execute(sqlquery)
+        return [dict(zip(('id', 'name', 'label'), c))
+                for c in self._cursor.fetchall()]
 
     def insert_id_age_class(self, name, label):
         sqlquery = "SELECT id FROM age_classes WHERE name LIKE '{0}'"
@@ -1515,7 +1516,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                           ",".join(function_point_list))
                 area_dic[a.statistic]['loss_entries'].append(f_tmp)
 
-        print area_dic
         for stat in area_dic.keys():
             self.insert_loss_data(loss_id, area_dic[stat]['stat_id'],
                                        area_dic[stat]['loss_entries'])
