@@ -284,7 +284,7 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
 
     def updateEnsemble(self, ev=None):
         if (ev is None):  # First data load
-            print "ensBoxSizer, event none"
+            pass
         elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
             _phen_name = self._ensPhenCB.GetStringSelection()
             _exptime_sel = self._ensExpTimeCB.GetValue()
@@ -351,11 +351,6 @@ class BymurEnsBoxSizer(BymurStaticBoxSizer):
         _phen_name = self._ensPhenCB.GetStringSelection()
         _exptime_sel = self._ensExpTimeCB.GetValue()
         _grid_sel = self._ensGridCB.GetValue()
-        print _phen_name
-        print _exptime_sel
-        print _grid_sel
-        print event.GetId()
-        print self._ensHaz[0]['checkbox'].GetId()
         for hazEntry in self._ensHaz:
             if hazEntry['checkbox'].GetId() == event.GetId():
                 if event.IsChecked():
@@ -509,7 +504,7 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
 
     def update(self, ev=None):
         if (ev is None):  # First data load
-            print "expHazBoxSizer, event none"
+            pass
         elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
             _phen_name = self._expHazPhenCB.GetStringSelection()
             _exptime_sel = self._expHazExpTimeCB.GetValue()
@@ -565,7 +560,6 @@ class BymurExpHazBoxSizer(BymurStaticBoxSizer):
             self._expHazModelCB.AppendItems(self._available_haz_list)
 
     def selExpHazDir(self, event):
-        print "selExpHazDir"
         dir = os.path.expanduser("~")
 
         dlg = wx.DirDialog(self._parent, "Select a directory:", defaultPath=dir,
@@ -674,9 +668,6 @@ class BymurMapBoxSizer(BymurStaticBoxSizer):
                     dlg.Destroy()
                     return
                 print "Map uploaded"
-                # TODO: what should I do here?
-                # self.confAct(self.conf_map)
-                # self.Layout()
             else:
                 bf.showMessage(parent=self._parent, kind="BYMUR_ERROR",
                                caption="Error!",
@@ -768,7 +759,6 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         list.SetItemFont(1,f)
 
     def selHazPath(self, event):
-        print "selHazPath"
         dir = os.path.dirname(self._hazPath)
         if (not os.path.isdir(dir)):
             dir = os.path.expanduser("~")
@@ -833,7 +823,7 @@ class BymurLoadGridDlg(wx.Dialog):
 class BymurDBCreateDlg(wx.Dialog):
     def __init__(self, *args, **kwargs):
         self._title = "Create ByMuR database"
-        print "kwargs: %s " % kwargs
+        print "Create ByMuR database, kwargs: %s " % kwargs
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
         self._localData = {'db_host': kwargs.pop('db_host', ''),
@@ -935,7 +925,6 @@ class BymurAddDBDataDlg(wx.Dialog):
                     result = -1
             else:
                 result = 1
-            print self._localHazData
         elif (result == wx.ID_CANCEL):
             result = 0
         else:
@@ -1046,7 +1035,6 @@ class BymurExportHazDlg(wx.Dialog):
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
         self._localData = kwargs.pop('data', {})
-        # print "data %s " % self._localData
         super(BymurExportHazDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
 
@@ -1101,8 +1089,6 @@ class BymurCmpRiskDlg(wx.MultiChoiceDialog):
         self._localData = dict()
         self._localData['risks'] = kwargs.pop('risks', [])
         self._localData['area'] = kwargs.pop('area', [])
-        print "BymurCmpRiskDialog init"
-        print "data keys %s " % self._localData.keys()
         super(BymurCmpRiskDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
 
@@ -1120,23 +1106,6 @@ class BymurCmpRiskDlg(wx.MultiChoiceDialog):
         self.SetSizerAndFit(self._sizer)
 
         self.SetTitle(self._title)
-
-    # def update_plot(self):
-    #     print "update plot"
-    #     self._riskBoxSizer._map.plot()
-
-    # def Show(self, **kwargs):
-    #     result = super(BymurCmpRiskDlg, self).Show(**kwargs)
-    #     if (result == wx.ID_OK):
-    #         result = 1
-    #         self._localData = {}
-    #         print "CmpRisk parameters %s" % self._localData
-    #     elif (result == wx.ID_CANCEL):
-    #         result = 0
-    #     else:
-    #         result = -1
-    #     return (result, self._localData)
-
 
 class BymurWxPanel(wx.Panel):
     def __init__(self, *args, **kwargs):
@@ -1202,8 +1171,6 @@ class BymurWxCurvesPanel(BymurWxPanel):
     def updatePages(self):
         all_pages_enable = self.GetTopLevelParent()._hazard is not None
         risk_pages_enable = self.GetTopLevelParent()._risk is not None
-        print "all page enable = %s " % all_pages_enable
-        print "risk page enable = %s " % risk_pages_enable
         self._curvesNBHaz.Enable(all_pages_enable)
         self._curvesNBInv.Enable(all_pages_enable)
         self._curvesNBFrag.Enable(risk_pages_enable)
@@ -1221,10 +1188,8 @@ class BymurWxMapPanel(BymurWxPanel):
         self._title = kwargs.pop('title', "Map")
         super(BymurWxMapPanel, self).__init__(*args, **kwargs)
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
-        print "basedir %s" %  wx.GetTopLevelParent(self).basedir
         _imgfile =  os.path.join(wx.GetTopLevelParent(self).basedir,
                                      "./data/naples_gsatellite.png")
-        print "file %s" % _imgfile
         self._map = bymur_plots.HazardGraph(parent=self,
                             click_callback=self._controller.pick_point_by_index,
                             imgfile = _imgfile)
@@ -1594,8 +1559,6 @@ class BymurWxDataPanel(BymurWxPanel):
         self.SetSizer(self._sizer)
 
     def updateInventory(self):
-        print "updateInventory"
-        print self._topWindow.inventory
         vpos = 0
         self._genClasses = []
         for gen_class in self._topWindow.inventory.classes['generalClasses']:
@@ -1685,7 +1648,6 @@ class BymurWxDataPanel(BymurWxPanel):
             self._invSecIDTC.SetValue('')
 
         if area_inventory.centroid:
-            print area_inventory.centroid[0]
             self._invCentroidXTC.SetValue(
                 str(area_inventory.centroid[0]))
             self._invCentroidYTC.SetValue(
@@ -1699,9 +1661,6 @@ class BymurWxDataPanel(BymurWxPanel):
                 str(area_inventory.asset.total))
         else:
             self._invTotalTC.SetValue('')
-
-
-        print area_inventory.asset.counts
 
         if isinstance(self._topWindow.inventory.classes, dict):
             if self._topWindow.inventory.classes['generalClasses']:
@@ -2178,11 +2137,9 @@ class BymurWxMenu(wx.MenuBar):
             raise Exception, "Menu action not defined!"
 
     def fireEvent(self):
-        print "Load..."
+        print "Fire bf.BYMUR_UPDATE_ALL event!"
         event = bf.BymurUpdateEvent(bf.BYMUR_UPDATE_ALL, 1)
-        print "Aim"
         wx.PostEvent(self, event)
-        print "Fire!"
 
     @property
     def dbControls(self):
@@ -2281,10 +2238,7 @@ class BymurWxView(wx.Frame):
 
 
     def updateView(self, **kwargs):
-        print "Main WxFrame"
-        # for panel in self.GetChildren():
-        # if isinstance(panel, BymurWxPanel):
-        # panel.updateView(**kwargs)
+        pass
 
     def saveFile(self, dfl_dir, get_text):
         ext = '.txt'
@@ -2340,13 +2294,11 @@ class BymurWxView(wx.Frame):
         for r in opts:
             if r in [cr.model_name for cr in compare_risks]:
                 sel_items.append(opts.index(r))
-        print "Rischi gia' selezionati %s"  % sel_items
         dlg.SetSelections(sel_items)
         r_strings = []
         if (dlg.ShowModal() == wx.ID_OK):
             selections = dlg.GetSelections()
             r_strings = [opts[x] for x in selections]
-            print "You chose:" + str(r_strings)
             return (len(r_strings), r_strings)
         else:
             return (-1, r_strings)
@@ -2395,6 +2347,7 @@ class BymurWxView(wx.Frame):
             self.dbConnected = True
             self.ctrlsPanel.updateCtrls()
         elif event.GetEventType() == bf.wxBYMUR_DB_CLOSED:
+            print "bf.wxBYMUR_DB_CLOSED"
             self.dbConnected = False
             self.reset()
             self.ctrlsPanel.clearCtrls()

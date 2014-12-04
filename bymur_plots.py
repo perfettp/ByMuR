@@ -85,6 +85,9 @@ class HazardGraph(BymurPlot):
         self.haz_point = None
         self.prob_point = None
         self._selector = None
+        self.areas = None
+        self._sel_points = None
+        self._patch_list = []
 
         super(HazardGraph, self).__init__(*args, **kwargs)
 
@@ -98,27 +101,11 @@ class HazardGraph(BymurPlot):
         self._selected_point = None
 
     def draw_point(self, x, y):
-        self.haz_point.set_visible(True)
         self.haz_point.set_data(x, y)
-        self.prob_point.set_visible(True)
+        self.haz_point.set_visible(True)
         self.prob_point.set_data(x, y)
+        self.prob_point.set_visible(True)
         self._canvas.draw()
-
-    def on_pick(self, event):
-        x = event.mouseevent.xdata
-        y = event.mouseevent.ydata
-        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
-        self._click_callback(ind)
-        #self._click_callback(x,y)
-
-    def on_release(self, event):
-        x = event.xdata
-        y = event.ydata
-        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
-        for path_index in range(len(self.areas.get_paths())):
-                if self.areas.get_paths()[path_index].\
-                        contains_point((x, y)):
-                    self._click_callback(ind, pathID=path_index)
 
     def clear(self):
         self._figure.clf()
@@ -151,12 +138,6 @@ class HazardGraph(BymurPlot):
                                                   zorder=5)
 
 
-        # print "axes %s" % haz_subplot.get_axes()
-        # print "lines %s" % haz_subplot.get_lines()
-        # print "zorder %s" % haz_subplot.get_zorder()
-
-
-
         self.prob_map = self.plot_probability_map(x_mesh, y_mesh,
                                   [p['prob_value'] for p in hazard_data])
 
@@ -174,12 +155,6 @@ class HazardGraph(BymurPlot):
 
     def plot_hazard_map(self, x_mesh, y_mesh, z_points,
                  hazard, inventory):
-        haz_bar_label = hazard.imt
-        # TODO: install natgrid to use natural neighbor interpolation
-        z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
-                               interp='linear')
-
-
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
         print "hazard_map_plot> z_boundaries: %s" % z_boundaries
@@ -188,7 +163,7 @@ class HazardGraph(BymurPlot):
         # Add hazard map subfigure
         haz_subplot = self._figure.add_subplot(1, 2, 1)
 
-        self._selector = RectangleSelector(haz_subplot, self._onselect,
+        self._selector = RectangleSelector(haz_subplot, self.on_select,
                                      drawtype='box',
                                      rectprops=dict(alpha=0.5,
                                                       facecolor='c',
@@ -196,39 +171,42 @@ class HazardGraph(BymurPlot):
                                      button=1,
                                      spancoords='data')
 
-
-        # print hazard_selector
         # TODO: tmp image plot
         img = pyplot.imread(self._imgfile)
-
         haz_subplot.imshow(
             img,
             zorder=0,
             origin="upper",
             extent=self._map_limits)
 
+        # Add inventory areas to subplot
         if show_areas:
-
-            patch_list = []
+            self._patch_list = []
             for sec in inventory.sections:
                 geometry_array =  np.array([[float(coord)*1e-3
                                     for coord in v]
                                         for v in sec.geometry])
-
-                path_tmp = mpl.path.Path(geometry_array, closed=True)
-                patch_list.append(path_tmp)
-
-            # Make the collection and add it to the plot.
-            # colors = ['#fbb4ae', '#b3cde3', '#ccebc5', '#decbe4', '#fed9a6' ]
-            self.areas = mcoll.PathCollection(patch_list,
-                                              facecolor='none',
-                                              linewidths=0.1,
+                path_tmp = mpl.patches.PathPatch(mpl.path.Path(
+                    geometry_array,closed=True), facecolor='none',
+                                              linewidth=0.1,
                                               zorder = 5,
                                               alpha = 0.6)
-            print self.areas.get_facecolor()
-            # self.areas.set_facecolor(None)
-            haz_subplot.add_collection(self.areas)
+                self._patch_list.append(path_tmp)
+                # haz_subplot.add_artist(path_tmp)
 
+            path_list = []
+            # self.areas = mcoll.PathCollection(path_list,
+            #                                   facecolor='none',
+            #                                   linewidths=0.1,
+            #                                   zorder = 5,
+            #                                   alpha = 0.6)
+            self.areas = mcoll.PatchCollection(self._patch_list,
+                                              facecolor='none',
+                                              color = 'w',
+                                              linewidths=0.3,
+                                              zorder = 5,
+                                              alpha = 1)
+            haz_subplot.add_collection(self.areas)
 
         # Plot hazard map
         haz_scatter = haz_subplot.scatter(self.x_points, self.y_points, marker='.',
@@ -249,24 +227,19 @@ class HazardGraph(BymurPlot):
             format='%.3f')
 
         hazard_bar.set_alpha(1)
-        hazard_bar.set_label(haz_bar_label)
+        hazard_bar.set_label(hazard.imt)
         hazard_bar.draw_all()
 
         haz_subplot.set_title("Hazard Map\n", fontsize=9)
         haz_subplot.set_xlabel("Easting (km)")
         haz_subplot.set_ylabel("Northing (km)")
-        # TODO: fix these limits
         haz_subplot.axis(self._map_limits)
         return haz_subplot
 
     def plot_probability_map(self, x_mesh, y_mesh, z_points):
 
-        z_mesh = mlab.griddata(self.x_points, self.y_points, z_points, x_mesh, y_mesh,
-                               interp='linear')
-
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
-        print "probability_map_plot> z_boundaries: %s" % z_boundaries
         cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
                                                   self._cmap.N)
 
@@ -294,16 +267,31 @@ class HazardGraph(BymurPlot):
         prob_subplot.set_title("Probability Map\n", fontsize=9)
         prob_subplot.set_xlabel("Easting (km)")
         probability_bar.draw_all()
-        # TODO: fix these limits
         prob_subplot.axis(self._map_limits)
-        # prob_subplot.axis([350.000,500.000, 4400.000, 4600.000])
         return prob_subplot
 
-    def _onselect(self, eclick, erelease):
+    def on_pick(self, event):
+        x = event.mouseevent.xdata
+        y = event.mouseevent.ydata
+        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
+        self._click_callback(ind)
+        #self._click_callback(x,y)
+
+    def on_release(self, event):
+        print "on_release"
+        x = event.xdata
+        y = event.ydata
+        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
+        for path_index in range(len(self.areas.get_paths())):
+                if self.areas.get_paths()[path_index].\
+                        contains_point((x, y)):
+                    self._click_callback(ind, pathID=path_index)
+
+    def on_select(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
-        print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
-        print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
-        print ' used button   : ', eclick.button
+        # print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
+        # print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
+        print "on_select"
         x1, y1 = eclick.xdata, eclick.ydata
         x2, y2 = erelease.xdata, erelease.ydata
         x_min = min(x1, x2)
@@ -314,9 +302,27 @@ class HazardGraph(BymurPlot):
         height = abs(y2-y1)
         _points = [(self.x_points[i],self.y_points[i])
                   for i in range(len(self.x_points)) ]
-        _sel_points = [p for p in _points
+        self._sel_points = [p for p in _points
                        if (x_min<=p[0]<=x_max) and (y_min<=p[1]<=y_max)]
-        print _sel_points
+        print "Selected grid points: %s" % self._sel_points
+        if len(self._sel_points) > 0:
+            m = []
+            [m.extend(patch.findobj(
+                match=self.check_path, include_self=True))
+                                    for patch in  self._patch_list]
+            print "Patch obj: %s" % m
+            print "Patch IDs: %s" % [i_p for i_p in range(len(self._patch_list))
+                        if self._patch_list[i_p].findobj(match=self.check_path,
+                                                         include_self=True)]
+
+
+    def check_path(self, a):
+        if type(a) == mpl.patches.PathPatch:
+            arr = a.get_path().contains_points(self._sel_points)
+            return arr.any()
+        else:
+            return False
+
         
     def levels_boundaries(self, z_array):
         max_intervals = 5
@@ -568,7 +574,6 @@ class RiskCurve(BymurPlot):
 
     def __init__(self, *args, **kwargs):
         super(RiskCurve, self).__init__(*args, **kwargs)
-        self._selector = None
 
     def plot(self, **kwargs):
         self._hazard = kwargs.pop('hazard', None)
@@ -612,12 +617,6 @@ class RiskCurve(BymurPlot):
                                      self._stat_to_plot.index(c[
                                          'statistic'])])
 
-        self._selector = RectangleSelector(pyplot.gca(), lambda x: x,
-                                     drawtype='box',
-                                     rectprops=dict(alpha=0.5,
-                                                      facecolor='c'),
-                                     button=1,
-                                     spancoords='data')
         subplot_tmp.set_yscale('log')
         subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
         subplot_tmp.set_ylabel("Probability")
