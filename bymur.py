@@ -1215,6 +1215,8 @@ class BymurWxMapPanel(BymurWxPanel):
                                         selected_point.easting * 1e-3,
                                         wx.GetTopLevelParent(self).
                                         selected_point.northing * 1e-3)
+            self._map.selected_areas = wx.GetTopLevelParent(self).selected_areas
+            self._map.update_selection()
 
     @property
     def title(self):
@@ -2174,6 +2176,7 @@ class BymurWxView(wx.Frame):
 
         self._selected_point = None
         self._selected_area = None
+        self._selected_areas = None
 
         self._compare_risks = []
 
@@ -2525,6 +2528,13 @@ class BymurWxView(wx.Frame):
     @selected_area.setter
     def selected_area(self, data):
         self._selected_area = data
+
+    @property
+    def selected_areas(self):
+        return self._selected_areas
+    @selected_areas.setter
+    def selected_areas(self, data):
+        self._selected_areas = data
         
     @property
     def compare_risks(self):

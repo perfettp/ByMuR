@@ -106,6 +106,8 @@ class HazardGraph(BymurPlot):
                                         self.on_pick)
         self._points_data = None
         self._selected_point = None
+        self._selected_areas = []
+        self._old_selected_areas = []
 
     def draw_point(self, x, y):
         self.haz_point.set_data(x, y)
@@ -199,10 +201,10 @@ class HazardGraph(BymurPlot):
                                     for coord in v]
                                         for v in sec.geometry])
                 path_tmp = mpl.patches.PathPatch(mpl.path.Path(
-                    geometry_array,closed=True), facecolor='none',
+                    geometry_array,closed=True), facecolor='c',
                                               linewidth=0.1,
                                               zorder = 5,
-                                              alpha = 0.6)
+                                              alpha = 0.4)
                 self._patch_list.append(path_tmp)
                 # haz_subplot.add_artist(path_tmp)
 
@@ -215,7 +217,7 @@ class HazardGraph(BymurPlot):
             self.areas = mcoll.PatchCollection(self._patch_list,
                                               facecolor='none',
                                               color = 'w',
-                                              linewidths=0.3,
+                                              linewidths=0.1,
                                               zorder = 5,
                                               alpha = 1)
             haz_subplot.add_collection(self.areas)
@@ -386,6 +388,19 @@ class HazardGraph(BymurPlot):
         bounds = np.linspace(min(z_array), max(z_array), max_intervals)
         return bounds
 
+    def update_selection(self):
+        self.draw_point(self.selected_point[0],
+                        self.selected_point[1])
+        for i_a in range(len(self._patch_list)):
+            if i_a in self._old_selected_areas:
+                self._patch_list[i_a].remove()
+            if i_a in self.selected_areas:
+                # self._patch_list[i_a].set_facecolor('c')
+                # self._patch_list[i_a].set_alpha(0.4)
+                self.haz_map.add_artist(self._patch_list[i_a])
+        self._canvas.draw()
+
+
     @property
     def selected_point(self):
         return self._selected_point
@@ -393,7 +408,7 @@ class HazardGraph(BymurPlot):
     @selected_point.setter
     def selected_point(self, coords):
         self._selected_point = coords
-        self.draw_point(coords[0], coords[1])
+
 
     @property
     def selected_areas(self):
@@ -401,6 +416,7 @@ class HazardGraph(BymurPlot):
 
     @selected_areas.setter
     def selected_areas(self, areas):
+        self._old_selected_areas = self.selected_areas
         self._selected_areas = areas
 
 

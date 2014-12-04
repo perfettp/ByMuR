@@ -410,6 +410,7 @@ class BymurCore(object):
         self._loss = None
         self._risk = None
         self._compare_risks = []
+        self._selected_areas = []
 
     def clear(self):
         self.grid_points = []
@@ -753,6 +754,9 @@ class BymurCore(object):
         except Exception as e:
             print "Exception in select_point_by_index: %s" % str(e)
             return False
+
+    def set_selected_areas(self, areas):
+        self._selected_areas = areas
 
 
     def set_point_by_coordinates(self, xpoint, ypoint):
@@ -1335,6 +1339,13 @@ class BymurCore(object):
     @selected_area.setter
     def selected_area(self, data):
         self._selected_area = data
+
+    @property
+    def selected_areas(self):
+        return self._selected_areas
+    @selected_areas.setter
+    def selected_areas(self, data):
+        self._selected_areas = data
 
     @property
     def selected_point(self):
