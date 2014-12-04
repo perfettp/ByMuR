@@ -305,10 +305,14 @@ class BymurController(object):
         print self.get_gui().rightPanel.curvesPanel._nb.GetCurrentPage()
         self.get_gui().rightPanel.curvesPanel.updateView()
 
-    def areas_selection(self, points_coords=[], areas_id=[]):
+    def areas_selection(self, index, points_coords=[], areas_id=[]):
         print "Areas selection"
+        print "Index: %s" %index
         print "points: %s" % points_coords
         print "aeras: %s" % areas_id
+        if self._core.set_point_by_index(index):
+            self._set_selected_point()
+            bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
     def pick_point_by_index(self, index, pathID=None):
         """

@@ -87,7 +87,6 @@ class HazardGraph(BymurPlot):
         self.prob_point = None
         self._selector = None
         self.areas = None
-        self._sel_points = None
         self._patch_list = []
         self._sel_minspan = 0.4
         self._sel_rect = mpl.patches.Rectangle((0, 0), 0, 0, color='y',
@@ -301,6 +300,7 @@ class HazardGraph(BymurPlot):
         if (abs(x-self.x0) < self._sel_minspan) and \
             (abs(x-self.x0) < self._sel_minspan):
                 self._sel_rect.set_visible(False)
+                print "%s,%s" % (x, y)
                 ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
                 for path_index in range(len(self.areas.get_paths())):
                         if self.areas.get_paths()[path_index].\
@@ -328,23 +328,31 @@ class HazardGraph(BymurPlot):
         self._canvas.draw()
         _points = [(self.x_points[i],self.y_points[i])
                   for i in range(len(self.x_points)) ]
-        self._sel_points = [p for p in _points
+        _sel_points = [p for p in _points
                        if (x_min<=p[0]<=x_max) and (y_min<=p[1]<=y_max)]
-        if len(self._sel_points) > 0:
-            areas = [i_p for i_p in range(len(self._patch_list))
-                        if self._patch_list[i_p].findobj(match=self.check_path,
-                                                         include_self=True)]
-            print "Patch IDs: %s" % areas
-            self._selection_callback(self._sel_points, areas)
+        print "%s,%s" % (x_min+(x_max-x_min)/2, y_min+(y_max-y_min)/2)
+        ind = bf.nearest_point_index(x_min+(x_max-x_min)/2,
+                                     y_min+(y_max-y_min)/2,
+                                     self.x_points,
+                                     self.y_points)
+        print "index %s" % ind
+        if len(_sel_points) <= 0:
+            _sel_points = [(self.x_points[ind], self.y_points[ind])]
+        areas = [i_p for i_p in range(len(self._patch_list))
+                 if self._patch_list[i_p].get_path().
+                    contains_points(_sel_points).any()]
+        # if self._patch_list[i_p].findobj(match=self.check_path,
+        #                                           include_self=True)]
+        self._selection_callback(ind, _sel_points, areas)
 
 
 
-    def check_path(self, a):
-        if type(a) == mpl.patches.PathPatch:
-            arr = a.get_path().contains_points(self._sel_points)
-            return arr.any()
-        else:
-            return False
+    # def check_path(self, a):
+    #     if type(a) == mpl.patches.PathPatch:
+    #         arr = a.get_path().contains_points(self._sel_points)
+    #         return arr.any()
+    #     else:
+    #         return False
 
         
     def levels_boundaries(self, z_array):
@@ -386,6 +394,14 @@ class HazardGraph(BymurPlot):
     def selected_point(self, coords):
         self._selected_point = coords
         self.draw_point(coords[0], coords[1])
+
+    @property
+    def selected_areas(self):
+        return self._selected_areas
+
+    @selected_areas.setter
+    def selected_areas(self, areas):
+        self._selected_areas = areas
 
 
 class HazardCurve(BymurPlot):

@@ -1636,31 +1636,27 @@ class BymurWxDataPanel(BymurWxPanel):
             self._dataProbTC.SetValue("")
 
         area_inventory = self._topWindow.selected_area['inventory']
-        if area_inventory.areaID:
-            self._invAreaIDTC.SetValue(
-                str(area_inventory.areaID))
-        else:
+
+        try:
+            self._invAreaIDTC.SetValue(str(area_inventory.areaID))
+        except AttributeError:
             self._invAreaIDTC.SetValue('')
 
-        if area_inventory.sectionID:
-            self._invSecIDTC.SetValue(
-                str(area_inventory.sectionID))
-        else:
+        try:
+            self._invSecIDTC.SetValue(str(area_inventory.sectionID))
+        except AttributeError:
             self._invSecIDTC.SetValue('')
 
-        if area_inventory.centroid:
-            self._invCentroidXTC.SetValue(
-                str(area_inventory.centroid[0]))
-            self._invCentroidYTC.SetValue(
-                str(area_inventory.centroid[1]))
-        else:
+        try:
+            self._invCentroidXTC.SetValue(str(area_inventory.centroid[0]))
+            self._invCentroidYTC.SetValue(str(area_inventory.centroid[1]))
+        except AttributeError:
             self._invCentroidXTC.SetValue('')
             self._invCentroidYTC.SetValue('')
 
-        if area_inventory.asset.total:
-            self._invTotalTC.SetValue(
-                str(area_inventory.asset.total))
-        else:
+        try:
+            self._invTotalTC.SetValue(str(area_inventory.asset.total))
+        except AttributeError:
             self._invTotalTC.SetValue('')
 
         if isinstance(self._topWindow.inventory.classes, dict):
