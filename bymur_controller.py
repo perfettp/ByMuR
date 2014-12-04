@@ -305,6 +305,11 @@ class BymurController(object):
         print self.get_gui().rightPanel.curvesPanel._nb.GetCurrentPage()
         self.get_gui().rightPanel.curvesPanel.updateView()
 
+    def areas_selection(self, points_coords=[], areas_id=[]):
+        print "Areas selection"
+        print "points: %s" % points_coords
+        print "aeras: %s" % areas_id
+
     def pick_point_by_index(self, index, pathID=None):
         """
         Select by index a point of which plot data in curve graph.

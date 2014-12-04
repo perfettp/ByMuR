@@ -1192,6 +1192,7 @@ class BymurWxMapPanel(BymurWxPanel):
                                      "./data/naples_gsatellite.png")
         self._map = bymur_plots.HazardGraph(parent=self,
                             click_callback=self._controller.pick_point_by_index,
+                            selection_callback=self._controller.areas_selection,
                             imgfile = _imgfile)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)

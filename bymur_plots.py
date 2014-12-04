@@ -81,6 +81,7 @@ class HazardGraph(BymurPlot):
     def __init__(self, *args, **kwargs):
         self._imgfile = kwargs.get('imgfile',"naples_gmaps.png")
         self._click_callback = kwargs.get('click_callback', None)
+        self._selection_callback = kwargs.get('selection_callback', None)
         self._map_limits = [425.000,448.000, 4510.000, 4533.000]
         self.haz_point = None
         self.prob_point = None
@@ -88,9 +89,16 @@ class HazardGraph(BymurPlot):
         self.areas = None
         self._sel_points = None
         self._patch_list = []
+        self._sel_minspan = 0.4
+        self._sel_rect = mpl.patches.Rectangle((0, 0), 0, 0, color='y',
+                                               alpha=0.5, visible=False,
+                                               zorder=10)
+
 
         super(HazardGraph, self).__init__(*args, **kwargs)
 
+        self._figure.canvas.mpl_connect('button_press_event',
+                                        self.on_press)
         if show_areas:
             self._figure.canvas.mpl_connect('button_release_event',
                                         self.on_release)
@@ -165,11 +173,15 @@ class HazardGraph(BymurPlot):
 
         self._selector = RectangleSelector(haz_subplot, self.on_select,
                                      drawtype='box',
+                                     minspanx=self._sel_minspan,
+                                     minspany=self._sel_minspan,
                                      rectprops=dict(alpha=0.5,
                                                       facecolor='c',
                                                       zorder = 10),
                                      button=1,
                                      spancoords='data')
+
+        haz_subplot.add_artist(self._sel_rect)
 
         # TODO: tmp image plot
         img = pyplot.imread(self._imgfile)
@@ -178,6 +190,7 @@ class HazardGraph(BymurPlot):
             zorder=0,
             origin="upper",
             extent=self._map_limits)
+
 
         # Add inventory areas to subplot
         if show_areas:
@@ -275,22 +288,29 @@ class HazardGraph(BymurPlot):
         y = event.mouseevent.ydata
         ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
         self._click_callback(ind)
-        #self._click_callback(x,y)
+
+    def on_press(self, event):
+        print "on_press"
+        self.x0 = event.xdata
+        self.y0 = event.ydata
 
     def on_release(self, event):
         print "on_release"
         x = event.xdata
         y = event.ydata
-        ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
-        for path_index in range(len(self.areas.get_paths())):
-                if self.areas.get_paths()[path_index].\
-                        contains_point((x, y)):
-                    self._click_callback(ind, pathID=path_index)
+        if (abs(x-self.x0) < self._sel_minspan) and \
+            (abs(x-self.x0) < self._sel_minspan):
+                self._sel_rect.set_visible(False)
+                ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
+                for path_index in range(len(self.areas.get_paths())):
+                        if self.areas.get_paths()[path_index].\
+                                contains_point((x, y)):
+                            self._click_callback(ind, pathID=path_index)
 
     def on_select(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
-        # print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
-        # print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
+        print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
+        print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
         print "on_select"
         x1, y1 = eclick.xdata, eclick.ydata
         x2, y2 = erelease.xdata, erelease.ydata
@@ -300,20 +320,23 @@ class HazardGraph(BymurPlot):
         y_max = max(y1, y2)
         width = abs(x2-x1)
         height = abs(y2-y1)
+        self._sel_rect.set_visible(False)
+        self._sel_rect.set_xy((x_min, y_min))
+        self._sel_rect.set_height(height)
+        self._sel_rect.set_width(width)
+        self._sel_rect.set_visible(True)
+        self._canvas.draw()
         _points = [(self.x_points[i],self.y_points[i])
                   for i in range(len(self.x_points)) ]
         self._sel_points = [p for p in _points
                        if (x_min<=p[0]<=x_max) and (y_min<=p[1]<=y_max)]
-        print "Selected grid points: %s" % self._sel_points
         if len(self._sel_points) > 0:
-            m = []
-            [m.extend(patch.findobj(
-                match=self.check_path, include_self=True))
-                                    for patch in  self._patch_list]
-            print "Patch obj: %s" % m
-            print "Patch IDs: %s" % [i_p for i_p in range(len(self._patch_list))
+            areas = [i_p for i_p in range(len(self._patch_list))
                         if self._patch_list[i_p].findobj(match=self.check_path,
                                                          include_self=True)]
+            print "Patch IDs: %s" % areas
+            self._selection_callback(self._sel_points, areas)
+
 
 
     def check_path(self, a):
