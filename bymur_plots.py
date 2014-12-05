@@ -29,6 +29,7 @@
 
 '''
 
+from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
 import bymur_functions as bf
 import matplotlib as mpl
@@ -38,6 +39,7 @@ import matplotlib.collections as mcoll
 from matplotlib.widgets import RectangleSelector
 from matplotlib.backends.backend_wxagg import FigureCanvasWxAgg
 from matplotlib.backends.backend_wxagg import NavigationToolbar2WxAgg
+
 
 
 
@@ -65,8 +67,8 @@ class BymurPlot(object):
         self._canvas = FigureCanvasWxAgg(self._parent, -1, self._figure)
         self._toolbar = NavigationToolbar2WxAgg(self._canvas)
         self._figure.clf()
-        self._figure.subplots_adjust(left=None, bottom=None, right=None,
-                                    top=None, wspace=None, hspace=0.3)
+        # self._figure.subplots_adjust(left=None, bottom=None, right=None,
+        #                             top=None, wspace=None, hspace=0.3)
         self._cmap = pyplot.cm.RdYlGn_r
         self._figure.hold(True)
         self._canvas.SetSize(self._parent.GetSize())
@@ -89,10 +91,6 @@ class HazardGraph(BymurPlot):
         self._areas = None
         self.area_patch_coll = []
         self._sel_minspan = 0.4
-        # self._sel_rect = mpl.patches.Rectangle((0, 0), 0, 0, color='y',
-        #                                        alpha=0.5, visible=False,
-        #                                        zorder=10)
-
 
         super(HazardGraph, self).__init__(*args, **kwargs)
 
@@ -131,10 +129,14 @@ class HazardGraph(BymurPlot):
         x_mesh, y_mesh = np.meshgrid(x_vector, y_vector)
 
         self._figure.clf()
-        self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
-                                     top=0.92, wspace=0.35, hspace=0.2)
+        # self._figure.subplots_adjust(left=0.1, bottom=0.1, right=0.96,
+        #                              top=0.92, wspace=0.35, hspace=0.2)
         self._figure.hold(True)
-        self.haz_map = self.plot_hazard_map(x_mesh, y_mesh,
+        gridspec = pyplot.GridSpec(1, 2)
+        gridspec.update(wspace=0.4, left=0.07, right=.93)
+        subplot_spec = gridspec.new_subplotspec((0, 0))
+        subplot = self._figure.add_subplot(subplot_spec)
+        self.haz_map = self.plot_hazard_map(subplot,
                              [p['haz_value'] for p in hazard_data],
                              hazard, inventory)
 
@@ -147,7 +149,9 @@ class HazardGraph(BymurPlot):
                                                   zorder=5)
 
 
-        self.prob_map = self.plot_probability_map(x_mesh, y_mesh,
+        subplot_spec = gridspec.new_subplotspec((0, 1))
+        subplot = self._figure.add_subplot(subplot_spec)
+        self.prob_map = self.plot_probability_map(subplot,
                                   [p['prob_value'] for p in hazard_data])
 
         self.prob_point,  = self.prob_map.plot([self.x_points[0]],
@@ -162,7 +166,7 @@ class HazardGraph(BymurPlot):
 
 
 
-    def plot_hazard_map(self, x_mesh, y_mesh, z_points,
+    def plot_hazard_map(self, subplot, z_points,
                  hazard, inventory):
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
@@ -170,7 +174,8 @@ class HazardGraph(BymurPlot):
         cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
                                                   self._cmap.N)
         # Add hazard map subfigure
-        haz_subplot = self._figure.add_subplot(1, 2, 1)
+        haz_subplot = subplot
+        # haz_subplot = self._figure.add_subplot(1, 2, 1)
 
         self._selector = RectangleSelector(haz_subplot, self.on_select,
                                      drawtype='box',
@@ -229,32 +234,35 @@ class HazardGraph(BymurPlot):
                                           linewidths=0)
 
         # Plot hazard bar
+        divider = make_axes_locatable(haz_subplot)
+        cax = divider.append_axes("right", size="5%", pad=0.3)
         hazard_bar = self._figure.colorbar(
             haz_scatter,
-            shrink=0.9,
+            cax=cax,
             norm=cmap_norm_index,
             ticks=z_boundaries,
             boundaries=z_boundaries,
             format='%.3f')
 
         hazard_bar.set_alpha(1)
-        hazard_bar.set_label(hazard.imt)
+        hazard_bar.set_label(hazard.imt, labelpad=-60)
         hazard_bar.draw_all()
 
-        haz_subplot.set_title("Hazard Map\n", fontsize=9)
+        haz_subplot.set_title("Hazard Map\n", fontsize=12)
         haz_subplot.set_xlabel("Easting (km)")
         haz_subplot.set_ylabel("Northing (km)")
         haz_subplot.axis(self._map_limits)
         return haz_subplot
 
-    def plot_probability_map(self, x_mesh, y_mesh, z_points):
+    def plot_probability_map(self, subplot, z_points):
 
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
         cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
                                                   self._cmap.N)
 
-        prob_subplot = self._figure.add_subplot(1, 2, 2)
+        prob_subplot = subplot
+        # prob_subplot = self._figure.add_subplot(1, 2, 2)
         img = pyplot.imread(self._imgfile)
         prob_subplot.imshow(
             img,
@@ -269,13 +277,16 @@ class HazardGraph(BymurPlot):
                                             picker=5,
                                             linewidths = 0)
 
+        divider = make_axes_locatable(prob_subplot)
+        cax = divider.append_axes("right", size="5%", pad=0.3)
         probability_bar = self._figure.colorbar(
             prob_scatter,
-            shrink=0.9,
+            cax=cax,
             orientation='vertical')
 
         probability_bar.set_alpha(1)
-        prob_subplot.set_title("Probability Map\n", fontsize=9)
+        probability_bar.set_label("Probability", labelpad=-60)
+        prob_subplot.set_title("Probability Map\n", fontsize=12)
         prob_subplot.set_xlabel("Easting (km)")
         probability_bar.draw_all()
         prob_subplot.axis(self._map_limits)

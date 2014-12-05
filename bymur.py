@@ -2222,7 +2222,7 @@ class BymurWxView(wx.Frame):
         self.mainSizer.Add(self._leftSizer, 0, wx.EXPAND)
         self.mainSizer.Add(self._rightPanel, 1, wx.EXPAND)
         self.SetSizer(self.mainSizer)
-        self.SetSize((950, 750))
+        self.SetSize((1200, 900))
 
     def reset(self):
         self._ctrls_data = {}
