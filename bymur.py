@@ -1216,6 +1216,7 @@ class BymurWxMapPanel(BymurWxPanel):
                                         wx.GetTopLevelParent(self).
                                         selected_point.northing * 1e-3)
             self._map.selected_areas = wx.GetTopLevelParent(self).selected_areas
+            # print [s.keys() for s in self._map.selected_areas]
             self._map.update_selection()
 
     @property
@@ -1242,8 +1243,7 @@ class BymurWxNBInvPage(BymurWxPanel):
         super(BymurWxNBInvPage, self).updateView(**kwargs)
         self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
                        inventory=wx.GetTopLevelParent(self).inventory,
-                       area_inventory=wx.GetTopLevelParent(self).selected_area[
-                           'inventory'])
+                       areas=wx.GetTopLevelParent(self).selected_areas)
         self.Enable(True)
 
     @property
@@ -1266,7 +1266,7 @@ class BymurWxNBFragPage(BymurWxPanel):
         self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
                        fragility=wx.GetTopLevelParent(self).fragility,
                        inventory=wx.GetTopLevelParent(self).inventory,
-                       area=wx.GetTopLevelParent(self).selected_area)
+                       areas=wx.GetTopLevelParent(self).selected_areas)
         self.Enable(True)
 
     @property
@@ -1314,7 +1314,7 @@ class BymurWxNBLossPage(BymurWxPanel):
                        inventory=wx.GetTopLevelParent(self).inventory,
                        fragility=wx.GetTopLevelParent(self).fragility,
                        loss=wx.GetTopLevelParent(self).loss,
-                       area = wx.GetTopLevelParent(self).selected_area)
+                       areas=wx.GetTopLevelParent(self).selected_areas)
         self.Enable(True)
 
     @property
@@ -1354,7 +1354,7 @@ class BymurWxNBRiskPage(BymurWxPanel):
                        loss=wx.GetTopLevelParent(self).loss,
                        risk=wx.GetTopLevelParent(self).risk,
                        compare_risks=wx.GetTopLevelParent(self).compare_risks,
-                       area = wx.GetTopLevelParent(self).selected_area)
+                       areas=wx.GetTopLevelParent(self).selected_areas)
         self.Enable(True)
 
     @property
@@ -1637,7 +1637,7 @@ class BymurWxDataPanel(BymurWxPanel):
         else:
             self._dataProbTC.SetValue("")
 
-        area_inventory = self._topWindow.selected_area['inventory']
+        area_inventory = self._topWindow.selected_areas[0]['inventory']
 
         try:
             self._invAreaIDTC.SetValue(str(area_inventory.areaID))
@@ -2175,7 +2175,7 @@ class BymurWxView(wx.Frame):
         self._risk = None
 
         self._selected_point = None
-        self._selected_area = None
+        # self._selected_area = None
         self._selected_areas = None
 
         self._compare_risks = []
@@ -2522,12 +2522,12 @@ class BymurWxView(wx.Frame):
     # def inventory_sections(self, data):
     #     self._inventory_sections = data
         
-    @property
-    def selected_area(self):
-        return self._selected_area
-    @selected_area.setter
-    def selected_area(self, data):
-        self._selected_area = data
+    # @property
+    # def selected_area(self):
+    #     return self._selected_area
+    # @selected_area.setter
+    # def selected_area(self, data):
+    #     self._selected_area = data
 
     @property
     def selected_areas(self):

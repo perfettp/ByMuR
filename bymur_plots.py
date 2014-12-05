@@ -86,12 +86,12 @@ class HazardGraph(BymurPlot):
         self.haz_point = None
         self.prob_point = None
         self._selector = None
-        self.areas = None
-        self._patch_list = []
+        self._areas = None
+        self.area_patch_coll = []
         self._sel_minspan = 0.4
-        self._sel_rect = mpl.patches.Rectangle((0, 0), 0, 0, color='y',
-                                               alpha=0.5, visible=False,
-                                               zorder=10)
+        # self._sel_rect = mpl.patches.Rectangle((0, 0), 0, 0, color='y',
+        #                                        alpha=0.5, visible=False,
+        #                                        zorder=10)
 
 
         super(HazardGraph, self).__init__(*args, **kwargs)
@@ -182,7 +182,7 @@ class HazardGraph(BymurPlot):
                                      button=1,
                                      spancoords='data')
 
-        haz_subplot.add_artist(self._sel_rect)
+        # haz_subplot.add_artist(self._sel_rect)
 
         # TODO: tmp image plot
         img = pyplot.imread(self._imgfile)
@@ -195,32 +195,29 @@ class HazardGraph(BymurPlot):
 
         # Add inventory areas to subplot
         if show_areas:
-            self._patch_list = []
+            self._areas= []
             for sec in inventory.sections:
+                _area_tmp=dict(patch = None,
+                                section = None)
                 geometry_array =  np.array([[float(coord)*1e-3
                                     for coord in v]
                                         for v in sec.geometry])
-                path_tmp = mpl.patches.PathPatch(mpl.path.Path(
+                _area_tmp['patch'] = mpl.patches.PathPatch(mpl.path.Path(
                     geometry_array,closed=True), facecolor='c',
                                               linewidth=0.1,
                                               zorder = 5,
                                               alpha = 0.4)
-                self._patch_list.append(path_tmp)
-                # haz_subplot.add_artist(path_tmp)
+                _area_tmp['inventory'] = sec
+                self._areas.append(_area_tmp)
 
-            path_list = []
-            # self.areas = mcoll.PathCollection(path_list,
-            #                                   facecolor='none',
-            #                                   linewidths=0.1,
-            #                                   zorder = 5,
-            #                                   alpha = 0.6)
-            self.areas = mcoll.PatchCollection(self._patch_list,
-                                              facecolor='none',
-                                              color = 'w',
-                                              linewidths=0.1,
-                                              zorder = 5,
-                                              alpha = 1)
-            haz_subplot.add_collection(self.areas)
+            self.area_patch_coll = mcoll.PatchCollection(
+                [a['patch'] for a in self._areas],
+                facecolor='none',
+                color = 'w',
+                linewidths=0.2,
+                zorder=5,
+                alpha=0.8)
+            haz_subplot.add_collection(self.area_patch_coll)
 
         # Plot hazard map
         haz_scatter = haz_subplot.scatter(self.x_points, self.y_points, marker='.',
@@ -291,70 +288,71 @@ class HazardGraph(BymurPlot):
         self._click_callback(ind)
 
     def on_press(self, event):
-        print "on_press"
         self.x0 = event.xdata
         self.y0 = event.ydata
 
     def on_release(self, event):
-        print "on_release"
         x = event.xdata
         y = event.ydata
         if (abs(x-self.x0) < self._sel_minspan) and \
             (abs(x-self.x0) < self._sel_minspan):
-                self._sel_rect.set_visible(False)
-                print "%s,%s" % (x, y)
+                # self._sel_rect.set_visible(False)
                 ind = bf.nearest_point_index(x, y, self.x_points, self.y_points)
-                for path_index in range(len(self.areas.get_paths())):
-                        if self.areas.get_paths()[path_index].\
+                for path_index in range(len(self.area_patch_coll.get_paths())):
+                        if self.area_patch_coll.get_paths()[path_index].\
                                 contains_point((x, y)):
                             self._click_callback(ind, pathID=path_index)
 
     def on_select(self, eclick, erelease):
         'eclick and erelease are matplotlib events at press and release'
-        print ' startposition : (%f, %f)' % (eclick.xdata, eclick.ydata)
-        print ' endposition   : (%f, %f)' % (erelease.xdata, erelease.ydata)
-        print "on_select"
         x1, y1 = eclick.xdata, eclick.ydata
         x2, y2 = erelease.xdata, erelease.ydata
         x_min = min(x1, x2)
         y_min = min(y1, y2)
         x_max = max(x1, x2)
         y_max = max(y1, y2)
-        width = abs(x2-x1)
-        height = abs(y2-y1)
-        self._sel_rect.set_visible(False)
-        self._sel_rect.set_xy((x_min, y_min))
-        self._sel_rect.set_height(height)
-        self._sel_rect.set_width(width)
-        self._sel_rect.set_visible(True)
         self._canvas.draw()
         _points = [(self.x_points[i],self.y_points[i])
                   for i in range(len(self.x_points)) ]
         _sel_points = [p for p in _points
                        if (x_min<=p[0]<=x_max) and (y_min<=p[1]<=y_max)]
-        print "%s,%s" % (x_min+(x_max-x_min)/2, y_min+(y_max-y_min)/2)
         ind = bf.nearest_point_index(x_min+(x_max-x_min)/2,
                                      y_min+(y_max-y_min)/2,
                                      self.x_points,
                                      self.y_points)
+        _nearest_centroid_index = bf.nearest_point_index(x_min+(x_max-x_min)/2,
+                                                         y_min+(y_max-y_min)/2,
+                                     [a['inventory'].centroid[0]*1e-3 for a in
+                                        self._areas],
+                                     [a['inventory'].centroid[1]*1e-3 for a in
+                                        self._areas])
         print "index %s" % ind
+        print "nearest_centroid_index %s" % _nearest_centroid_index
+        # Select an area if at least one of the selected point is inside it
+        # Doing this areas with no point are never selected
+        # if len(_sel_points) <= 0:
+        #     _sel_points = [(self.x_points[ind], self.y_points[ind])]
+        # _areas_list = [i_p for i_p in range(len(self._areas))
+        #          if self._areas[i_p]['patch'].get_path().
+        #             contains_points(_sel_points).any()]
+
         if len(_sel_points) <= 0:
             _sel_points = [(self.x_points[ind], self.y_points[ind])]
-        areas = [i_p for i_p in range(len(self._patch_list))
-                 if self._patch_list[i_p].get_path().
-                    contains_points(_sel_points).any()]
-        # if self._patch_list[i_p].findobj(match=self.check_path,
-        #                                           include_self=True)]
-        self._selection_callback(ind, _sel_points, areas)
+        _areas_list = []
+        for i_p in range(len(self._areas)):
+            cent_x = self._areas[i_p]['inventory'].centroid[0]*1e-3
+            cent_y = self._areas[i_p]['inventory'].centroid[1]*1e-3
+            if (x_min<=cent_x<=x_max) and (y_min<=cent_y<=y_max):
+                if i_p == _nearest_centroid_index:
+                    _areas_list.insert(0,self._areas[i_p])
+                    print "nearest , index = %s, areaID %s " % \
+                          (i_p, self._areas[i_p]['inventory'].areaID)
+                else:
+                    _areas_list.append(self._areas[i_p])
+        print "first index %s" % _areas_list[0]['inventory'].areaID
+        self._selection_callback(ind, _areas_list)
 
 
-
-    # def check_path(self, a):
-    #     if type(a) == mpl.patches.PathPatch:
-    #         arr = a.get_path().contains_points(self._sel_points)
-    #         return arr.any()
-    #     else:
-    #         return False
 
         
     def levels_boundaries(self, z_array):
@@ -391,13 +389,11 @@ class HazardGraph(BymurPlot):
     def update_selection(self):
         self.draw_point(self.selected_point[0],
                         self.selected_point[1])
-        for i_a in range(len(self._patch_list)):
-            if i_a in self._old_selected_areas:
-                self._patch_list[i_a].remove()
-            if i_a in self.selected_areas:
-                # self._patch_list[i_a].set_facecolor('c')
-                # self._patch_list[i_a].set_alpha(0.4)
-                self.haz_map.add_artist(self._patch_list[i_a])
+        for i_a in range(len(self._areas)):
+            if i_a in [a['areaID']-1 for a in self._old_selected_areas]:
+                self._areas[i_a]['patch'].remove()
+            if i_a in [a['areaID']-1 for a in self.selected_areas]:
+                self.haz_map.add_artist(self._areas[i_a]['patch'])
         self._canvas.draw()
 
 
@@ -502,10 +498,18 @@ class FragCurve(BymurPlot):
         self._hazard = kwargs.pop('hazard', None)
         self._fragility = kwargs.pop('fragility', None)
         self._inventory = kwargs.pop('inventory', None)
-        self._area= kwargs.pop('area', None)
+        self._areas= kwargs.pop('areas', None)
 
         self._figure.clf()
 
+        if len(self._areas) == 0:
+            print "Warning: no area selected"
+        elif len(self._areas) > 1:
+            print "Warning: multiple areas selected, plotting data just for " \
+                  "area %s " % self._areas[0]['areaID']
+            self._area = self._areas[0]
+        else:
+            self._area = self._areas[0]
 
         if (self._inventory is None) or (self._fragility is None) or \
                 (self._area['inventory'] is None) or \
@@ -577,8 +581,17 @@ class LossCurve(BymurPlot):
         self._inventory = kwargs.pop('inventory', None)
         self._fragility = kwargs.pop('fragility', None)
         self._loss = kwargs.pop('loss', None)
-        self._area = kwargs.pop('area', None)
+        self._areas = kwargs.pop('areas', None)
         self._figure.clf()
+
+        if len(self._areas) == 0:
+            print "Warning: no area selected"
+        elif len(self._areas) > 1:
+            print "Warning: multiple areas selected, plotting data just for " \
+                  "area %s " % self._areas[0]['areaID']
+            self._area = self._areas[0]
+        else:
+            self._area = self._areas[0]
 
         if (self._inventory is None) or (self._fragility is None) or \
                 (self._loss is None) or \
@@ -637,8 +650,17 @@ class RiskCurve(BymurPlot):
         self._loss = kwargs.pop('loss', None)
         self._risk = kwargs.pop('risk', None)
         self._compare_risks = kwargs.pop('compare_risks', None)
-        self._area = kwargs.pop('area', None)
+        self._areas = kwargs.pop('areas', None)
         self._figure.clf()
+
+        if len(self._areas) == 0:
+            print "Warning: no area selected"
+        elif len(self._areas) > 1:
+            print "Warning: multiple areas selected, plotting data just for " \
+                  "area %s " % self._areas[0]['areaID']
+            self._area = self._areas[0]
+        else:
+            self._area = self._areas[0]
 
 
         print "compare risks: %s" % [r.model_name for r in self._compare_risks]
@@ -794,12 +816,21 @@ class InvCurve(BymurPlot):
     def plot(self, **kwargs):
         self._hazard = kwargs.pop('hazard', None)
         self._inventory = kwargs.pop('inventory', None)
-        self._area_inventory = kwargs.pop('area_inventory', None)
+        self._areas = kwargs.pop('areas', None)
         self._figure.clf()
 
+        if len(self._areas) == 0:
+            print "Warning: no area selected"
+        elif len(self._areas) > 1:
+            print "Warning: multiple areas selected, plotting data just for " \
+                  "area %s " % self._areas[0]['areaID']
+            self._area = self._areas[0]
+        else:
+            self._area = self._areas[0]
+
         if (self._inventory is None) or \
-                (self._area_inventory is None) or \
-                (self._area_inventory.asset.total <= 0):
+                (self._area['inventory'] is None) or \
+                (self._area['inventory'].asset.total <= 0):
             print "Inventory exiting"
             self._canvas.draw()
             return
@@ -828,7 +859,7 @@ class InvCurve(BymurPlot):
         for i_class in range(len(self._inventory.classes['fragilityClasses'][
             self._hazard.phenomenon_name.lower()])):
             subplot_tmp.bar(i_class*width,
-                np.float(self._area_inventory.asset.frag_class_prob[
+                np.float(self._area['inventory'].asset.frag_class_prob[
                     self._hazard.phenomenon_name.lower()]['fnt'][i_class]),
                 width, color=self._colors[i_class],
                 label=self._inventory.classes['fragilityClasses'][
@@ -853,7 +884,7 @@ class InvCurve(BymurPlot):
         for i_class in range(len(self._inventory.classes['costClasses'][
             self._hazard.phenomenon_name.lower()])):
             subplot_tmp.bar(i_class*width,
-                np.float(self._area_inventory.asset.cost_class_prob[
+                np.float(self._area['inventory'].asset.cost_class_prob[
                     self._hazard.phenomenon_name.lower()]['fnc'][i_class]),
                 width, color=self._colors[i_class],
                 label=self._inventory.classes['costClasses'][
@@ -883,7 +914,7 @@ class InvCurve(BymurPlot):
             bar_offset = 0
         for i_class in range(len(self._inventory.classes['fragilityClasses'][
             self._hazard.phenomenon_name.lower()])):
-            sub_probs = [float(x) for x  in self._area_inventory.asset.frag_class_prob[
+            sub_probs = [float(x) for x  in self._area['inventory'].asset.frag_class_prob[
                 self._hazard.phenomenon_name.lower()][
                 'fntGivenGeneralClass'][i_class]]
             for i_p in range(len(sub_probs)):
@@ -904,7 +935,3 @@ class InvCurve(BymurPlot):
                            borderaxespad=0.)
         subplot_arr.append(subplot_tmp)
         self._canvas.draw()
-
-
-def sel(eclick, erelease):
-    print "Sel"
