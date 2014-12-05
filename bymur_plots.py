@@ -170,7 +170,6 @@ class HazardGraph(BymurPlot):
                  hazard, inventory):
         # Define colors mapping and levels
         z_boundaries = self.levels_boundaries(z_points)
-        print "hazard_map_plot> z_boundaries: %s" % z_boundaries
         cmap_norm_index = mpl.colors.BoundaryNorm(z_boundaries,
                                                   self._cmap.N)
         # Add hazard map subfigure
@@ -370,12 +369,11 @@ class HazardGraph(BymurPlot):
         max_intervals = 5
         maxz = np.ceil(max(z_array))
         minz = np.floor(min(z_array))
-        print "z_array max: %s" % maxz
-        print "z_array min: %s" % minz
+        # print "z_array max: %s" % maxz
+        # print "z_array min: %s" % minz
 
         if (maxz - minz) < 4:
             inter = 0.2
-            print "qui"
         elif maxz < 10:
             inter = 1.
             maxz = max(maxz, 3.)
@@ -402,7 +400,10 @@ class HazardGraph(BymurPlot):
                         self.selected_point[1])
         for i_a in range(len(self._areas)):
             if i_a in [a['areaID']-1 for a in self._old_selected_areas]:
-                self._areas[i_a]['patch'].remove()
+                try:
+                    self._areas[i_a]['patch'].remove()
+                except:
+                    pass
             if i_a in [a['areaID']-1 for a in self.selected_areas]:
                 self.haz_map.add_artist(self._areas[i_a]['patch'])
         self._canvas.draw()
@@ -438,12 +439,24 @@ class HazardCurve(BymurPlot):
         self._figure.clf()
         if (selected_point is None) or (hazard is None):
             return
-        self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
+        # self._axes = self._figure.add_axes([0.15, 0.15, 0.75, 0.75])
+        gridspec = pyplot.GridSpec(1, 1)
+        gridspec.update(bottom=0.15)
+        subplot_spec = gridspec.new_subplotspec((0,0))
+        self._axes = self._figure.add_subplot(subplot_spec)
         self._figure.hold(True)
         self._axes.grid(True)
 
-        xticks = hazard.iml  + [0]
+        if len(hazard.iml) <10:
+            xticks = hazard.iml + [0]
+        else:
+            xticks = [0] + [hazard.iml[i]
+                            for i in range(len(hazard.iml))
+                            if i%2==0]
+
+        self._axes.set_xlabel(hazard.imt)
         self._axes.set_xticks(xticks)
+        self._axes.tick_params(axis='x', labelsize=8)
         self._axes.set_xlim(left=0,
                             right= hazard.iml[len(hazard.iml)-1])
 
@@ -492,9 +505,7 @@ class HazardCurve(BymurPlot):
         title = ("Point index: " + str(selected_point.index) +
                " - Time window = " + str(hazard_options['exp_time']) + " "
                                                                         "years")
-        self._axes.set_title(title, fontsize=10)
-
-
+        self._axes.set_title(title, fontsize=12)
         self._axes.set_ylabel("Probability of Exceedance")
         self._axes.set_yscale("log")
         # self.axes.axis([0,1,0,1])
@@ -539,7 +550,7 @@ class FragCurve(BymurPlot):
         row_num = len(self._fragility.limit_states)
         col_num = len(area_general_classes)
         gridspec = pyplot.GridSpec(row_num, col_num)
-        gridspec.update(hspace = 0.4)
+        gridspec.update(hspace = 0.6)
         for i_row in range(row_num):
             for i_col in range(col_num):
 
@@ -570,8 +581,10 @@ class FragCurve(BymurPlot):
                                                     'statistic'])])
                         subplot_tmp.tick_params(axis='x', labelsize=8)
                         subplot_tmp.tick_params(axis='y', labelsize=8)
-                        subplot_tmp.set_xlabel(self._hazard.imt)
-                        subplot_tmp.set_ylabel("Probability")
+                        subplot_tmp.set_xlabel(self._hazard.imt, fontsize=9,
+                                               labelpad=-2)
+                        subplot_tmp.set_ylabel("Exceedance pobability",
+                                               fontsize=9)
                         subplot_tmp.set_ylim((0,1.05))
                         # print subplot_tmp
                         subplot_tmp.set_title("Prob. of " + c['limit_state'] +
@@ -615,8 +628,8 @@ class LossCurve(BymurPlot):
 
         row_num = len(self._fragility.limit_states)
         gridspec = pyplot.GridSpec(row_num, 1)
-        gridspec.update(hspace = 0.4)
-
+        gridspec.update(hspace = 0.6)
+        subplot_list = []
         for i_row in range(row_num):
             subplot_spec = gridspec.new_subplotspec((i_row, 0))
             subplot_tmp = self._figure.add_subplot(subplot_spec)
@@ -636,14 +649,16 @@ class LossCurve(BymurPlot):
                                              self._stat_to_plot.index(c[
                                                  'statistic'])])
                     subplot_tmp.tick_params(axis='x', labelsize=8)
+                    subplot_tmp.set_xlabel(self._loss.unit, fontsize=9,
+                                           labelpad=-2)
                     subplot_tmp.tick_params(axis='y', labelsize=8)
-                    subplot_tmp.set_xlabel(self._loss.unit)
-                    subplot_tmp.set_ylabel("Probability")
+                    subplot_tmp.set_ylabel("Exceedance probability", fontsize=9)
                     subplot_tmp.set_ylim((0, 1.05))
                     # print subplot_tmp
                     subplot_tmp.set_title("Prob. of loss given " + c[
                         'limit_state'], fontsize=10)
             subplot_tmp.legend(loc=1, prop={'size':6})
+            subplot_list.append(subplot_tmp)
         # gridspec.tight_layout(self._figure)
         self._canvas.draw()
 
@@ -686,7 +701,7 @@ class RiskCurve(BymurPlot):
             return
 
         gridspec = pyplot.GridSpec(1, 2)
-        gridspec.update(wspace = 0.4)
+        gridspec.update(wspace = 0.4, bottom=0.15)
         # Plot risk curve
         subplot_spec = gridspec.new_subplotspec((0, 0))
         subplot_tmp = self._figure.add_subplot(subplot_spec)
@@ -707,10 +722,10 @@ class RiskCurve(BymurPlot):
 
         subplot_tmp.set_yscale('log')
         subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
-        subplot_tmp.set_ylabel("Probability")
+        subplot_tmp.set_ylabel("Exceedance probability")
         subplot_tmp.tick_params(axis='x', labelsize=8)
         subplot_tmp.tick_params(axis='y', labelsize=8)
-        subplot_tmp.set_title("Risk curve", fontsize=9)
+        subplot_tmp.set_title("Risk curve", fontsize=12)
         subplot_tmp.legend(loc=1, prop={'size':6})
 
         # Plot risk index
@@ -806,7 +821,7 @@ class RiskCurve(BymurPlot):
         subplot_tmp.set_ylabel("Percentile")
         subplot_tmp.tick_params(axis='x', labelsize=8)
         subplot_tmp.tick_params(axis='y', labelsize=8)
-        subplot_tmp.set_title("Risk index", fontsize=9)
+        subplot_tmp.set_title("Risk index", fontsize=12)
 
 
         self._canvas.draw()
@@ -860,7 +875,7 @@ class InvCurve(BymurPlot):
         ticks = np.arange(0,width*len(self._inventory.classes[
             'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
                   width) + (width/2)
-        subplot_tmp.set_title("Fragility class probability")
+        subplot_tmp.set_title("Fragility class probability", fontsize=12)
         subplot_tmp.set_xticks(ticks)
         subplot_tmp.set_xticklabels([cl.label for cl in
                                 self._inventory.classes['fragilityClasses'][
@@ -887,7 +902,7 @@ class InvCurve(BymurPlot):
         ticks = np.arange(0,width*len(self._inventory.classes[
         'costClasses'][self._hazard.phenomenon_name.lower()]),
               width) + (width/2)
-        subplot_tmp.set_title("Cost class probability")
+        subplot_tmp.set_title("Cost class probability", fontsize=12)
         subplot_tmp.set_xticks(ticks)
         subplot_tmp.set_xticklabels([cl.label for cl in
                             self._inventory.classes['costClasses'][
@@ -907,7 +922,7 @@ class InvCurve(BymurPlot):
         # differents target fragility class ==> same bar color sum == 1)
         subplot_spec = gridspec.new_subplotspec((1, 0), colspan=2)
         subplot_tmp = self._figure.add_subplot(subplot_spec)
-        subplot_tmp.set_title("Fragility given class")
+        subplot_tmp.set_title("Fragility given class", fontsize=12)
         ticks = np.arange(0,width*len(self._inventory.classes[
             'fragilityClasses'][self._hazard.phenomenon_name.lower()]),
                   width) + (width/2)

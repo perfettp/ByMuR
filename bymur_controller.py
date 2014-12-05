@@ -302,7 +302,6 @@ class BymurController(object):
         print "showPoints"
 
     def nbTabChanged(self, event):
-        print self.get_gui().rightPanel.curvesPanel._nb.GetCurrentPage()
         self.get_gui().rightPanel.curvesPanel.updateView()
 
     def areas_selection(self, index, areas=[]):
