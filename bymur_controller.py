@@ -232,9 +232,9 @@ class BymurController(object):
         if dialogResult >= 0:
             self._core.set_cmp_risks(dialogStrings,
                                      self._core.hazard_options['exp_time'])
-            self._core.set_area_by_ID(self._core.selected_area['areaID'])
+            self._core.set_areas_by_ID([self._core.selected_area['areaID']])
             self._set_compare_risks()
-            self._set_selected_area()
+            self._set_selected_areas()
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_MAP)
 
 
@@ -302,8 +302,14 @@ class BymurController(object):
         print "showPoints"
 
     def nbTabChanged(self, event):
-        print self.get_gui().rightPanel.curvesPanel._nb.GetCurrentPage()
         self.get_gui().rightPanel.curvesPanel.updateView()
+
+    def areas_selection(self, index, areas=[]):
+        if self._core.set_point_by_index(index):
+            self._core.set_areas_by_list(areas)
+            self._set_selected_point()
+            self._set_selected_areas()
+            bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
     def pick_point_by_index(self, index, pathID=None):
         """
@@ -313,8 +319,8 @@ class BymurController(object):
         """
 
         if pathID is not None:
-            self._core.set_area_by_ID(pathID+1)
-            self._set_selected_area()
+            self._core.set_areas_by_ID([pathID+1])
+            self._set_selected_areas()
         if self._core.set_point_by_index(index):
             self._set_selected_point()
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
@@ -366,6 +372,7 @@ class BymurController(object):
         self._set_risk()
         self._set_compare_risks()
         self._set_selected_area()
+        self._set_selected_areas()
 
     def _set_ctrls_data(self):
         self.get_gui().ctrls_data = self._core.ctrls_data
@@ -400,6 +407,9 @@ class BymurController(object):
 
     def _set_selected_area(self):
         self.get_gui().selected_area = self._core.selected_area
+
+    def _set_selected_areas(self):
+        self.get_gui().selected_areas = self._core.selected_areas
         
     def _set_compare_risks(self):
         print "set_compare_risks"

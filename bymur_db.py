@@ -30,7 +30,6 @@
 '''
 
 import os
-import re
 import MySQLdb as mdb
 import bymur_functions as bf
 
@@ -1302,7 +1301,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
     def get_riskdata_by_areaid(self, risk_id, area_id):
 
         area_db_id = self.get_area_dbid_by_areaid(area_id)
-        print "area_db_id %s " % area_db_id
         sqlquery = """
                     SELECT `st`.`name`, `rd`.`risk_function`,
                     `rd`.`average_risk`
@@ -1316,8 +1314,6 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         res = self._cursor.fetchall()
         return [dict(zip(['statistic', 'risk_function', 'average_risk'], x))
                 for x in res]
-
-
 
     def insert_id_limitstate(self, limit_state):
         sqlquery = "SELECT id FROM limit_states WHERE name = '{0}'"

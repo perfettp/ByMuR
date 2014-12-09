@@ -410,6 +410,7 @@ class BymurCore(object):
         self._loss = None
         self._risk = None
         self._compare_risks = []
+        self._selected_areas = []
 
     def clear(self):
         self.grid_points = []
@@ -421,6 +422,7 @@ class BymurCore(object):
                                    fragility=None,
                                    loss = None,
                                    risk = None)
+        self.selected_areas = []
         self._inventory = None
         self._fragility = None
         self._loss = None
@@ -713,26 +715,56 @@ class BymurCore(object):
             self.hazard_options['int_thresh'],
             self.hazard_options['hazard_threshold'])
 
-    def set_area_by_ID(self, areaID):
+
+    def set_areas_by_list(self, areas):
+        print "Selected areas: %s" % len(areas)
+        _area_list = []
+        for a in areas:
+            area_tmp=dict()
+            area_tmp['areaID'] = a['inventory'].areaID
+            area_tmp['area_db_id'] = \
+                    self.db.get_area_dbid_by_areaid(area_tmp['areaID'])
+            area_tmp['inventory'] = a['inventory']
+            area_tmp['patch'] = a['patch']
+            if self.risk is not None:
+                area_tmp['fragility'] = self.db.get_fragdata_by_areaid(
+                            self.fragility.id, area_tmp['areaID'])
+                area_tmp['loss'] = self.db.get_lossdata_by_areaid(
+                            self.loss.id, area_tmp['areaID'])
+                area_tmp['risk'] = self.db.get_riskdata_by_areaid(
+                            self.risk.id, area_tmp['areaID'])
+                area_tmp['compare_risks'] = []
+                for c_r in self.compare_risks:
+                    area_tmp['compare_risks'].append(
+                        self.db.get_riskdata_by_areaid(c_r.id,
+                                                       area_tmp['areaID']))
+            _area_list.append(area_tmp)
+        self.selected_areas = _area_list
+
+
+    def set_areas_by_ID(self, areaID_list):
+        _area_list = []
         for sec in self.inventory.sections:
-            if sec.areaID == areaID:
-                self.selected_area['areaID'] = areaID
-                self.selected_area['area_db_id'] = \
-                    self.db.get_area_dbid_by_areaid(areaID)
-                self.selected_area['inventory'] = sec
+            if sec.areaID in areaID_list:
+                area_tmp=dict()
+                area_tmp['areaID'] = sec.areaID
+                area_tmp['area_db_id'] = \
+                    self.db.get_area_dbid_by_areaid(sec.areaID)
+                area_tmp['inventory'] = sec
                 # TODO: questi dovrebbero diventare oggetti
                 if self.risk is not None:
-                    self.selected_area['fragility'] = self.db.get_fragdata_by_areaid(
-                                self.fragility.id, areaID)
-                    self.selected_area['loss'] = self.db.get_lossdata_by_areaid(
-                                self.loss.id, areaID)
-                    self.selected_area['risk'] = self.db.get_riskdata_by_areaid(
-                                self.risk.id, areaID)
-                    self.selected_area['compare_risks'] = []
+                    area_tmp['fragility'] = self.db.get_fragdata_by_areaid(
+                                self.fragility.id, sec.areaID)
+                    area_tmp['loss'] = self.db.get_lossdata_by_areaid(
+                                self.loss.id, sec.areaID)
+                    area_tmp['risk'] = self.db.get_riskdata_by_areaid(
+                                self.risk.id, sec.areaID)
+                    area_tmp['compare_risks'] = []
                     for c_r in self.compare_risks:
-                        self.selected_area['compare_risks'].append(
-                            self.db.get_riskdata_by_areaid(c_r.id, areaID))
-                break
+                        area_tmp['compare_risks'].append(
+                            self.db.get_riskdata_by_areaid(c_r.id, sec.areaID))
+                _area_list.append(area_tmp)
+        self.selected_areas = _area_list
 
     def set_point_by_index(self, index):
         """
@@ -753,6 +785,9 @@ class BymurCore(object):
         except Exception as e:
             print "Exception in select_point_by_index: %s" % str(e)
             return False
+
+    # def set_selected_areas(self, areas):
+    #     self._selected_areas = areas
 
 
     def set_point_by_coordinates(self, xpoint, ypoint):
@@ -1335,6 +1370,13 @@ class BymurCore(object):
     @selected_area.setter
     def selected_area(self, data):
         self._selected_area = data
+
+    @property
+    def selected_areas(self):
+        return self._selected_areas
+    @selected_areas.setter
+    def selected_areas(self, data):
+        self._selected_areas = data
 
     @property
     def selected_point(self):
