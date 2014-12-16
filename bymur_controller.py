@@ -232,7 +232,8 @@ class BymurController(object):
         if dialogResult >= 0:
             self._core.set_cmp_risks(dialogStrings,
                                      self._core.hazard_options['exp_time'])
-            self._core.set_areas_by_ID([self._core.selected_area['areaID']])
+            self._core.set_areas_by_ID([a['areaID']
+                                        for a in self._core.selected_areas])
             self._set_compare_risks()
             self._set_selected_areas()
             bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_MAP)

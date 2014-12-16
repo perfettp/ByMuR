@@ -200,8 +200,6 @@ class EnsembleModel(object):
     def points_data(self, data):
         self._points_data = data
 
-
-
 class HazardModel(object):
     """
     Rapresentation of an Hazard model, read from data_provider and
