@@ -1277,3 +1277,34 @@ def find_xml_files(rootdir):
     return files_array
 
 
+def aggregated_aeras(areas):
+    res_a = []
+    sample_number = 500
+    areas_n=len(areas)
+    risk_index_samples = []
+    # print "areas[0]['risk']: %s " % areas[0]['risk']
+    for i_a in range(areas_n):
+        perc_n = len(areas[i_a]['risk'])
+        # print "perc_n %s" % perc_n
+        if perc_n > 0:
+            area_samples = []
+            random_samples = np.random.randint(0, perc_n, sample_number)
+            # print "random_samples %s" % random_samples
+            for i_s in range(sample_number):
+                # campiona uno dei average di un percentile
+                # print areas[i_a]['risk'][random_samples[i_s]]
+                area_samples.append(areas[i_a]['risk']
+                        [random_samples[i_s]]['average_risk'])
+            risk_index_samples.append(area_samples)
+    agg_risk = np.sum(risk_index_samples, axis=0)
+    res_a.append(dict(statistic='mean', average_risk=np.mean(agg_risk)))
+    res_a.append(dict(statistic='quantile50', average_risk=np.median(agg_risk)))
+    percs = np.arange(5,100,5)
+    percs_values = np.percentile(agg_risk, percs)
+    for i_p in range(len(percs)):
+        res_a.append(dict(statistic='quantile'+str(int(percs[i_p])).zfill(2),
+                          average_risk=percs_values[i_p]))
+    print res_a
+    return res_a
+
+    return res_a
