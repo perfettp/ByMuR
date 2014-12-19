@@ -681,59 +681,50 @@ class RiskCurve(BymurPlot):
 
         if len(self._areas) == 0:
             print "Warning: no area selected"
-        elif len(self._areas) > 1:
-            print "Warning: multiple areas selected, plotting data just for " \
-                  "area %s " % self._areas[0]['areaID']
-            self._area = self._areas[0]
-        else:
-            self._area = self._areas[0]
-
-
-        print "compare risks: %s" % [r.model_name for r in self._compare_risks]
-        if (self._inventory is None) or (self._fragility is None) or \
-                (self._loss is None) or (self._risk is None) or \
-                (self._area['inventory'] is None) or \
-                (self._area['fragility'] is None) or \
-                (self._area['loss'] is None) or \
-                (self._area['risk'] is None) or \
-                (self._area['inventory'].asset.total == 0):
-            self._canvas.draw()
-            return
-
-        gridspec = pyplot.GridSpec(1, 2)
-        gridspec.update(wspace = 0.4, bottom=0.15)
-        # Plot risk curve
-        subplot_spec = gridspec.new_subplotspec((0, 0))
-        subplot_tmp = self._figure.add_subplot(subplot_spec)
-        for c in self._area['risk']:
-            if c['statistic'] in self._stat_to_plot:
-                risk_x_values = [float(p.split(" ")[0]) for p in
-                                  c['risk_function'].split(",")]
-                risk_y_values = [float(p.split(" ")[1]) for p in
-                                  c['risk_function'].split(",")]
-                subplot_tmp.plot(risk_x_values,
-                                 risk_y_values,
-                                 linewidth=1,
-                                 alpha=1,
-                                 label = c['statistic'],
-                                 color = self._stat_colors[
-                                     self._stat_to_plot.index(c[
-                                         'statistic'])])
-
-        subplot_tmp.set_yscale('log')
-        subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
-        subplot_tmp.set_ylabel("Exceedance probability")
-        subplot_tmp.tick_params(axis='x', labelsize=8)
-        subplot_tmp.tick_params(axis='y', labelsize=8)
-        subplot_tmp.set_title("Risk curve", fontsize=12)
-        subplot_tmp.legend(loc=1, prop={'size':6})
-
-
-        # Plot risk index
-        if len(self._areas) == 0:
-            print "Warning: no area selected"
         elif len(self._areas) == 1:
+            self._area = self._areas[0]
 
+
+            print "compare risks: %s" % [r.model_name for r in self._compare_risks]
+            if (self._inventory is None) or (self._fragility is None) or \
+                    (self._loss is None) or (self._risk is None) or \
+                    (self._area['inventory'] is None) or \
+                    (self._area['fragility'] is None) or \
+                    (self._area['loss'] is None) or \
+                    (self._area['risk'] is None) or \
+                    (self._area['inventory'].asset.total == 0):
+                self._canvas.draw()
+                return
+
+            gridspec = pyplot.GridSpec(1, 2)
+            gridspec.update(wspace = 0.4, bottom=0.15)
+            # Plot risk curve
+            subplot_spec = gridspec.new_subplotspec((0, 0))
+            subplot_tmp = self._figure.add_subplot(subplot_spec)
+            for c in self._area['risk']:
+                if c['statistic'] in self._stat_to_plot:
+                    risk_x_values = [float(p.split(" ")[0]) for p in
+                                      c['risk_function'].split(",")]
+                    risk_y_values = [float(p.split(" ")[1]) for p in
+                                      c['risk_function'].split(",")]
+                    subplot_tmp.plot(risk_x_values,
+                                     risk_y_values,
+                                     linewidth=1,
+                                     alpha=1,
+                                     label = c['statistic'],
+                                     color = self._stat_colors[
+                                         self._stat_to_plot.index(c[
+                                             'statistic'])])
+
+            subplot_tmp.set_yscale('log')
+            subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
+            subplot_tmp.set_ylabel("Exceedance probability")
+            subplot_tmp.tick_params(axis='x', labelsize=8)
+            subplot_tmp.tick_params(axis='y', labelsize=8)
+            subplot_tmp.set_title("Risk curve", fontsize=12)
+            subplot_tmp.legend(loc=1, prop={'size':6})
+
+            # Plot risk index
             subplot_spec = gridspec.new_subplotspec((0, 1))
             subplot_tmp = self._figure.add_subplot(subplot_spec)
             values = []
@@ -809,10 +800,14 @@ class RiskCurve(BymurPlot):
                 l, = pyplot.plot([1,2,3], label=self._compare_risks[i_r].model_name,
                                  color = self.risk_colors[i_r])
                 cr_handles.append(l)
+            subplot_tmp.set_title("Risk index", fontsize=12)
+
         elif len(self._areas) > 1: # multiple areas selected
-
-            agg_area=bf.aggregated_aeras(self._areas)
-            subplot_spec = gridspec.new_subplotspec((0, 1))
+            print "Multiple areas selected, plotting just risk index "
+            self._area = bf.aggregated_aeras(self._areas)
+            gridspec = pyplot.GridSpec(1, 1)
+            gridspec.update(wspace = 0.4, bottom=0.15)
+            subplot_spec = gridspec.new_subplotspec((0, 0))
             subplot_tmp = self._figure.add_subplot(subplot_spec)
             values = []
             r_handles = []
@@ -887,6 +882,7 @@ class RiskCurve(BymurPlot):
                 l, = pyplot.plot([1,2,3], label=self._compare_risks[i_r].model_name,
                                  color = self.risk_colors[i_r])
                 cr_handles.append(l)
+            subplot_tmp.set_title("Aggregated risk index", fontsize=12)
 
         if len(cr_handles) > 0:
             l, = pyplot.plot([1,2,3], label=self._risk.model_name,
@@ -904,7 +900,6 @@ class RiskCurve(BymurPlot):
         subplot_tmp.set_ylabel("Percentile")
         subplot_tmp.tick_params(axis='x', labelsize=8)
         subplot_tmp.tick_params(axis='y', labelsize=8)
-        subplot_tmp.set_title("Risk index", fontsize=12)
 
 
         self._canvas.draw()
