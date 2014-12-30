@@ -736,7 +736,6 @@ class RiskCurve(BymurPlot):
                                          risk_y_values,
                                          linewidth=1,
                                          alpha=1,
-                                         label=c['statistic'],
                                          linestyle=self.risk_linestyles[
                                              self._stat_to_plot.index(c[
                                                  'statistic'])],
@@ -749,18 +748,21 @@ class RiskCurve(BymurPlot):
                 l, = pyplot.plot([], label=self._risk.model_name,
                                  color = 'k')
                 cr_handles.append(l)
-                cr_legend = pyplot.legend(handles=cr_handles, loc=4,
+                cr_legend = pyplot.legend(handles=cr_handles, loc=1,
                                           prop={'size':6})
                 # Add the legend manually to the current Axes.
                 ax = pyplot.gca().add_artist(cr_legend)
 
-            subplot_tmp.legend(handles=r_handles, loc=1, prop={'size':6})
+            # subplot_tmp.legend(handles=r_handles, loc=1, prop={'size':6})
+            subplot_tmp.legend(handles=r_handles, prop={'size':6},
+                               bbox_to_anchor=(0., 1, 1.,.10), loc=3,
+                        ncol=len(r_handles), mode="expand", borderaxespad=0.)
             subplot_tmp.set_yscale('log')
             subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
             subplot_tmp.set_ylabel("Exceedance probability")
             subplot_tmp.tick_params(axis='x', labelsize=8)
             subplot_tmp.tick_params(axis='y', labelsize=8)
-            subplot_tmp.set_title("Risk curve", fontsize=12)
+            subplot_tmp.set_title("Risk curve", y=1.05, fontsize=12)
 
             # Plot risk index
             subplot_spec = gridspec.new_subplotspec((0, 1))
@@ -773,8 +775,7 @@ class RiskCurve(BymurPlot):
                         x=float(c['average_risk']),
                         color='k',
                         linewidth=1,
-                        alpha=1,
-                        label="Mean")
+                        alpha=1)
                     l, = pyplot.plot([], label="Mean",
                                  color='k')
                     r_handles.append(l)
@@ -784,8 +785,7 @@ class RiskCurve(BymurPlot):
                         linestyle='--',
                         color='k',
                         linewidth=1,
-                        alpha=1,
-                        label="Median")
+                        alpha=1)
                     l, = pyplot.plot([], label="Median",
                                  color = 'k',linestyle='--' )
                     r_handles.append(l)
@@ -799,7 +799,6 @@ class RiskCurve(BymurPlot):
                              linewidth=1,
                              linestyle='-.',
                              alpha=1,
-                             label = "Percentiles",
                              color = 'k')
             l, = pyplot.plot([], label="Percentiles",
                                  color = 'k',linestyle='-.' )
@@ -838,7 +837,25 @@ class RiskCurve(BymurPlot):
                 l, = pyplot.plot([], label=self._compare_risks[i_r].model_name,
                                  color = self.risk_colors[i_r])
                 cr_handles.append(l)
-            subplot_tmp.set_title("Risk index", fontsize=12)
+            subplot_tmp.set_title("Risk index", y=1.05, fontsize=12)
+            if len(cr_handles) > 0:
+                l, = pyplot.plot([], label=self._risk.model_name,
+                                 color = 'k')
+                cr_handles.append(l)
+                cr_legend = pyplot.legend(handles=cr_handles, loc=4,
+                                          prop={'size':6})
+                # Add the legend manually to the current Axes.
+                ax = pyplot.gca().add_artist(cr_legend)
+
+            subplot_tmp.legend(handles=r_handles, prop={'size':6},
+                                   bbox_to_anchor=(0., 1, 1.,.10), loc=3,
+                            ncol=len(r_handles), mode="expand", borderaxespad=0.)
+            subplot_tmp.set_ylim((0,1))
+            subplot_tmp.set_xscale("log")
+            subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
+            subplot_tmp.set_ylabel("Percentile")
+            subplot_tmp.tick_params(axis='x', labelsize=8)
+            subplot_tmp.tick_params(axis='y', labelsize=8)
 
         elif len(self._areas) > 1: # multiple areas selected
             print "Multiple areas selected, plotting just risk index "
@@ -855,8 +872,7 @@ class RiskCurve(BymurPlot):
                         x=float(c['average_risk']),
                         color='k',
                         linewidth=1,
-                        alpha=1,
-                        label="Mean")
+                        alpha=1)
                     l, = pyplot.plot([], label="Mean",
                                  color = 'k')
                     r_handles.append(l)
@@ -866,8 +882,7 @@ class RiskCurve(BymurPlot):
                         linestyle='--',
                         color='k',
                         linewidth=1,
-                        alpha=1,
-                        label="Median")
+                        alpha=1)
                     l, = pyplot.plot([], label="Median",
                                  color = 'k',linestyle='--' )
                     r_handles.append(l)
@@ -881,7 +896,6 @@ class RiskCurve(BymurPlot):
                              linewidth=1,
                              linestyle='-.',
                              alpha=1,
-                             label = "Percentiles",
                              color = 'k')
             l, = pyplot.plot([], label="Percentiles",
                                  color = 'k',linestyle='-.' )
@@ -920,24 +934,27 @@ class RiskCurve(BymurPlot):
                 l, = pyplot.plot([], label=self._compare_risks[i_r].model_name,
                                  color = self.risk_colors[i_r])
                 cr_handles.append(l)
-            subplot_tmp.set_title("Aggregated risk index", fontsize=12)
+            subplot_tmp.set_title("Aggregated risk index", y=1.05,
+                                  fontsize=12)
 
-        if len(cr_handles) > 0:
-            l, = pyplot.plot([], label=self._risk.model_name,
-                             color = 'k')
-            cr_handles.append(l)
-            cr_legend = pyplot.legend(handles=cr_handles, loc=4,
-                                      prop={'size':6})
-            # Add the legend manually to the current Axes.
-            ax = pyplot.gca().add_artist(cr_legend)
+            if len(cr_handles) > 0:
+                l, = pyplot.plot([], label=self._risk.model_name,
+                                 color = 'k')
+                cr_handles.append(l)
+                cr_legend = pyplot.legend(handles=cr_handles, loc=4,
+                                          prop={'size':6})
+                # Add the legend manually to the current Axes.
+                ax = pyplot.gca().add_artist(cr_legend)
 
-        subplot_tmp.legend(handles=r_handles, loc=1, prop={'size':6})
-        subplot_tmp.set_ylim((0,1))
-        subplot_tmp.set_xscale("log")
-        subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
-        subplot_tmp.set_ylabel("Percentile")
-        subplot_tmp.tick_params(axis='x', labelsize=8)
-        subplot_tmp.tick_params(axis='y', labelsize=8)
+            subplot_tmp.legend(handles=r_handles, prop={'size':6},
+                                   bbox_to_anchor=(0., 1, 1.,.10), loc=3,
+                            ncol=len(r_handles), mode="expand", borderaxespad=0.)
+            subplot_tmp.set_ylim((0,1))
+            subplot_tmp.set_xscale("log")
+            subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
+            subplot_tmp.set_ylabel("Percentile")
+            subplot_tmp.tick_params(axis='x', labelsize=8)
+            subplot_tmp.tick_params(axis='y', labelsize=8)
 
 
         self._canvas.draw()
@@ -963,6 +980,8 @@ class InvCurve(BymurPlot):
 
         if len(self._areas) == 0:
             print "Warning: no area selected"
+            self._canvas.draw()
+            return
         elif len(self._areas) > 1:
             print "Warning: multiple areas selected, plotting data just for " \
                   "area %s " % self._areas[0]['areaID']
