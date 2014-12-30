@@ -1277,7 +1277,7 @@ def find_xml_files(rootdir):
     return files_array
 
 
-def aggregated_aeras(areas):
+def aggregated_indipendent(areas):
     ris_a = []
     sample_number = 500
     areas_n=len(areas)
@@ -1298,7 +1298,7 @@ def aggregated_aeras(areas):
             risk_index_samples.append(area_samples)
     agg_risk = np.sum(risk_index_samples, axis=0)
     ris_a.append(dict(statistic='mean', average_risk=np.mean(agg_risk)))
-    ris_a.append(dict(statistic='quantile50', average_risk=np.median(agg_risk)))
+    # ris_a.append(dict(statistic='quantile50', average_risk=np.median(agg_risk)))
     percs = np.arange(5,100,5)
     percs_values = np.percentile(agg_risk, percs)
     for i_p in range(len(percs)):
@@ -1324,12 +1324,65 @@ def aggregated_aeras(areas):
                 risk_index_samples.append(area_samples)
         agg_risk = np.sum(risk_index_samples, axis=0)
         ris_a.append(dict(statistic='mean', average_risk=np.mean(agg_risk)))
-        ris_a.append(dict(statistic='quantile50', average_risk=np.median(agg_risk)))
+        # ris_a.append(dict(statistic='quantile50', average_risk=np.median(agg_risk)))
         percs = np.arange(5,100,5)
         percs_values = np.percentile(agg_risk, percs)
         for i_p in range(len(percs)):
             ris_a.append(dict(statistic='quantile'+str(int(percs[i_p])).zfill(2),
                               average_risk=percs_values[i_p]))
         areas_agg['compare_risks'].append(ris_a)
+    return areas_agg
 
+
+
+def aggregated_correlated(areas):
+    ris_a = []
+    sample_number = 500
+    areas_n=len(areas)
+    risk_index_samples = []
+    num_perc = np.max([len(a['risk']) for a in areas])
+    random_samples = np.random.randint(0, num_perc, sample_number)
+    for i_a in range(areas_n):
+        perc_n = len(areas[i_a]['risk'])
+        if perc_n > 0:
+            area_samples = []
+            # print "random_samples %s" % random_samples
+            for i_s in range(sample_number):
+                # campiona  average di un percentile
+                # print areas[i_a]['risk'][random_samples[i_s]]
+                area_samples.append(areas[i_a]['risk']
+                        [random_samples[i_s]]['average_risk'])
+            risk_index_samples.append(area_samples)
+    agg_risk = np.sum(risk_index_samples, axis=0)
+    ris_a.append(dict(statistic='mean', average_risk=np.mean(agg_risk)))
+    percs = np.arange(5,100,5)
+    percs_values = np.percentile(agg_risk, percs)
+    for i_p in range(len(percs)):
+        ris_a.append(dict(statistic='quantile'+str(int(percs[i_p])).zfill(2),
+                          average_risk=percs_values[i_p]))
+    areas_agg = dict(risk=ris_a, compare_risks=[],
+                inventory = None, loss = None, fragility = None)
+
+    for i_cr in range(len(areas[0]['compare_risks'])):
+        ris_a = []
+        risk_index_samples = []
+        num_perc = np.max([len(a['compare_risks'][i_cr]) for a in areas])
+        random_samples = np.random.randint(0, num_perc, sample_number)
+        for i_a in range(areas_n):
+            perc_n = len(areas[i_a]['compare_risks'][i_cr])
+            if perc_n > 0:
+                area_samples = []
+                for i_s in range(sample_number):
+                    # campiona average di un percentile
+                    area_samples.append(areas[i_a]['compare_risks'][i_cr]
+                            [random_samples[i_s]]['average_risk'])
+                risk_index_samples.append(area_samples)
+        agg_risk = np.sum(risk_index_samples, axis=0)
+        ris_a.append(dict(statistic='mean', average_risk=np.mean(agg_risk)))
+        percs = np.arange(5,100,5)
+        percs_values = np.percentile(agg_risk, percs)
+        for i_p in range(len(percs)):
+            ris_a.append(dict(statistic='quantile'+str(int(percs[i_p])).zfill(2),
+                              average_risk=percs_values[i_p]))
+        areas_agg['compare_risks'].append(ris_a)
     return areas_agg
