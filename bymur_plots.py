@@ -779,16 +779,6 @@ class RiskCurve(BymurPlot):
                     l, = pyplot.plot([], label="Mean",
                                  color='k')
                     r_handles.append(l)
-                elif c['statistic'] == 'quantile50':
-                    subplot_tmp.axvline(
-                        x=float(c['average_risk']),
-                        linestyle='--',
-                        color='k',
-                        linewidth=1,
-                        alpha=1)
-                    l, = pyplot.plot([], label="Median",
-                                 color = 'k',linestyle='--' )
-                    r_handles.append(l)
                 else:
                     values.append((c['average_risk'],
                                    float(c['statistic'][len("quantile"):])/100))
@@ -813,13 +803,6 @@ class RiskCurve(BymurPlot):
                     if c['statistic'] == 'mean':
                         subplot_tmp.axvline(
                             x=float(c['average_risk']),
-                            color=self.risk_colors[i_r],
-                            linewidth=1,
-                            alpha=1)
-                    elif c['statistic'] == 'quantile50':
-                        subplot_tmp.axvline(
-                            x=float(c['average_risk']),
-                            linestyle='--',
                             color=self.risk_colors[i_r],
                             linewidth=1,
                             alpha=1)
@@ -859,34 +842,23 @@ class RiskCurve(BymurPlot):
 
         elif len(self._areas) > 1: # multiple areas selected
             print "Multiple areas selected, plotting just risk index "
-            self._area = bf.aggregated_aeras(self._areas)
-            self._TEST = bf.aggregated_TEST(self._areas)
+            self._ind_area = bf.aggregated_indipendent(self._areas)
+            self._corr_area = bf.aggregated_correlated(self._areas)
             gridspec = pyplot.GridSpec(1, 1)
             gridspec.update(wspace = 0.4, bottom=0.15)
             subplot_spec = gridspec.new_subplotspec((0, 0))
             subplot_tmp = self._figure.add_subplot(subplot_spec)
             values = []
             r_handles = []
-            for c in self._area['risk']:
+            for c in self._ind_area['risk']:
                 if c['statistic'] == 'mean':
                     subplot_tmp.axvline(
                         x=float(c['average_risk']),
                         color='k',
                         linewidth=1,
                         alpha=1)
-                    l, = pyplot.plot([], label="Mean",
+                    l, = pyplot.plot([], label="Indipendent mean",
                                  color = 'k')
-                    r_handles.append(l)
-                elif c['statistic'] == 'quantile50':
-                    print "QUANTILE50"
-                    subplot_tmp.axvline(
-                        x=float(c['average_risk']),
-                        linestyle='--',
-                        color='k',
-                        linewidth=1,
-                        alpha=1)
-                    l, = pyplot.plot([], label="Median",
-                                 color = 'k',linestyle='--' )
                     r_handles.append(l)
                 else:
                     values.append((c['average_risk'],
@@ -899,46 +871,46 @@ class RiskCurve(BymurPlot):
                              linestyle='-.',
                              alpha=1,
                              color = 'k')
-            l, = pyplot.plot([], label="Percentiles",
+            l, = pyplot.plot([], label="Indipendent percentiles",
                                  color = 'k',linestyle='-.' )
             r_handles.append(l)
 
-            values2=[]
-            for c in self._TEST['risk']:
+            values=[]
+            for c in self._corr_area['risk']:
                 if c['statistic'] == 'mean':
-                    pass
-                elif c['statistic'] == 'quantile50':
-                    pass
-                else:
-                    values2.append((c['average_risk'],
-                                   float(c['statistic'][len("quantile"):])/100))
-            values2 = sorted(values2, key = lambda val: val[0])
-            subplot_tmp.plot([v[0] for v in values2],
-                             [v[1] for v in values2],
-                             linewidth=1,
-                             linestyle=':',
-                             alpha=1,
-                             color = 'g')
-            l, = pyplot.plot([], label="OMOGENEO",
-                                 color = 'g', linestyle=':' )
-            r_handles.append(l)
-
-            # plot other risks for comparison
-            print "compare risks len %s " % len(self._area['compare_risks'])
-            cr_handles = []
-            for i_r in range(len(self._area['compare_risks'])):
-                values = []
-                for c in self._area['compare_risks'][i_r]:
                     if c['statistic'] == 'mean':
                         subplot_tmp.axvline(
                             x=float(c['average_risk']),
-                            color=self.risk_colors[i_r],
+                            color='k',
+                            linestyle='--',
                             linewidth=1,
                             alpha=1)
-                    elif c['statistic'] == 'quantile50':
+                        l, = pyplot.plot([], label="Correlated mean",
+                                     linestyle='--', color='k')
+                        r_handles.append(l)
+                else:
+                    values.append((c['average_risk'],
+                                   float(c['statistic'][len("quantile"):])/100))
+            values = sorted(values, key = lambda val: val[0])
+            subplot_tmp.plot([v[0] for v in values],
+                             [v[1] for v in values],
+                             linewidth=1,
+                             linestyle=':',
+                             alpha=1,
+                             color = 'k')
+            l, = pyplot.plot([], label="Correlated perc.",
+                               color='k', linestyle=':')
+            r_handles.append(l)
+
+            # plot other risks for comparison
+            print "compare risks len %s " % len(self._ind_area['compare_risks'])
+            cr_handles = []
+            for i_r in range(len(self._ind_area['compare_risks'])):
+                values = []
+                for c in self._ind_area['compare_risks'][i_r]:
+                    if c['statistic'] == 'mean':
                         subplot_tmp.axvline(
                             x=float(c['average_risk']),
-                            linestyle='--',
                             color=self.risk_colors[i_r],
                             linewidth=1,
                             alpha=1)
@@ -954,8 +926,29 @@ class RiskCurve(BymurPlot):
                                  alpha=1,
                                  color=self.risk_colors[i_r])
                 l, = pyplot.plot([], label=self._compare_risks[i_r].model_name,
-                                 color = self.risk_colors[i_r])
+                                   linestyle='-.', color=self.risk_colors[i_r])
                 cr_handles.append(l)
+
+                for c in self._corr_area['compare_risks'][i_r]:
+                    if c['statistic'] == 'mean':
+                        subplot_tmp.axvline(
+                            x=float(c['average_risk']),
+                            color=self.risk_colors[i_r],
+                            linestyle='--',
+                            linewidth=1,
+                            alpha=1)
+                    else:
+                        values.append((c['average_risk'],
+                                       float(c['statistic'][len("quantile"):])/100))
+
+                values = sorted(values, key = lambda val: val[0])
+                subplot_tmp.plot([v[0] for v in values],
+                                 [v[1] for v in values],
+                                 linewidth=1,
+                                 linestyle=':',
+                                 alpha=1,
+                                 color=self.risk_colors[i_r])
+
             subplot_tmp.set_title("Aggregated risk index", y=1.05,
                                   fontsize=12)
 
