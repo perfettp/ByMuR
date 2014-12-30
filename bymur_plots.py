@@ -665,6 +665,7 @@ class LossCurve(BymurPlot):
 
 class RiskCurve(BymurPlot):
     risk_colors = ['r', 'c', 'g', 'y']
+    risk_linestyles = ['-', '-.', '--', ':']
 
     def __init__(self, *args, **kwargs):
         super(RiskCurve, self).__init__(*args, **kwargs)
@@ -711,10 +712,11 @@ class RiskCurve(BymurPlot):
                                      risk_y_values,
                                      linewidth=1,
                                      alpha=1,
-                                     label = c['statistic'],
-                                     color = self._stat_colors[
+                                     label=c['statistic'],
+                                     linestyle=self.risk_linestyles[
                                          self._stat_to_plot.index(c[
-                                             'statistic'])])
+                                             'statistic'])],
+                                     color='k')
 
             subplot_tmp.set_yscale('log')
             subplot_tmp.set_xlabel("Loss("+self._loss.unit+")")
