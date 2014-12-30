@@ -1291,7 +1291,7 @@ def aggregated_aeras(areas):
             random_samples = np.random.randint(0, perc_n, sample_number)
             # print "random_samples %s" % random_samples
             for i_s in range(sample_number):
-                # campiona uno dei average di un percentile
+                # campiona  average di un percentile
                 # print areas[i_a]['risk'][random_samples[i_s]]
                 area_samples.append(areas[i_a]['risk']
                         [random_samples[i_s]]['average_risk'])
@@ -1312,13 +1312,12 @@ def aggregated_aeras(areas):
         risk_index_samples = []
         for i_a in range(areas_n):
             perc_n = len(areas[i_a]['compare_risks'][i_cr])
-            # print "perc_n %s" % perc_n
             if perc_n > 0:
                 area_samples = []
                 random_samples = np.random.randint(0, perc_n, sample_number)
                 # print "random_samples %s" % random_samples
                 for i_s in range(sample_number):
-                    # campiona uno dei average di un percentile
+                    # campiona average di un percentile
                     # print areas[i_a]['risk'][random_samples[i_s]]
                     area_samples.append(areas[i_a]['compare_risks'][i_cr]
                             [random_samples[i_s]]['average_risk'])
@@ -1333,5 +1332,4 @@ def aggregated_aeras(areas):
                               average_risk=percs_values[i_p]))
         areas_agg['compare_risks'].append(ris_a)
 
-    print areas_agg
     return areas_agg
