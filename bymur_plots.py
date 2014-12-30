@@ -929,6 +929,7 @@ class RiskCurve(BymurPlot):
                                    linestyle='-.', color=self.risk_colors[i_r])
                 cr_handles.append(l)
 
+                values = []
                 for c in self._corr_area['compare_risks'][i_r]:
                     if c['statistic'] == 'mean':
                         subplot_tmp.axvline(
