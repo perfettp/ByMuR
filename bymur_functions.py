@@ -60,7 +60,7 @@ BYMUR_DB_CLOSED = wx.PyEventBinder(wxBYMUR_DB_CLOSED)
 
 
 _basedir = os.path.dirname(__file__)
-_hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
+_hazardschemafile = os.path.join(_basedir, 'schema/bymur_hazard_result.xsd')
 
 
 class RiskModel(object):
