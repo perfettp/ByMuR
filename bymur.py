@@ -709,38 +709,45 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         self._hazDirButton = wx.Button(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND,
                                        label="Select directory to scan")
+        vpos = 0
         self._hazDirButton.Bind(event=wx.EVT_BUTTON, handler=self.selHazPath)
         self._hazBoxGrid.Add(self._hazDirButton, flag=wx.EXPAND,
-                             pos=(0, 0), span=(1,6))
+                             pos=(vpos, 0), span=(1,6))
 
+        vpos += 1
         self._hazDirLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND, label = "Root dir")
-        self._hazBoxGrid.Add(self._hazDirLabel, flag=wx.EXPAND, pos=(1, 0),
+        self._hazBoxGrid.Add(self._hazDirLabel, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(1, 1))
         self._hazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND|wx.TE_READONLY)
-        self._hazBoxGrid.Add(self._hazDirTC, flag=wx.EXPAND, pos=(1, 1),
+        self._hazBoxGrid.Add(self._hazDirTC, flag=wx.EXPAND, pos=(vpos, 1),
                              span=(1, 5))
 
+        vpos += 1
         self._hazFilesAllCB = wx.CheckBox(self._parent, id=wx.ID_ANY,
                                             style=wx.EXPAND, label="Select "
                                                                    "all files")
         self._hazFilesAllCB.Bind(wx.EVT_CHECKBOX, self._select_all)
         self._hazBoxGrid.Add(self._hazFilesAllCB, flag=wx.EXPAND,
-                             pos=(2, 0), span=(1, 6))
+                             pos=(vpos, 0), span=(1, 6))
         self._hazFilesCLB = wx.CheckListBox(self._parent, id=wx.ID_ANY,
                                             style=wx.EXPAND)
-        self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
-                             pos=(3, 0), span=(7, 6))
 
+        vpos += 1
+        self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
+                             pos=(vpos, 0), span=(7, 6))
+
+        vpos += 7
         self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
                                            style=wx.EXPAND,
                                            label=self._phenText),
-                             flag=wx.EXPAND, pos=(10, 0), span=(1, 6))
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 6))
+        vpos += 1
         self._phenCB = wx.ComboBox(self._parent, wx.ID_ANY)
         self._phenCB.AppendItems(self.phenomena_list)
         self._hazBoxGrid.Add(self._phenCB, flag=wx.EXPAND,
-                             pos=(11, 0), span=(1, 6))
+                             pos=(vpos, 0), span=(1, 6))
 
 
 
@@ -878,16 +885,11 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._title = 'Add data to database'
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
-        # self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
-        #                       'haz_perc': kwargs.pop('haz_perc', '')
-        # }
         self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
                               'phenomena_list': kwargs.pop('phenomena_list', '')
                               }
         self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
         self._localGridData = {'grid_list': kwargs.pop('grid_list', []) }
-        # self._upload_callback = kwargs.pop('upload_callback', None)
-        # print "callback: %s" % self._upload_callback
         super(BymurAddDBDataDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
         self.SetTitle(self._title)
@@ -902,7 +904,7 @@ class BymurAddDBDataDlg(wx.Dialog):
                             pos=(0, 0), span=(1, 1))
 
         self._hazBoxSizer = BymurHazBoxSizer(parent=self,
-                                             label="Hazard",
+                                             label="Data",
                                              **self._localHazData)
         self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
                             pos=(1, 0), span=(1, 1))
