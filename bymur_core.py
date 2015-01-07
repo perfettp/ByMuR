@@ -502,10 +502,15 @@ class BymurCore(object):
         datagrid_name = str)
 
         """
+        hazard_schema = bf.HazardSchema()
+        for f in addDBData['haz_files']:
+            print f
+            hazard_schema.validate_xml(f)
+        return
+
 
         self.db.add_data(addDBData['datagrid_name'],
-                         addDBData['haz_files'],
-                         addDBData['phenomenon'])
+                         addDBData['haz_files'])
         self._ctrls_data = self.get_controls_data()
 
     def load_grid(self, **gridData):

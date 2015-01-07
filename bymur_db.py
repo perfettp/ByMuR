@@ -665,8 +665,11 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             table_name = "tsunamic_data"
 
 
-        point_curve_map = zip(points,
-                              [", ".join(map(str, x)) for x in curves])
+        if len(curves)>0:
+            point_curve_map = zip(points,
+                                  [", ".join(map(str, x)) for x in curves])
+        else:
+            return 0
         sqlquery = """
                     INSERT IGNORE INTO `{0}` (id_hazard_model,
                         id_point, id_statistic, hazard_curve)
@@ -703,7 +706,7 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         return datagrid_name
 
 
-    def add_data(self, datagrid_name, haz_files, phenomenon_name):
+    def add_data(self, datagrid_name, haz_files):
         """
 
         """
@@ -711,14 +714,9 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
         print " datagrid name: %s , id: %s" \
               % (datagrid_name, datagrid_id)
 
-        phenomenon_id = self.insert_id_phenomenon(phenomenon_name)
-        print " phenomenon name: %s , id: %s" \
-              % (phenomenon_name, phenomenon_id)
-
         for hazFile in haz_files:
             try:
-                fileXmlModel = bf.parse_xml_hazard(hazFile,
-                                                   phenomenon_name)
+                fileXmlModel = bf.parse_xml_hazard(hazFile)
             except Exception as e:
                 print "ERROR: %s is not a valid ByMuR file! %s" \
                       "Skipping to next one" % (hazFile, str(e))
@@ -726,6 +724,10 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             # Foreign keys are already defined
             # Now insert hazard, after this other
             # many-to-many relationship
+            phenomenon_id = self.insert_id_phenomenon(
+                fileXmlModel.phenomenon.upper())
+            print " phenomenon name: %s , id: %s" \
+              % (fileXmlModel.phenomenon.upper(), phenomenon_id)
             print "DB > Creating hazarm_models entry"
             if fileXmlModel.hazard_model_name != '':
                 _name = fileXmlModel.hazard_model_name

@@ -738,16 +738,16 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
                              pos=(vpos, 0), span=(7, 6))
 
-        vpos += 7
-        self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
-                                           style=wx.EXPAND,
-                                           label=self._phenText),
-                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 6))
-        vpos += 1
-        self._phenCB = wx.ComboBox(self._parent, wx.ID_ANY)
-        self._phenCB.AppendItems(self.phenomena_list)
-        self._hazBoxGrid.Add(self._phenCB, flag=wx.EXPAND,
-                             pos=(vpos, 0), span=(1, 6))
+        # vpos += 7
+        # self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+        #                                    style=wx.EXPAND,
+        #                                    label=self._phenText),
+        #                      flag=wx.EXPAND, pos=(vpos, 0), span=(1, 6))
+        # vpos += 1
+        # self._phenCB = wx.ComboBox(self._parent, wx.ID_ANY)
+        # self._phenCB.AppendItems(self.phenomena_list)
+        # self._hazBoxGrid.Add(self._phenCB, flag=wx.EXPAND,
+        #                      pos=(vpos, 0), span=(1, 6))
 
 
 
@@ -784,9 +784,9 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         return [os.path.join(self._rootdir, p) for p in
                 list(self._hazFilesCLB.GetCheckedStrings())]
 
-    @property
-    def phenomenon(self):
-        return self._phenCB.GetStringSelection()
+    # @property
+    # def phenomenon(self):
+    #     return self._phenCB.GetStringSelection()
 
 
 class BymurLoadGridDlg(wx.Dialog):
@@ -898,13 +898,13 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._sizer.Add(self._gridSizer)
 
         self._gridSelectBoxSizer = BymurSelectGridBoxSizer(parent=self,
-                                                           label="Datagrid",
+                                                           label="Grid",
                                         **self._localGridData)
         self._gridSizer.Add(self._gridSelectBoxSizer, flag=wx.EXPAND,
                             pos=(0, 0), span=(1, 1))
 
         self._hazBoxSizer = BymurHazBoxSizer(parent=self,
-                                             label="Data",
+                                             label="XML files",
                                              **self._localHazData)
         self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
                             pos=(1, 0), span=(1, 1))
@@ -916,14 +916,12 @@ class BymurAddDBDataDlg(wx.Dialog):
         result = super(BymurAddDBDataDlg, self).ShowModal(*args, **kwargs)
         if (result == wx.ID_OK):
             self._localHazData['haz_files'] = self._hazBoxSizer.hazFilesList
-            self._localHazData['phenomenon'] = self._hazBoxSizer.phenomenon
+            # self._localHazData['phenomenon'] = self._hazBoxSizer.phenomenon
             self._localHazData['datagrid_name'] = \
                 self._gridSelectBoxSizer.gridName
             if self._localHazData['datagrid_name'] == '':
                     result = -1
             elif self._localHazData['haz_files'] == []:
-                    result = -1
-            elif self._localHazData['phenomenon'] == '':
                     result = -1
             else:
                 result = 1
