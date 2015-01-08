@@ -37,7 +37,8 @@ import linecache
 import sys
 import threading
 import numpy as np
-
+import traceback
+from StringIO import StringIO
 
 wxBYMUR_UPDATE_CURVE = wx.NewEventType()
 wxBYMUR_UPDATE_MAP = wx.NewEventType()
@@ -60,7 +61,7 @@ BYMUR_DB_CLOSED = wx.PyEventBinder(wxBYMUR_DB_CLOSED)
 
 
 _basedir = os.path.dirname(__file__)
-_hazardschemafile = os.path.join(_basedir, 'schema/bymur_schema.xsd')
+_hazardschemafile = os.path.join(_basedir, 'schemas/bymur_hazard_result.xsd')
 
 
 class RiskModel(object):
@@ -614,8 +615,10 @@ class InventoryModel(object):
         self._classes = data
 
 class HazardModelXML(object):
-    def __init__(self, phenomenon):
+    def __init__(self, ):
         self._volcano = ''
+        self._tsunami = ''
+        self._completeness = ''
         self._filename = ''
         self._model_name = ''
         self._hazard_model_name = ''
@@ -626,13 +629,13 @@ class HazardModelXML(object):
         self._percentile_value = '0'
         self._points_values= []
         self._points_coords = []
-        self._phenomenon = phenomenon.upper()
+        self._phenomenon = ''
 
     def tostring(self):
         xml_root = etree.Element("hazardResult")
-        if self.phenomenon == "VULCANIC":
+        if self.phenomenon == "VOLCANIC":
             tmp_child = etree.Element("volcano")
-            tmp_child.text = "VULCANO"
+            tmp_child.text = "VOLCANO"
             xml_root.append(tmp_child)
         elif self.phenomenon == "SEISMIC":
             pass
@@ -699,6 +702,20 @@ class HazardModelXML(object):
     @volcano.setter
     def volcano(self, data):
         self._volcano = data
+        
+    @property
+    def tsunami(self):
+        return self._tsunami
+    @tsunami.setter
+    def tsunami(self, data):
+        self._tsunami = data
+        
+    @property
+    def completeness(self):
+        return self._completeness
+    @completeness.setter
+    def completeness(self, data):
+        self._completeness = data
 
     @property
     def model_name(self):
@@ -768,7 +785,7 @@ class HazardModelXML(object):
         return self._phenomenon
     @phenomenon.setter
     def phenomenon(self, data):
-        self._phenomenon = data
+        self._phenomenon = data.upper()
 
 class BymurUpdateEvent(wx.PyCommandEvent):
 
@@ -811,6 +828,37 @@ class BymurThread(threading.Thread):
         # finally:
         wx.PostEvent(self._targetid, self._event)
 
+class HazardSchema(etree.XMLSchema):
+    def __init__(self, *args, **kwargs):
+        super(HazardSchema, self).__init__(file=_hazardschemafile,
+                                           *args,
+                                           **kwargs)
+    def validate_xml(self, filename):
+        try:
+            with open(filename, 'r') as f:
+                self.assertValid(etree.parse(f))
+                return True
+        except Exception as e:
+            print "%s is not a valid hazard file: %s" % (filename,e)
+            return False
+
+def get_filetype(xml_file):
+    try:
+        with open(xml_file) as f:
+            xml_doc = etree.parse(StringIO(f.read()))
+            return xml_doc.getroot().tag
+    except etree.XMLSyntaxError:
+            return False
+
+def validate_xml(xml_file, schema_file):
+    try:
+        schema = etree.XMLSchema(file=schema_file)
+        with open(xml_file) as f:
+            xml = f.read()
+            xml_doc = etree.parse(StringIO(xml))
+            return schema.validate(xml_doc)
+    except etree.XMLSyntaxError:
+            return False
 
 def read_db_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
           utm_zone_number=33, utm_zone_letter='T'):
@@ -946,10 +994,11 @@ def parse_xml_inventory(filename):
         raise Exception(str(e))
     return inventory_xml
 
-def parse_xml_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
+def parse_xml_hazard(filename, xsd_file=_hazardschemafile,
                      utm_zone_number=33, utm_zone_letter='T'):
-    hazard_xml_model = HazardModelXML(phenomenon)
-    print "Parsing file to Hazard XML: %s" % (filename)
+
+    hazard_xml_model = HazardModelXML()
+    print "Parsing hazard: %s" % (filename)
     print "Schema path %s" % xsd_file
     try:
         xml_schema = etree.XMLSchema(file = xsd_file)
@@ -984,7 +1033,16 @@ def parse_xml_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
                 if element.tag == 'volcano':
                     hazard_xml_model.volcano = element.get('volcanoName')
                     element.clear()
+                    hazard_xml_model.phenomenon = 'VOLCANIC'
                     # print "volcano: %s" % hazard_xml_model.volcano
+                elif element.tag == 'tsunami':
+                    hazard_xml_model.tsunami = element.get('tsunamiName')
+                    hazard_xml_model.phenomenon = 'TSUNAMIC'
+                    element.clear()
+                elif element.tag == 'completeness':
+                    hazard_xml_model.completeness = element.get('TypeComple')
+                    element.clear()
+                    hazard_xml_model.phenomenon = 'SEISMIC'
                 elif element.tag == 'hazardModel':
                     hazard_xml_model.model_name = element.get('Model')
                     hazard_xml_model.hazard_model_name = element.text.strip()

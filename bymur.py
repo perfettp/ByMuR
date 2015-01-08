@@ -709,38 +709,45 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         self._hazDirButton = wx.Button(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND,
                                        label="Select directory to scan")
+        vpos = 0
         self._hazDirButton.Bind(event=wx.EVT_BUTTON, handler=self.selHazPath)
         self._hazBoxGrid.Add(self._hazDirButton, flag=wx.EXPAND,
-                             pos=(0, 0), span=(1,6))
+                             pos=(vpos, 0), span=(1,6))
 
+        vpos += 1
         self._hazDirLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND, label = "Root dir")
-        self._hazBoxGrid.Add(self._hazDirLabel, flag=wx.EXPAND, pos=(1, 0),
+        self._hazBoxGrid.Add(self._hazDirLabel, flag=wx.EXPAND, pos=(vpos, 0),
                              span=(1, 1))
         self._hazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
                                        style=wx.EXPAND|wx.TE_READONLY)
-        self._hazBoxGrid.Add(self._hazDirTC, flag=wx.EXPAND, pos=(1, 1),
+        self._hazBoxGrid.Add(self._hazDirTC, flag=wx.EXPAND, pos=(vpos, 1),
                              span=(1, 5))
 
+        vpos += 1
         self._hazFilesAllCB = wx.CheckBox(self._parent, id=wx.ID_ANY,
                                             style=wx.EXPAND, label="Select "
                                                                    "all files")
         self._hazFilesAllCB.Bind(wx.EVT_CHECKBOX, self._select_all)
         self._hazBoxGrid.Add(self._hazFilesAllCB, flag=wx.EXPAND,
-                             pos=(2, 0), span=(1, 6))
+                             pos=(vpos, 0), span=(1, 6))
         self._hazFilesCLB = wx.CheckListBox(self._parent, id=wx.ID_ANY,
                                             style=wx.EXPAND)
-        self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
-                             pos=(3, 0), span=(7, 6))
 
-        self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
-                                           style=wx.EXPAND,
-                                           label=self._phenText),
-                             flag=wx.EXPAND, pos=(10, 0), span=(1, 6))
-        self._phenCB = wx.ComboBox(self._parent, wx.ID_ANY)
-        self._phenCB.AppendItems(self.phenomena_list)
-        self._hazBoxGrid.Add(self._phenCB, flag=wx.EXPAND,
-                             pos=(11, 0), span=(1, 6))
+        vpos += 1
+        self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
+                             pos=(vpos, 0), span=(7, 6))
+
+        # vpos += 7
+        # self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+        #                                    style=wx.EXPAND,
+        #                                    label=self._phenText),
+        #                      flag=wx.EXPAND, pos=(vpos, 0), span=(1, 6))
+        # vpos += 1
+        # self._phenCB = wx.ComboBox(self._parent, wx.ID_ANY)
+        # self._phenCB.AppendItems(self.phenomena_list)
+        # self._hazBoxGrid.Add(self._phenCB, flag=wx.EXPAND,
+        #                      pos=(vpos, 0), span=(1, 6))
 
 
 
@@ -777,9 +784,9 @@ class BymurHazBoxSizer(BymurStaticBoxSizer):
         return [os.path.join(self._rootdir, p) for p in
                 list(self._hazFilesCLB.GetCheckedStrings())]
 
-    @property
-    def phenomenon(self):
-        return self._phenCB.GetStringSelection()
+    # @property
+    # def phenomenon(self):
+    #     return self._phenCB.GetStringSelection()
 
 
 class BymurLoadGridDlg(wx.Dialog):
@@ -878,16 +885,11 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._title = 'Add data to database'
         self._style = kwargs.pop('style', 0)
         self._style |= wx.OK | wx.CANCEL
-        # self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
-        #                       'haz_perc': kwargs.pop('haz_perc', '')
-        # }
         self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
                               'phenomena_list': kwargs.pop('phenomena_list', '')
                               }
         self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
         self._localGridData = {'grid_list': kwargs.pop('grid_list', []) }
-        # self._upload_callback = kwargs.pop('upload_callback', None)
-        # print "callback: %s" % self._upload_callback
         super(BymurAddDBDataDlg, self).__init__(style=self._style, *args,
                                                **kwargs)
         self.SetTitle(self._title)
@@ -896,13 +898,13 @@ class BymurAddDBDataDlg(wx.Dialog):
         self._sizer.Add(self._gridSizer)
 
         self._gridSelectBoxSizer = BymurSelectGridBoxSizer(parent=self,
-                                                           label="Datagrid",
+                                                           label="Grid",
                                         **self._localGridData)
         self._gridSizer.Add(self._gridSelectBoxSizer, flag=wx.EXPAND,
                             pos=(0, 0), span=(1, 1))
 
         self._hazBoxSizer = BymurHazBoxSizer(parent=self,
-                                             label="Hazard",
+                                             label="XML files",
                                              **self._localHazData)
         self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
                             pos=(1, 0), span=(1, 1))
@@ -914,14 +916,12 @@ class BymurAddDBDataDlg(wx.Dialog):
         result = super(BymurAddDBDataDlg, self).ShowModal(*args, **kwargs)
         if (result == wx.ID_OK):
             self._localHazData['haz_files'] = self._hazBoxSizer.hazFilesList
-            self._localHazData['phenomenon'] = self._hazBoxSizer.phenomenon
+            # self._localHazData['phenomenon'] = self._hazBoxSizer.phenomenon
             self._localHazData['datagrid_name'] = \
                 self._gridSelectBoxSizer.gridName
             if self._localHazData['datagrid_name'] == '':
                     result = -1
             elif self._localHazData['haz_files'] == []:
-                    result = -1
-            elif self._localHazData['phenomenon'] == '':
                     result = -1
             else:
                 result = 1
@@ -2548,7 +2548,14 @@ class BymurWxApp(wx.App):
         self._controller = kwargs.pop('controller', None)
         self._basedir =  kwargs.pop('basedir', None)
         self._inventory = kwargs.pop('inventory', None)
+        self._hazard_schema = bf.HazardSchema()
+        # self._hazard_schema.validate_xml('/hades/dev/bymur-data/test/seis_test.xml')
+        # print bf.validate_xml('/hades/dev/bymur-data/test/seis_test.xml',
+        #         '/hades/dev/bymur/schemas/bymur_hazard_result.xsd')
         super(BymurWxApp, self).__init__(*args, **kwargs)
+        # print bf.validate_xml('/hades/dev/bymur-data/test/seis_test.xml',
+        #         '/hades/dev/bymur/schemas/bymur_hazard_result.xsd')
+        # self._hazard_schema.validate_xml('/hades/dev/bymur-data/test/seis_test.xml')
 
 
     def OnInit(self):
@@ -2563,7 +2570,6 @@ class BymurWxApp(wx.App):
 
         frame.Show(True)
         return True
-
 
 if __name__ == "__main__":
     core = bymur_core.BymurCore()
