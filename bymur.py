@@ -1133,10 +1133,7 @@ class BymurWxCurvesPanel(BymurWxPanel):
 
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.SetSizer(self._sizer)
-        # self._nb = wx.Notebook(self)
-        # self._nb = agw.aui.AuiNotebook(self)
         self._nb = FlatNB.FlatNotebook(self)
-        self._pagesmap = dict()
 
         self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
                                              controller=self._controller,
@@ -1155,15 +1152,10 @@ class BymurWxCurvesPanel(BymurWxPanel):
                                                label="NBRiskPage")
 
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
-        self._pagesmap['hazard'] = (0, self._curvesNBHaz)
         self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
-        self._pagesmap['inventory'] = (1, self._curvesNBInv)
         self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
-        self._pagesmap['fragility'] = (2, self._curvesNBFrag)
         self._nb.AddPage(self._curvesNBLoss, self._curvesNBLoss.title)
-        self._pagesmap['loss'] = (3, self._curvesNBLoss)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
-        self._pagesmap['risk'] = (4, self._curvesNBRisk)
 
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._controller.nbTabChanged)
         self._sizer.Add(self._nb, 1, wx.EXPAND | wx.ALL, 10)
@@ -1584,6 +1576,8 @@ class BymurWxDataPanel(BymurWxPanel):
     def updateInventory(self):
         vpos = 0
         self._genClasses = []
+        self._genClassSizer.Clear()
+        self._genClassSizer.Layout()
         for gen_class in self._topWindow.inventory.classes['generalClasses']:
             _genclassrow = dict()
             _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
@@ -1599,8 +1593,11 @@ class BymurWxDataPanel(BymurWxPanel):
             self._genClasses.append(_genclassrow)
             vpos +=1
 
+
         vpos = 0
         self._ageClasses = []
+        self._ageClassSizer.Clear()
+        self._ageClassSizer.Layout()
         for age_class in self._topWindow.inventory.classes['ageClasses']:
             _ageclassrow = dict()
             _ageclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
@@ -1616,8 +1613,11 @@ class BymurWxDataPanel(BymurWxPanel):
             self._ageClasses.append(_ageclassrow)
             vpos +=1
 
+
         vpos = 0
         self._houseClasses = []
+        self._houseClassSizer.Clear()
+        self._houseClassSizer.Layout()
         for house_class in self._topWindow.inventory.classes['houseClasses']:
             _houseclassrow = dict()
             _houseclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
@@ -1632,6 +1632,8 @@ class BymurWxDataPanel(BymurWxPanel):
                                     flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
             self._houseClasses.append(_houseclassrow)
             vpos +=1
+
+
         self.Layout()
         self.GetParent().Layout()
 
