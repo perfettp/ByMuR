@@ -4,6 +4,7 @@ import os
 import bymur_core
 import bymur_controller
 import bymur_functions as bf
+import wx.lib.agw.flatnotebook as FlatNB
 
 class BymurBusyDlg(wx.BusyInfo):
     """
@@ -1132,7 +1133,10 @@ class BymurWxCurvesPanel(BymurWxPanel):
 
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.SetSizer(self._sizer)
-        self._nb = wx.Notebook(self)
+        # self._nb = wx.Notebook(self)
+        # self._nb = agw.aui.AuiNotebook(self)
+        self._nb = FlatNB.FlatNotebook(self)
+        self._pagesmap = dict()
 
         self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
                                              controller=self._controller,
@@ -1150,13 +1154,16 @@ class BymurWxCurvesPanel(BymurWxPanel):
                                                controller=self._controller,
                                                label="NBRiskPage")
 
-
         self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
+        self._pagesmap['hazard'] = (0, self._curvesNBHaz)
         self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
+        self._pagesmap['inventory'] = (1, self._curvesNBInv)
         self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
+        self._pagesmap['fragility'] = (2, self._curvesNBFrag)
         self._nb.AddPage(self._curvesNBLoss, self._curvesNBLoss.title)
+        self._pagesmap['loss'] = (3, self._curvesNBLoss)
         self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
-
+        self._pagesmap['risk'] = (4, self._curvesNBRisk)
 
         self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._controller.nbTabChanged)
         self._sizer.Add(self._nb, 1, wx.EXPAND | wx.ALL, 10)
@@ -1171,11 +1178,24 @@ class BymurWxCurvesPanel(BymurWxPanel):
     def updatePages(self):
         all_pages_enable = self.GetTopLevelParent()._hazard is not None
         risk_pages_enable = self.GetTopLevelParent()._risk is not None
-        self._curvesNBHaz.Enable(all_pages_enable)
-        self._curvesNBInv.Enable(all_pages_enable)
-        self._curvesNBFrag.Enable(risk_pages_enable)
-        self._curvesNBLoss.Enable(risk_pages_enable)
-        self._curvesNBRisk.Enable(risk_pages_enable)
+        multiple_areas = len(self.GetTopLevelParent()._selected_areas) > 1
+
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBHaz),
+                           (all_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBInv),
+                           (all_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBFrag),
+                           (risk_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBLoss),
+                           (risk_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBRisk),
+                           risk_pages_enable)
+
+        if (risk_pages_enable and multiple_areas):
+            self._nb.SetSelection(self._nb.GetPageIndex(self._curvesNBRisk))
+        elif (not self._nb.GetEnabled(self._nb.GetSelection())):
+            self._nb.SetSelection(self._nb.GetPageIndex(self._curvesNBHaz))
+
 
     def clear(self):
         for i_p in range(self._nb.GetPageCount()):
@@ -2379,6 +2399,7 @@ class BymurWxView(wx.Frame):
             self.ctrlsPanel.updatePointData()
             self.dataPanel.updatePointData()
             self.rightPanel.mapPanel.updatePoint()
+            self.rightPanel.curvesPanel.updatePages()
             self.rightPanel.curvesPanel.updateView()
         elif event.GetEventType() == bf.wxBYMUR_UPDATE_MAP:
             print "bf.wxBYMUR_UPDATE_MAP"
