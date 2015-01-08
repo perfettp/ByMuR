@@ -705,84 +705,149 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
                  rel_tmp)
         return datagrid_name
 
-
-    def add_data(self, datagrid_name, haz_files):
+    def add_hazard(self, hazard, datagrid_id):
         """
 
         """
-        datagrid_id = self.insert_id_datagrid(datagrid_name)
-        print " datagrid name: %s , id: %s" \
-              % (datagrid_name, datagrid_id)
 
-        for hazFile in haz_files:
-            try:
-                fileXmlModel = bf.parse_xml_hazard(hazFile)
-            except Exception as e:
-                print "ERROR: %s is not a valid ByMuR file! %s" \
-                      "Skipping to next one" % (hazFile, str(e))
-                continue
-            # Foreign keys are already defined
-            # Now insert hazard, after this other
-            # many-to-many relationship
-            phenomenon_id = self.insert_id_phenomenon(
-                fileXmlModel.phenomenon.upper())
-            print " phenomenon name: %s , id: %s" \
-              % (fileXmlModel.phenomenon.upper(), phenomenon_id)
-            print "DB > Creating hazarm_models entry"
-            if fileXmlModel.hazard_model_name != '':
-                _name = fileXmlModel.hazard_model_name
-            else:
-                _name = fileXmlModel.model_name
+        # Foreign keys are already defined
+        # Now insert hazard, after this other
+        # many-to-many relationship
+        phenomenon_id = self.insert_id_phenomenon(
+            hazard.phenomenon.upper())
+        print " phenomenon name: %s , id: %s" \
+          % (hazard.phenomenon.upper(), phenomenon_id)
+        print "DB > Creating hazarm_models entry"
+        if hazard.hazard_model_name != '':
+            _name = hazard.hazard_model_name
+        else:
+            _name = hazard.model_name
 
-            print "_name = %s" % _name
-            hazard_model_id = self.insert_id_hazard_model(
-                phenomenon_id,
-                datagrid_id,
-                _name,
-                fileXmlModel.exp_time,
-                fileXmlModel.iml_thresholds,
-                fileXmlModel.iml_imt)
+        print "_name = %s" % _name
+        hazard_model_id = self.insert_id_hazard_model(
+            phenomenon_id,
+            datagrid_id,
+            _name,
+            hazard.exp_time,
+            hazard.iml_thresholds,
+            hazard.iml_imt)
 
-            # Data in hazmodel_statistics
-            print "DB > Inserting statistics"
-            stat_id = self.insert_id_statistic(
-                fileXmlModel.statistic,
-                fileXmlModel.percentile_value)
+        # Data in hazmodel_statistics
+        print "DB > Inserting statistics"
+        stat_id = self.insert_id_statistic(
+            hazard.statistic,
+            hazard.percentile_value)
 
-            self.insert_hazard_statistic_rel(hazard_model_id,
-                                      stat_id)
+        self.insert_hazard_statistic_rel(hazard_model_id,
+                                  stat_id)
 
-            print "DB > Inserting hazard data: " \
-                  "phenomenon: %s \n" \
-                  "hazard_model_id: %s \n" \
-                  "datagrid_id: %s \n" \
-                  "stat_id: %s \n" \
-                  "exp_time : %s \n" \
-                  "iml : %s \n" \
-                  "imt : %s \n" \
-                  "points_id_len: %s \n" \
-                  "points_value_len: %s \n" \
-                  % (
-                fileXmlModel.phenomenon,
-                hazard_model_id,
-                datagrid_id,
-                stat_id,
-                fileXmlModel.exp_time,
-                fileXmlModel.iml_thresholds,
-                fileXmlModel.iml_imt,
-                len(fileXmlModel.points_coords),
-                len(fileXmlModel.points_values)
-            )
+        print "DB > Inserting hazard data: " \
+              "phenomenon: %s \n" \
+              "hazard_model_id: %s \n" \
+              "datagrid_id: %s \n" \
+              "stat_id: %s \n" \
+              "exp_time : %s \n" \
+              "iml : %s \n" \
+              "imt : %s \n" \
+              "points_id_len: %s \n" \
+              "points_value_len: %s \n" \
+              % (
+            hazard.phenomenon,
+            hazard_model_id,
+            datagrid_id,
+            stat_id,
+            hazard.exp_time,
+            hazard.iml_thresholds,
+            hazard.iml_imt,
+            len(hazard.points_coords),
+            len(hazard.points_values)
+        )
 
-            points_idlist = self.get_pointsid_list_by_coords(
-                fileXmlModel.points_coords)
-            self.insert_hazard_data(fileXmlModel.phenomenon,
-                                    hazard_model_id,
-                                    stat_id,
-                                    points_idlist,
-                                    fileXmlModel.points_values)
-            del fileXmlModel
-        return True
+        points_idlist = self.get_pointsid_list_by_coords(
+            hazard.points_coords)
+        self.insert_hazard_data(hazard.phenomenon,
+                                hazard_model_id,
+                                stat_id,
+                                points_idlist,
+                                hazard.points_values)
+
+    # def add_data(self, datagrid_name, haz_files):
+    #     """
+    #
+    #     """
+    #     datagrid_id = self.insert_id_datagrid(datagrid_name)
+    #     print " datagrid name: %s , id: %s" \
+    #           % (datagrid_name, datagrid_id)
+    #
+    #     for hazFile in haz_files:
+    #         try:
+    #             fileXmlModel = bf.parse_xml_hazard(hazFile)
+    #         except Exception as e:
+    #             print "ERROR: %s is not a valid ByMuR file! %s" \
+    #                   "Skipping to next one" % (hazFile, str(e))
+    #             continue
+    #         # Foreign keys are already defined
+    #         # Now insert hazard, after this other
+    #         # many-to-many relationship
+    #         phenomenon_id = self.insert_id_phenomenon(
+    #             fileXmlModel.phenomenon.upper())
+    #         print " phenomenon name: %s , id: %s" \
+    #           % (fileXmlModel.phenomenon.upper(), phenomenon_id)
+    #         print "DB > Creating hazarm_models entry"
+    #         if fileXmlModel.hazard_model_name != '':
+    #             _name = fileXmlModel.hazard_model_name
+    #         else:
+    #             _name = fileXmlModel.model_name
+    #
+    #         print "_name = %s" % _name
+    #         hazard_model_id = self.insert_id_hazard_model(
+    #             phenomenon_id,
+    #             datagrid_id,
+    #             _name,
+    #             fileXmlModel.exp_time,
+    #             fileXmlModel.iml_thresholds,
+    #             fileXmlModel.iml_imt)
+    #
+    #         # Data in hazmodel_statistics
+    #         print "DB > Inserting statistics"
+    #         stat_id = self.insert_id_statistic(
+    #             fileXmlModel.statistic,
+    #             fileXmlModel.percentile_value)
+    #
+    #         self.insert_hazard_statistic_rel(hazard_model_id,
+    #                                   stat_id)
+    #
+    #         print "DB > Inserting hazard data: " \
+    #               "phenomenon: %s \n" \
+    #               "hazard_model_id: %s \n" \
+    #               "datagrid_id: %s \n" \
+    #               "stat_id: %s \n" \
+    #               "exp_time : %s \n" \
+    #               "iml : %s \n" \
+    #               "imt : %s \n" \
+    #               "points_id_len: %s \n" \
+    #               "points_value_len: %s \n" \
+    #               % (
+    #             fileXmlModel.phenomenon,
+    #             hazard_model_id,
+    #             datagrid_id,
+    #             stat_id,
+    #             fileXmlModel.exp_time,
+    #             fileXmlModel.iml_thresholds,
+    #             fileXmlModel.iml_imt,
+    #             len(fileXmlModel.points_coords),
+    #             len(fileXmlModel.points_values)
+    #         )
+    #
+    #         points_idlist = self.get_pointsid_list_by_coords(
+    #             fileXmlModel.points_coords)
+    #         self.insert_hazard_data(fileXmlModel.phenomenon,
+    #                                 hazard_model_id,
+    #                                 stat_id,
+    #                                 points_idlist,
+    #                                 fileXmlModel.points_values)
+    #         del fileXmlModel
+    #     return True
 
     def get_general_classes_list(self):
         sqlquery = "SELECT id, name, label FROM general_classes"

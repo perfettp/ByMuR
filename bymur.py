@@ -2548,7 +2548,14 @@ class BymurWxApp(wx.App):
         self._controller = kwargs.pop('controller', None)
         self._basedir =  kwargs.pop('basedir', None)
         self._inventory = kwargs.pop('inventory', None)
+        self._hazard_schema = bf.HazardSchema()
+        # self._hazard_schema.validate_xml('/hades/dev/bymur-data/test/seis_test.xml')
+        # print bf.validate_xml('/hades/dev/bymur-data/test/seis_test.xml',
+        #         '/hades/dev/bymur/schemas/bymur_hazard_result.xsd')
         super(BymurWxApp, self).__init__(*args, **kwargs)
+        # print bf.validate_xml('/hades/dev/bymur-data/test/seis_test.xml',
+        #         '/hades/dev/bymur/schemas/bymur_hazard_result.xsd')
+        # self._hazard_schema.validate_xml('/hades/dev/bymur-data/test/seis_test.xml')
 
 
     def OnInit(self):
@@ -2563,7 +2570,6 @@ class BymurWxApp(wx.App):
 
         frame.Show(True)
         return True
-
 
 if __name__ == "__main__":
     core = bymur_core.BymurCore()

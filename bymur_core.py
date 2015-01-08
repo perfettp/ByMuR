@@ -409,6 +409,9 @@ class BymurCore(object):
         self._risk = None
         self._compare_risks = []
         self._selected_areas = []
+        self._hazard_schema = bf.HazardSchema()
+
+
 
     def clear(self):
         self.grid_points = []
@@ -502,16 +505,28 @@ class BymurCore(object):
         datagrid_name = str)
 
         """
-        hazard_schema = bf.HazardSchema()
-        for f in addDBData['haz_files']:
-            print f
-            hazard_schema.validate_xml(f)
-        return
 
+        datagrid_id = self.db.get_datagrid_id_by_name(addDBData['datagrid_name'])
 
-        self.db.add_data(addDBData['datagrid_name'],
-                         addDBData['haz_files'])
+        for f_path in addDBData['haz_files']:
+            print "Testing %s" % f_path
+            xml_type = bf.get_filetype(f_path)
+            if xml_type == 'hazardResult':
+                h_xml = bf.parse_xml_hazard(f_path)
+                self.db.add_hazard(h_xml, datagrid_id)
+            elif xml_type == 'arealFragilityModel':
+                f_xml = bf.parse_xml_fragility(f_path)
+                self.db.add_fragility(f_xml)
+            elif xml_type == 'arealLossModel':
+                l_xml = bf.parse_xml_loss(f_path)
+                self.db.add_loss(l_xml)
+            elif xml_type == 'arealRiskModel':
+                r_xml = bf.parse_xml_risk(f_path)
+                self.db.add_risk(r_xml)
+
         self._ctrls_data = self.get_controls_data()
+
+
 
     def load_grid(self, **gridData):
         """

@@ -37,7 +37,8 @@ import linecache
 import sys
 import threading
 import numpy as np
-
+import traceback
+from StringIO import StringIO
 
 wxBYMUR_UPDATE_CURVE = wx.NewEventType()
 wxBYMUR_UPDATE_MAP = wx.NewEventType()
@@ -60,7 +61,7 @@ BYMUR_DB_CLOSED = wx.PyEventBinder(wxBYMUR_DB_CLOSED)
 
 
 _basedir = os.path.dirname(__file__)
-_hazardschemafile = os.path.join(_basedir, 'schema/bymur_hazard_result.xsd')
+_hazardschemafile = os.path.join(_basedir, 'schemas/bymur_hazard_result.xsd')
 
 
 class RiskModel(object):
@@ -613,21 +614,6 @@ class InventoryModel(object):
     def classes(self, data):
         self._classes = data
 
-class HazardSchema(etree.XMLSchema):
-    def __init__(self, *args, **kwargs):
-        super(HazardSchema, self).__init__(file=_hazardschemafile,
-                                           *args,
-                                           **kwargs)
-    def validate_xml(self, filename):
-        try:
-            with open(filename, 'r') as f:
-                result = self.validate(etree.parse(f))
-        except Exception as e:
-            print "%s is not a valid hazard file: %s" % (filename,e)
-            return False
-        print "%s validation result: %s" % (filename, result)
-        return result
-
 class HazardModelXML(object):
     def __init__(self, ):
         self._volcano = ''
@@ -842,6 +828,37 @@ class BymurThread(threading.Thread):
         # finally:
         wx.PostEvent(self._targetid, self._event)
 
+class HazardSchema(etree.XMLSchema):
+    def __init__(self, *args, **kwargs):
+        super(HazardSchema, self).__init__(file=_hazardschemafile,
+                                           *args,
+                                           **kwargs)
+    def validate_xml(self, filename):
+        try:
+            with open(filename, 'r') as f:
+                self.assertValid(etree.parse(f))
+                return True
+        except Exception as e:
+            print "%s is not a valid hazard file: %s" % (filename,e)
+            return False
+
+def get_filetype(xml_file):
+    try:
+        with open(xml_file) as f:
+            xml_doc = etree.parse(StringIO(f.read()))
+            return xml_doc.getroot().tag
+    except etree.XMLSyntaxError:
+            return False
+
+def validate_xml(xml_file, schema_file):
+    try:
+        schema = etree.XMLSchema(file=schema_file)
+        with open(xml_file) as f:
+            xml = f.read()
+            xml_doc = etree.parse(StringIO(xml))
+            return schema.validate(xml_doc)
+    except etree.XMLSyntaxError:
+            return False
 
 def read_db_hazard(filename, phenomenon, xsd_file=_hazardschemafile,
           utm_zone_number=33, utm_zone_letter='T'):
@@ -979,8 +996,9 @@ def parse_xml_inventory(filename):
 
 def parse_xml_hazard(filename, xsd_file=_hazardschemafile,
                      utm_zone_number=33, utm_zone_letter='T'):
+
     hazard_xml_model = HazardModelXML()
-    print "Parsing file to Hazard XML: %s" % (filename)
+    print "Parsing hazard: %s" % (filename)
     print "Schema path %s" % xsd_file
     try:
         xml_schema = etree.XMLSchema(file = xsd_file)
