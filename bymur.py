@@ -1733,6 +1733,8 @@ class BymurWxDataPanel(BymurWxPanel):
                 for i_class in range(len(self._houseClasses)):
                     self._houseClasses[i_class]['value'].SetValue('0')
 
+            self.Enable(True)
+
 
 class BymurWxCtrlsPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
