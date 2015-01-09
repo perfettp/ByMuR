@@ -232,12 +232,14 @@ class BymurController(object):
         if dialogResult >= 0:
             self._core.set_cmp_risks(dialogStrings,
                                      self._core.hazard_options['exp_time'])
-            self._core.set_areas_by_ID([a['areaID']
-                                        for a in self._core.selected_areas])
-            self._set_compare_risks()
-            self._set_selected_areas()
-            bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_MAP)
-
+            areaID_list=[a['areaID'] for a in self._core.selected_areas]
+            bf.SpawnThread(self.get_gui(),
+                           bf.wxBYMUR_UPDATE_MAP,
+                           self._core.set_areas_by_ID,
+                           dict(areaID_list=areaID_list),
+                           callback=self._update_areas_data,
+                           wait_msg="Loading data..."
+            )
 
 
     def export_hazard(self):
@@ -382,7 +384,11 @@ class BymurController(object):
         self._set_loss()
         self._set_risk()
         self._set_compare_risks()
-        self._set_selected_area()
+        # self._set_selected_area()
+        self._set_selected_areas()
+
+    def _update_areas_data(self):
+        self._set_compare_risks()
         self._set_selected_areas()
 
     def _set_ctrls_data(self):
@@ -416,8 +422,8 @@ class BymurController(object):
     #     print "Set inventory_sections"
     #     self.get_gui().inventory_sections = self._core.inventory_sections
 
-    def _set_selected_area(self):
-        self.get_gui().selected_area = self._core.selected_area
+    # def _set_selected_area(self):
+    #     self.get_gui().selected_area = self._core.selected_area
 
     def _set_selected_areas(self):
         self.get_gui().selected_areas = self._core.selected_areas
