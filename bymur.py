@@ -1,4 +1,5 @@
 import wx
+from wx.lib.agw.flatnotebook import FNB_NO_NAV_BUTTONS, FNB_NO_X_BUTTON
 import bymur_plots
 import os
 import bymur_core
@@ -1133,7 +1134,7 @@ class BymurWxCurvesPanel(BymurWxPanel):
 
         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
         self.SetSizer(self._sizer)
-        self._nb = FlatNB.FlatNotebook(self)
+        self._nb = FlatNB.FlatNotebook(self, agwStyle=FNB_NO_X_BUTTON)
 
         self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
                                              controller=self._controller,
@@ -1425,6 +1426,7 @@ class BymurWxRightPanel(BymurWxPanel):
 #         self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
 #         self.SetSizer(self._sizer)
 
+
 class BymurWxDataPanel(BymurWxPanel):
     def __init__(self, *args, **kwargs):
         self._dataBoxTitle = kwargs.pop('title', "Data")
@@ -1436,86 +1438,77 @@ class BymurWxDataPanel(BymurWxPanel):
         self._dataBox = wx.StaticBox(
             self,
             wx.ID_ANY,
-            "Selected point data")
+            "Selected point and area")
         self._dataBoxSizer = wx.StaticBoxSizer(
             self._dataBox,
             orient=wx.VERTICAL)
-        self._dataSizer = wx.GridBagSizer(hgap=5, vgap=5)
+
+        self._dataSizer = wx.FlexGridSizer(5, 2, hgap=5, vgap=5)
         self._dataBoxSizer.Add(self._dataSizer)
 
         vpos = 0
         self._dataHazLabel = wx.StaticText(self, wx.ID_ANY, 'Hazard ')
         self._dataHazTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
-        self._dataSizer.Add(self._dataHazLabel, pos=(vpos, 0), span=(1, 1),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataHazTC, pos=(vpos, 1), span=(1, 1))
+        self._dataSizer.Add(self._dataHazLabel,
+                              flag=wx.ALIGN_BOTTOM)
+        self._dataSizer.Add(self._dataHazTC)
 
         self._dataProbLabel = wx.StaticText(self, wx.ID_ANY, 'Probability ')
         self._dataProbTC = wx.TextCtrl(self, wx.ID_ANY,
                                        style=wx.TE_READONLY)
-        self._dataSizer.Add(self._dataProbLabel, pos=(vpos, 2), span=(1, 1),
-                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
-        self._dataSizer.Add(self._dataProbTC, pos=(vpos, 3), span=(1, 1))
+        self._dataSizer.Add(self._dataProbLabel,
+                              flag=wx.ALIGN_BOTTOM)
+        self._dataSizer.Add(self._dataProbTC)
 
         ## Area Inventory details
-        self._invBox = wx.StaticBox(
-            self,
-            wx.ID_ANY,
-            "Selected area")
-        self._invBoxSizer = wx.StaticBoxSizer(
-            self._invBox,
-            orient=wx.VERTICAL)
-        self._invSizer = wx.GridBagSizer(hgap=5, vgap=5)
-        self._invBoxSizer.Add(self._invSizer)
+        # self._invBox = wx.StaticBox(
+        #     self,
+        #     wx.ID_ANY,
+        #     "Selected area")
+        # self._invBoxSizer = wx.StaticBoxSizer(
+        #     self._invBox,
+        #     orient=wx.VERTICAL)
+        # self._invSizer = wx.FlexGridSizer(5, 2, hgap=5, vgap=5)
+        # self._invBoxSizer.Add(self._invSizer)
 
-        vpos = 0
         self._invAreaIDLabel = wx.StaticText(self, wx.ID_ANY,
                                     "Area ID")
         self._invAreaIDTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
-        self._invSizer.Add(self._invAreaIDLabel,
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 1))
-        self._invSizer.Add(self._invAreaIDTC, flag=wx.EXPAND,
-                             pos=(vpos, 1), span=(1, 1))
+                                        style=wx.TE_READONLY)
+        self._dataSizer.Add(self._invAreaIDLabel,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invAreaIDTC, flag=wx.EXPAND)
 
         self._invSecIDLabel = wx.StaticText(self, wx.ID_ANY,
                                     "Section ID")
         self._invSecIDTC = wx.TextCtrl(self, wx.ID_ANY,
                                       style=wx.TE_READONLY)
-        self._invSizer.Add(self._invSecIDLabel,
-                             flag=wx.EXPAND, pos=(vpos, 2),
-                             span=(1, 1))
-        self._invSizer.Add(self._invSecIDTC, flag=wx.EXPAND,
-                             pos=(vpos, 3), span=(1, 1))
+        self._dataSizer.Add(self._invSecIDLabel,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invSecIDTC, flag=wx.EXPAND)
 
-        vpos += 1
-        self._invCentroidLabel = wx.StaticText(self, wx.ID_ANY,
-                                    "Centroid coordinates")
+        self._invCentroidLabelX = wx.StaticText(self, wx.ID_ANY,
+                                    "Centroid X")
         self._invCentroidXTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
+                                           style=wx.TE_READONLY)
+        self._invCentroidLabelY = wx.StaticText(self, wx.ID_ANY,
+                                    "Centroid Y")
         self._invCentroidYTC = wx.TextCtrl(self, wx.ID_ANY,
-                                      style=wx.TE_READONLY)
-        self._invSizer.Add(self._invCentroidLabel,
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 2))
-        self._invSizer.Add(self._invCentroidXTC, flag=wx.EXPAND,
-                             pos=(vpos, 2), span=(1, 2))
-        self._invSizer.Add(self._invCentroidYTC, flag=wx.EXPAND,
-                             pos=(vpos, 4), span=(1, 2))
+                                           style=wx.TE_READONLY)
+        self._dataSizer.Add(self._invCentroidLabelX,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invCentroidXTC, flag=wx.EXPAND)
+        self._dataSizer.Add(self._invCentroidLabelY, flag=wx.EXPAND)
+        self._dataSizer.Add(self._invCentroidYTC, flag=wx.EXPAND)
 
-        vpos += 1
         self._invTotalLabel = wx.StaticText(self, wx.ID_ANY,
                                     "Total buildings number")
         self._invTotalTC = wx.TextCtrl(self, wx.ID_ANY,
                                       style=wx.TE_READONLY)
-        self._invSizer.Add(self._invTotalLabel,
-                             flag=wx.EXPAND, pos=(vpos, 0),
-                             span=(1, 2))
-        self._invSizer.Add(self._invTotalTC, flag=wx.EXPAND,
-                             pos=(vpos, 2), span=(1, 4))
+        self._dataSizer.Add(self._invTotalLabel,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invTotalTC, flag=wx.EXPAND)
 
-        vpos += 1
         self._classBox = wx.StaticBox(
             self,
             wx.ID_ANY,
@@ -1523,11 +1516,8 @@ class BymurWxDataPanel(BymurWxPanel):
         self._classBoxSizer = wx.StaticBoxSizer(
             self._classBox,
             orient=wx.HORIZONTAL)
-        self._classSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._classSizer = wx.GridBagSizer()
         self._classBoxSizer.Add(self._classSizer)
-
-        self._invSizer.Add(self._classBoxSizer, flag=wx.EXPAND,
-                           pos=(vpos, 0), span=(5, 6))
 
         # General Classes
         self._genClassBox = wx.StaticBox(
@@ -1568,9 +1558,8 @@ class BymurWxDataPanel(BymurWxPanel):
         self._houseClasses = []
         self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
 
-        self._invBoxSizer.Add(self._classBoxSizer, flag=wx.EXPAND)
-        self._sizer.Add(self._dataBoxSizer)
-        self._sizer.Add(self._invBoxSizer)
+        self._sizer.Add(self._dataBoxSizer, flag=wx.ALL|wx.EXPAND)
+        self._sizer.Add(self._classBoxSizer, flag=wx.ALL|wx.EXPAND)
         self.SetSizer(self._sizer)
 
     def updateInventory(self):
@@ -1645,6 +1634,11 @@ class BymurWxDataPanel(BymurWxPanel):
     def clearPoint(self):
         self._dataHazTC.SetValue('')
         self._dataProbTC.SetValue('')
+        self._invAreaIDTC.SetValue('')
+        self._invSecIDTC.SetValue('')
+        self._invCentroidXTC.SetValue('')
+        self._invCentroidYTC.SetValue('')
+        self._invTotalTC.SetValue('')
 
     def updatePointData(self):
         if self._topWindow.selected_point.haz_value:
@@ -2225,7 +2219,8 @@ class BymurWxView(wx.Frame):
 
         # Main panel
         self.mainSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self._leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
+        # self._leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._leftSizer = wx.GridBagSizer(5, 4)
         self._ctrlsPanel = BymurWxCtrlsPanel(parent=self,
                                            controller=self._controller,
                                            title="Model",
@@ -2239,9 +2234,9 @@ class BymurWxView(wx.Frame):
         self._rightPanel = BymurWxRightPanel(parent=self,
                                              controller=self._controller,
                                              label="RightPanel")
-        self._leftSizer.Add(self._ctrlsPanel, 0, wx.EXPAND)
-        self._leftSizer.Add(self._dataPanel, 1, wx.EXPAND)
-        self.mainSizer.Add(self._leftSizer, 0, wx.EXPAND)
+        self._leftSizer.Add(self._ctrlsPanel, pos=(0,0))
+        self._leftSizer.Add(self._dataPanel, pos=(1,0))
+        self.mainSizer.Add(self._leftSizer, 0)
         self.mainSizer.Add(self._rightPanel, 1, wx.EXPAND)
         self.SetSizer(self.mainSizer)
         self.SetSize((1200, 900))
