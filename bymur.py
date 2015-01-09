@@ -1205,7 +1205,8 @@ class BymurWxMapPanel(BymurWxPanel):
                                      "./data/naples_gsatellite.png")
         self._map = bymur_plots.HazardGraph(parent=self,
                             click_callback=self._controller.pick_point_by_index,
-                            selection_callback=self._controller.areas_selection,
+                            # selection_callback=self._controller.areas_selection,
+                            selection_callback=self._controller.get_areas_data,
                             imgfile = _imgfile)
         # TODO: fix these references
         self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
@@ -1819,12 +1820,12 @@ class BymurWxCtrlsPanel(BymurWxPanel):
         self._intThresText.Enable(False)
         self.Bind(wx.EVT_TEXT_ENTER, self._controller.update_hazard_options,
                   self._intThresText)
-        self._intThresLabelBis = wx.StaticText(self, wx.ID_ANY, '[0-1]')
+        # self._intThresLabelBis = wx.StaticText(self, wx.ID_ANY, '')
         self._ctrlsSizer.Add(self._intThresLabel, pos=(vpos, 0), span=(1, 2),
                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
         self._ctrlsSizer.Add(self._intThresText, pos=(vpos, 2), span=(1, 1))
-        self._ctrlsSizer.Add(self._intThresLabelBis, pos=(vpos, 3), span=(1, 1),
-                             flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
+        # self._ctrlsSizer.Add(self._intThresLabelBis, pos=(vpos, 3), span=(1, 1),
+        #                      flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
 
 
         vpos += 1

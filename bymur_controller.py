@@ -305,12 +305,22 @@ class BymurController(object):
     def nbTabChanged(self, event):
         self.get_gui().rightPanel.curvesPanel.updateView()
 
-    def areas_selection(self, index, areas=[]):
+    def get_areas_data(self, index, areas=[]):
         if self._core.set_point_by_index(index):
-            self._core.set_areas_by_list(areas)
-            self._set_selected_point()
-            self._set_selected_areas()
-            bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
+            bf.SpawnThread(self.get_gui(),
+                           bf.wxBYMUR_UPDATE_POINT,
+                           self.areas_selection,
+                           dict(areas=areas),
+                           wait_msg="Loading data..."
+            )
+
+
+    def areas_selection(self, areas=[]):
+        # if self._core.set_point_by_index(index):
+        self._core.set_areas_by_list(areas)
+        self._set_selected_point()
+        self._set_selected_areas()
+            # bf.fire_event(self.get_gui(), bf.wxBYMUR_UPDATE_POINT)
 
     def pick_point_by_index(self, index, pathID=None):
         """
