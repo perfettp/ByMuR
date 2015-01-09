@@ -1653,6 +1653,13 @@ class BymurWxDataPanel(BymurWxPanel):
         else:
             self._dataProbTC.SetValue("")
 
+        grand_total = 0
+        for a in self._topWindow.selected_areas:
+            try:
+                grand_total += a['inventory'].asset.total
+            except AttributeError:
+                pass
+
         area_inventory = self._topWindow.selected_areas[0]['inventory']
 
         try:
@@ -1672,50 +1679,58 @@ class BymurWxDataPanel(BymurWxPanel):
             self._invCentroidXTC.SetValue('')
             self._invCentroidYTC.SetValue('')
 
-        try:
-            self._invTotalTC.SetValue(str(area_inventory.asset.total))
-        except AttributeError:
-            self._invTotalTC.SetValue('')
+
+        self._invTotalTC.SetValue(str(grand_total))
+
 
         if isinstance(self._topWindow.inventory.classes, dict):
             if self._topWindow.inventory.classes['generalClasses']:
                 for i_class in range(len(self._topWindow.inventory.
                         classes['generalClasses'])):
-                    try:
-                        self._genClasses[i_class]['value'].SetValue(
-                            str(area_inventory.asset.
-                                counts['genClassCount'][i_class]))
-                    except:
-                        self._genClasses[i_class]['value'].SetValue('')
+                    grand_total = 0
+                    for a in self._topWindow.selected_areas:
+                        try:
+                            grand_total += a['inventory'].asset.\
+                                        counts['genClassCount'][i_class]
+                        except KeyError:
+                            pass
+                    self._genClasses[i_class]['value'].SetValue(str(
+                        grand_total))
             else:
                 for i_class in range(len(self._genClasses)):
-                    self._genClasses[i_class]['value'].SetValue('')
+                    self._genClasses[i_class]['value'].SetValue('0')
 
             if self._topWindow.inventory.classes['ageClasses']:
                 for i_class in range(len(self._topWindow.inventory.
                         classes['ageClasses'])):
-                    try:
-                        self._ageClasses[i_class]['value'].SetValue(
-                            str(area_inventory.asset.
-                                counts['ageClassCount'][i_class]))
-                    except:
-                        self._ageClasses[i_class]['value'].SetValue('')
+                    grand_total = 0
+                    for a in self._topWindow.selected_areas:
+                        try:
+                            grand_total += a['inventory'].asset.\
+                                        counts['ageClassCount'][i_class]
+                        except KeyError:
+                            pass
+                    self._ageClasses[i_class]['value'].SetValue(str(
+                        grand_total))
             else:
                 for i_class in range(len(self._ageClasses)):
-                    self._ageClasses[i_class]['value'].SetValue('')
+                    self._ageClasses[i_class]['value'].SetValue('0')
 
             if self._topWindow.inventory.classes['houseClasses']:
                 for i_class in range(len(self._topWindow.inventory.
                         classes['houseClasses'])):
-                    try:
-                        self._houseClasses[i_class]['value'].SetValue(
-                            str(area_inventory.asset.
-                                counts['houseClassCount'][i_class]))
-                    except:
-                        self._houseClasses[i_class]['value'].SetValue('')
+                    grand_total = 0
+                    for a in self._topWindow.selected_areas:
+                        try:
+                            grand_total += a['inventory'].asset.\
+                                        counts['houseClassCount'][i_class]
+                        except KeyError:
+                            pass
+                    self._houseClasses[i_class]['value'].SetValue(str(
+                        grand_total))
             else:
                 for i_class in range(len(self._houseClasses)):
-                    self._houseClasses[i_class]['value'].SetValue('')
+                    self._houseClasses[i_class]['value'].SetValue('0')
 
 
 class BymurWxCtrlsPanel(BymurWxPanel):
