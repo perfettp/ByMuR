@@ -1,0 +1,61 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema xmlns:xs="http://www.w3.org/2001/XMLSchema"
+           xmlns:gml="http://www.opengis.net/gml"
+           xmlns:nrml="http://openquake.org/xmlns/nrml/0.4"
+           elementFormDefault="qualified"
+           xml:lang="en">
+
+    <xs:import namespace="http://www.opengis.net/gml"
+               schemaLocation="./oq-nrmlib/gml/gmlsf.xsd"/>
+    <xs:import namespace="http://openquake.org/xmlns/nrml/0.4"
+               schemaLocation="./oq-nrmlib/nrml.xsd"/>
+
+    <xs:element name="arealRiskModel" type="ArealRiskModel"/>
+    <xs:complexType name="ArealRiskModel">
+        <xs:sequence>
+            <xs:element ref="riskCurve" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="investigationTime"
+                      type="nrml:PositiveNonZeroDoubleType" use="required"/>
+        <xs:attribute name="hazardModelName" type="xs:string" use="required"/>
+        <xs:attribute name="fragilityModelName" type="xs:string"
+                      use="required"/>
+        <xs:attribute name="lossModelName" type="xs:string" use="required"/>
+        <xs:attribute name="modelName" type="xs:string" use="required"/>
+        <xs:attribute name="riskType" type="xs:string" use="required"/>
+        <xs:attribute name="hazardType" type="xs:string"/>
+        <xs:attribute name="statistics" type="nrml:HazardCurveStats"
+                      use="optional"/>
+        <!-- quantileValue is only used when statistics == 'quantile' -->
+        <xs:attribute name="quantileValue" type="nrml:PositiveDoubleType"
+                      use="optional"/>
+        <xs:attribute name="format" type="xs:string" use="required"/>
+        <xs:attribute name="unit" type="xs:string" use="optional"/>
+    </xs:complexType>
+    <xs:element name="riskCurve" type="RiskCurve"/>
+    <xs:complexType name="RiskCurve">
+        <xs:sequence>
+            <xs:element name="gmlPoint" minOccurs="0" maxOccurs="1">
+                <xs:complexType>
+                    <xs:sequence>
+                        <xs:element
+                                name="gmlpos"
+                                type="gml:doubleList"/>
+                    </xs:sequence>
+                </xs:complexType>
+            </xs:element>
+            <xs:element name="poEs" type="nrml:NormalizedDoubleList"
+                        minOccurs="0" maxOccurs="1"/>
+            <xs:element name="losses" type="nrml:PositiveDoubleList"
+                        minOccurs="1" maxOccurs="1"/>
+            <xs:element name="riskRatios" type="nrml:PositiveDoubleList"
+                        minOccurs="0" maxOccurs="1"/>
+            <xs:element name="averageRisk" type="nrml:PositiveDoubleType"
+                        minOccurs="0" maxOccurs="1"/>
+            <xs:element name="stdDevRisk" type="nrml:PositiveDoubleType"
+                        minOccurs="0" maxOccurs="1"/>
+        </xs:sequence>
+        <xs:attribute name="areaID" type="xs:nonNegativeInteger"
+                      use="required"/>
+    </xs:complexType>
+</xs:schema>

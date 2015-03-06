@@ -2,13 +2,18 @@
 
 ---
 
-## Install on Ubuntu GNU \\ Linux 12.04   
-
+## Install on Debian or Ubuntu GNU \\ Linux
 
 #### 1. Install requirements
 ```sh
-sudo apt-get install python-pip python-virtualenv virtualenvwrapper python-wxgtk2.8 build-essentials libpng-dev libmysqlclient-dev
+sudo apt-get install python-pip python-virtualenv virtualenvwrapper \
+        python-wxgtk2.8 build-essentials libpng-dev libmysqlclient-dev \
+        python-dev libfreetype6-dev libxml2-dev libxslt-dev \
+        libatlas-base-dev gfortran
+
 ```
+Tested on Debian 6.0.9, Ubuntu 12.04 and 14.04, packages name could change 
+slightly
 
 #### 2. Configure virtualenvwrapper
 

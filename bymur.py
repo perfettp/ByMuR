@@ -1,1431 +1,2615 @@
-#!/usr/bin/env python1
-# -*- coding: utf-8 -*-
-
-'''
-  Bymur Software computes Risk and Multi-Risk associated to Natural Hazards.
-  In particular this tool aims to provide a final working application for
-  the city of Naples, considering three natural phenomena, i.e earthquakes,
-  volcanic eruptions and tsunamis.1
-  The tool is the final product of BYMUR, an Italian project funded by the
-  Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro in
-  Ricerca funding program.
-
-  Copyright(C) 2012 Roberto Tonini and Jacopo Selva
-
-  This file is part of BYMUR software.
-
-  BYMUR is free software: you can redistribute it and/or modify
-  it under the terms of the GNU General Public License as published by
-  the Free Software Foundation, either version 3 of the License, or
-  (at your option) any later version.
-
-  BYMUR is distributed in the hope that it will be useful,
-  but WITHOUT ANY WARRANTY; without even the implied warranty of
-  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-  GNU General Public License for more details.
-
-  You should have received a copy of the GNU General Public License
-  along with BYMUR. If not, see <http://www.gnu.org/licenses/>.
-
-'''
-
-import os
-
-# third-party modules
 import wx
-import numpy as np
-import matplotlib as mlib
-mlib.use('WX')
+from wx.lib.agw.flatnotebook import FNB_NO_NAV_BUTTONS, FNB_NO_X_BUTTON
+import bymur_plots
+import os
+import bymur_core
+import bymur_controller
+import bymur_functions as bf
+import wx.lib.agw.flatnotebook as FlatNB
 
-import matplotlib.pyplot as plt
-
-import globalFunctions as gf
-import dbFunctions as db
-import getGMapsImg as gmaps
-import plotLibs
-import scientLibs
-import math
-
-
-
-class BymurFrame(wx.Frame):
-
+class BymurBusyDlg(wx.BusyInfo):
     """
-    Main window frame of ByMuR software.
     """
 
-    srcdir = os.path.dirname(os.path.realpath(__file__))
-    # default values for some global variables
-    pt_sel = 0           # selected point
-    haz_sel = 0          # selected hazard phenomenon
-    single_haz = True    # selected
-    RP = 4975            # selected Return Period
-    intTh = 3.0          # selected intensity threshold
-    tw = 0               # selected time window
-
-    # defining some input
-    hazards = ["Volcanic", "Seismic", "Tsunami"]           # hazard phenomena
-    perc = range(1, 100)                                   # percentiles
-
-    # limits of image map
-    limits = [375.300, 508.500, 4449.200, 4569.800]
-    imgpath = os.path.join(srcdir, "data", "naples.png")   # image map path
-    gridpath = os.path.join(srcdir, "data",
-                            "naples-grid.txt")  # image map path
-
-    nhaz = len(hazards)
-    nperc = len(perc)
-
-    def __init__(self, parent, id, title):
-        wx.Frame.__init__(self, parent, id, title, wx.DefaultPosition)
-
-        # menubar
-        self.menuBar = wx.MenuBar()
-        self.fileMenu = wx.Menu()
-        self.dbMenu = wx.Menu()
-        self.plotMenu = wx.Menu()
-
-        load_db_item = wx.MenuItem(self.fileMenu, 102, '&Load DataBase')
-        self.fileMenu.AppendItem(load_db_item)
-        self.Bind(wx.EVT_MENU, self.openLoadDB, id=102)
-        self.fileMenu.AppendSeparator()
-
-        load_bymurDBitem = wx.MenuItem(self.fileMenu, 103,
-                                       '&Load remote ByMuR DB')
-        self.fileMenu.AppendItem(load_bymurDBitem)
-        self.Bind(wx.EVT_MENU, self.loadBymurDB, id=103)
-        self.fileMenu.AppendSeparator()
-
-        quitItem = wx.MenuItem(self.fileMenu, 105, '&Quit')
-        self.fileMenu.AppendItem(quitItem)
-        self.Bind(wx.EVT_MENU, self.on_quit, id=105)
-
-        self.menuBar.Append(self.fileMenu, '&File')
-
-        creadbItem = wx.MenuItem(self.dbMenu, 111, '&Create DataBase (DB)')
-        self.dbMenu.AppendItem(creadbItem)
-        self.Bind(wx.EVT_MENU, self.openCreateDB, id=111)
-
-        addItem = wx.MenuItem(self.dbMenu, 112, '&Add Data to DB')
-        self.dbMenu.AppendItem(addItem)
-        self.Bind(wx.EVT_MENU, self.openAddDB, id=112)
-        addItem.Enable(False)
-
-        dropTabs = wx.MenuItem(self.dbMenu, 116, '&Drop All DB Tables')
-        self.dbMenu.AppendItem(dropTabs)
-        self.Bind(wx.EVT_MENU, self.dropAllTabs, id=116)
-        self.dbMenu.AppendSeparator()
-
-        self.menuBar.Append(self.dbMenu, '&DataBase')
-
-        self.map_export_gis = wx.MenuItem(self.plotMenu, 121,
-                                          '&Export Raster ASCII (GIS)')
-        self.Bind(wx.EVT_MENU, self.exportAsciiGis, id=121)
-        self.plotMenu.AppendItem(self.map_export_gis)
-        self.map_menu_ch = wx.MenuItem(self.plotMenu, 131, '&Show Points',
-                                       kind=wx.ITEM_CHECK)
-        self.Bind(wx.EVT_MENU, self.showPoints, id=131)
-        self.plotMenu.AppendItem(self.map_menu_ch)
-        self.menuBar.Append(self.plotMenu, '&Map')
-        self.map_export_gis.Enable(False)
-        self.map_menu_ch.Enable(False)
-
-        self.analysisMenu = wx.Menu()
-
-        self.ensemble_item = wx.MenuItem(self.analysisMenu, 211,
-                                         'Create &Ensemble hazard')
-        self.analysisMenu.AppendItem(self.ensemble_item)
-
-        self.menuBar.Append(self.analysisMenu, '&Analysis')
-
-        self.Bind(wx.EVT_MENU, self.openEnsembleFr, id=211)
-        self.ensemble_item.Enable(False)
-
-        self.SetMenuBar(self.menuBar)
-
-        # main sizer
-        hbox = wx.BoxSizer(orient=wx.HORIZONTAL)
-
-        # left panel
-        self.pnl_lt = wx.Panel(self, wx.ID_ANY)
-        vbox_lt = wx.BoxSizer(orient=wx.VERTICAL)
-
-        hbox_haz = wx.StaticBoxSizer(
-            wx.StaticBox(
-                self.pnl_lt,
-                wx.ID_ANY,
-                'Hazard'),
-            orient=wx.HORIZONTAL)
-
-        self.vbox_haz_lt = wx.BoxSizer(orient=wx.VERTICAL)
-        self.vbox_haz_rt = wx.BoxSizer(orient=wx.VERTICAL)
-
-        self.hlbl = wx.StaticText(self.pnl_lt, wx.ID_ANY,
-                                  "Select Hazard Model:")
-        self.vbox_haz_lt.Add(self.hlbl, 0, wx.TOP, 10)
-        self.chaz = wx.ComboBox(self.pnl_lt, wx.ID_ANY, choices=[""],
-                                style=wx.CB_READONLY, size=(-1, -1))
-        self.vbox_haz_lt.Add(self.chaz, 0, wx.TOP, 4)
-        self.Bind(wx.EVT_COMBOBOX, self.selHazard, self.chaz)
-
-        self.vbox_haz_lt.Add(
-            wx.StaticText(
-                self.pnl_lt,
-                wx.ID_ANY,
-                "Select Return Period (yr):"),
-            0,
-            wx.TOP,
-            6)
-        self.hbox_pth = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.cpth = wx.TextCtrl(self.pnl_lt, wx.ID_ANY, size=(80, -1))
-        self.cpth.SetValue(str(self.RP))
-        self.hbox_pth.Add(self.cpth, 0, wx.ALIGN_BOTTOM | wx.TOP, 2)
-        self.bpth = wx.Button(self.pnl_lt, wx.ID_ANY, 'Update Map',
-                              size=(-1, 26))
-        self.Bind(wx.EVT_BUTTON, self.selReturnPeriod, self.bpth)
-        self.hbox_pth.Add(self.bpth, 0, wx.ALIGN_BOTTOM | wx.LEFT, 5)
-        self.vbox_haz_lt.Add(self.hbox_pth)
-
-        self.vbox_haz_lt.Add(
-            wx.StaticText(
-                self.pnl_lt,
-                wx.ID_ANY,
-                "Select Intesity Threshold (0-1):"),
-            0,
-            wx.TOP,
-            6)
-        self.hbox_ith = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.cith = wx.TextCtrl(self.pnl_lt, wx.ID_ANY, size=(80, -1))
-        self.cith.SetValue(str(self.intTh))
-        self.hbox_ith.Add(self.cith, 0, wx.ALIGN_BOTTOM | wx.TOP, 2)
-        self.bith = wx.Button(self.pnl_lt, wx.ID_ANY, 'Update Map',
-                              size=(-1, 26))
-        self.Bind(wx.EVT_BUTTON, self.selIntensityTh, self.bith)
-        self.hbox_ith.Add(self.bith, 0, wx.ALIGN_BOTTOM | wx.LEFT, 5)
-        self.vbox_haz_lt.Add(self.hbox_ith)
-
-        self.twlbl = wx.StaticText(self.pnl_lt, wx.ID_ANY,
-                                   "Select Exposure Time (Years):")
-        self.vbox_haz_lt.Add(self.twlbl, 0, wx.TOP, 10)
-        self.ctw = wx.ComboBox(self.pnl_lt, wx.ID_ANY, choices=[],
-                               style=wx.CB_READONLY, size=(80, -1))
-        self.ctw.SetSelection(0)
-        self.vbox_haz_lt.Add(self.ctw, 0, wx.TOP, 4)
-        self.Bind(wx.EVT_COMBOBOX, self.selTimeWindow, self.ctw)
-
-        hbox_haz.Add(self.vbox_haz_lt, 0, wx.EXPAND | wx.ALL, 10)
-        hbox_haz.Add(self.vbox_haz_rt, 0, wx.EXPAND | wx.ALL, 10)
-
-        vbox_lt.Add(hbox_haz, 0, wx.EXPAND | wx.ALL, 5)
-
-        self.pnl_lt.SetSizer(vbox_lt)
-        self.pnl_lt.Enable(False)
-        hbox.Add(self.pnl_lt, 0, wx.EXPAND | wx.ALL, 5)
-
-        # right panel
-        vbox_rt = wx.BoxSizer(orient=wx.VERTICAL)
-        hbox_map = wx.StaticBoxSizer(wx.StaticBox(self, wx.ID_ANY, 'Map'),
-                                     orient=wx.HORIZONTAL)
-        self.pn1 = plotLibs.pn1Canvas(self)
-        hbox_map.Add(self.pn1, 1, wx.EXPAND | wx.ALL, 0)
-        vbox_rt.Add(hbox_map, 1, wx.EXPAND | wx.ALL, 5)
-
-        self.pnl_curves = wx.Panel(self, wx.ID_ANY)
-        self.nb = wx.Notebook(self.pnl_curves)
-        self.pn2 = plotLibs.pn2Canvas(self.nb)
-        self.pn3 = plotLibs.pn3Canvas(self.nb)
-        self.pn4 = plotLibs.pn4Canvas(self.nb)
-
-        self.nb.AddPage(self.pn2, "Hazard")
-        self.nb.AddPage(self.pn3, "Vulnerability")
-        self.nb.AddPage(self.pn4, "Risk")
-
-        self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self.onTabChanged)
-        box_nb = wx.BoxSizer(orient=wx.VERTICAL)
-        box_nb.Add(self.nb, 1, wx.EXPAND | wx.ALL, 10)
-        self.pnl_curves.SetSizer(box_nb)
-
-        self.pn1.Enable(False)
-        self.pnl_curves.Enable(False)
-
-        vbox_rt.Add(self.pnl_curves, 1, wx.EXPAND | wx.ALL, 0)
-        hbox.Add(vbox_rt, 1, wx.EXPAND | wx.ALL, 5)
-
-        cid = self.pn1.fig.canvas.mpl_connect(
-            'button_press_event', self.onClick)
-        self.Bind(wx.EVT_CLOSE, self.on_quit)
-        self.sb = self.CreateStatusBar()
-        self.sb.SetStatusText("... load DB")
-        self.SetSizer(hbox)
-        self.SetSize((950, 750))
-        self.pnl_curves.SetSize((-1, 100))
-        self.Centre()
-
-    def loadBymurDB(self, event):
-        """
-        """
-        server = "***REMOVED***"
-        user = "bymurUser"
-        pwd = "bymurPwd"
-        dbname = "bymurDB"
-        self.con, self.cur = db.dbConnection(server, user, pwd, dbname)
-        self.loadDB()
-
-    def exportAsciiGis(self, event):
-        """
-        """
-        ext = ".txt"
-        dfl_dir = os.path.expanduser("~")
-        dlg = wx.FileDialog(self, message="Save File as...",
-                            defaultDir=dfl_dir, defaultFile="*.txt",
-                            wildcard="*.*",
-                            style=wx.SAVE | wx.FD_OVERWRITE_PROMPT)
-
-        if (dlg.ShowModal() == wx.ID_OK):
-            savepath = dlg.GetPath()
-
-            if (savepath[-4:] == ext):
-                filename = savepath
-            else:
-                filename = savepath + ext
-
-            fp = open(filename, "w")
-
-            for i in range(self.npts):
-                fp.write(
-                    "%f %f %f\n" %
-                    (self.lon[i] *
-                     1000,
-                     self.lat[i] *
-                        1000,
-                        self.zmap[i]))
-
-            fp.close()
-
-        dlg.Destroy()
-
-    def dropAllTabs(self, event):
-        """
-        """
-        msg = ("WARNING\nYou are going to delete all tables in you database.\n"
-               "Do you want to continue?")
-        answer = gf.showYesnoDialog(self, msg, "WARNING")
-        if (answer == wx.ID_YES):
-            con, cur = db.dbConnection("localhost", "V1User",
-                                       "V1Pwd", "DPC-V1-DB")
-            db.dbDropAllTabs(con, cur)
-        else:
-            return
-
-    def onClick(self, event):
-        """
-        1) Finding the closest point in the data grid to the point clicked
-           by the mouse on the map at the top canvas.
-        2) Updating the hazard curve plot in the bottom canvas to the
-           selected point.
-        """
-
-        if (self.pn1.toolbar.mode == ""):
-
-            if (event.inaxes != self.pn1.ax1):
-                return
-            else:
-                lon1 = min(self.lon)
-                lon2 = max(self.lon)
-                lat1 = min(self.lat)
-                lat2 = max(self.lat)
-                xsel, ysel = event.xdata, event.ydata
-                if (xsel >= lon1 and xsel <= lon2 and
-                        ysel >= lat1 and ysel <= lat2):
-                    dist = np.sqrt((self.lon - xsel) ** 2 +
-                                   (self.lat - ysel) ** 2)
-                    self.pt_sel = np.argmin(dist)
-
-                    self.pn2.hazardCurve(
-                        self.hc,
-                        self.haz_sel,
-                        self.tw,
-                        self.hazards,
-                        self.dtime,
-                        self.pt_sel,
-                        self.perc,
-                        self.iml,
-                        self.imt,
-                        self.th,
-                        self.hc_perc,
-                        self.intTh)
-                else:
-                    return
-
-    def showPoints(self, event):
-        """
-        Switching show/hide points on the map.
-        NOTE: Currently it is not used (see show point menu item)
-        """
-
-        val = self.map_menu_ch.IsChecked()
-
-        if val:
-            self.pn1.pt.set_cmap(plt.cm.RdYlGn_r)
-            self.pn1.pt.set_alpha(1)
-            self.pn1.canvas.draw()
-
-        else:
-            self.pn1.pt.set_alpha(0)
-            self.pn1.canvas.draw()
-
-    def onTabChanged(self, event):
-        """
-        Switching between tabs of bottom canvas
-        """
-
-        sel = self.nb.GetSelection()
-        old = event.GetOldSelection()
-
-        if (sel == 1):
-            self.nb.ChangeSelection(old)
-            msg = ("WARNING:\nThis feature has not been implemented yet")
-            gf.showWarningMessage(self, msg, "WARNING")
-            return
-
-        elif (sel == 2):
-            self.nb.ChangeSelection(old)
-            msg = ("WARNING:\nThis feature has not been implemented yet")
-            gf.showWarningMessage(self, msg, "WARNING")
-            return
-
-        else:
-            pass
-
-    def selHazard(self, event):
-
-        self.haz_sel = int(self.chaz.GetSelection())
-
-        self.dtime = []
-        for k in range(self.nhaz):
-            hazmodtb = "hazard" + str(k + 1)
-            tmp = db.dbSelectDtime(self.con, self.cur, hazmodtb)
-            dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
-            self.dtime.append(dtlist)
-        print "dtime = ", self.dtime
-
-        self.tw = 0
-        self.ctw.Clear()
-        print self.dtime[self.haz_sel], self.haz_sel
-        for item in self.dtime[self.haz_sel]:
-            print item
-            self.ctw.Append(item)
-        self.ctw.SetSelection(self.tw)
-        print '---------selHazard--------------'
-        print 'Selected model: ', self.haz_sel
-        ntry = int(math.floor(self.npts * 0.5))
-        tmp2 = self.hc[self.haz_sel][self.tw][0][ntry]
-        print tmp2, type(tmp2)
-        tmp = sum([float(j) for j in tmp2.split()])
-        if (tmp == 0):
-            busydlg = wx.BusyInfo("...Reading hazard from DB")
-            wx.Yield()
-            db.dbReadHC(self.haz_sel, self.tw, self.dtime, self.cur, self.hc,
-                        self.hc_perc)
-            busydlg = None
-
-        self.zmap = self.pn1.hazardMap(
-            self.hc,
-            self.lon,
-            self.lat,
-            self.id_area,
-            self.nareas,
-            self.npts,
-            self.hazards,
-            self.dtime,
-            self.haz_sel,
-            self.tw,
-            self.th,
-            self.intTh,
-            self.perc,
-            self.imgpath,
-            self.limits,
-            self.iml,
-            self.imt)
-        self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-                             self.dtime, self.pt_sel, self.perc, self.iml,
-                             self.imt, self.th, self.hc_perc, self.intTh)
-        print '------------------------------'
-
-    def selTimeWindow(self, event):
-        """
-        """
-        self.tw = int(self.ctw.GetSelection())
-
-        print '----------selTimeWindow-------------'
-        self.th = scientLibs.prob_thr(self.RP,
-                                      self.dtime[self.haz_sel][self.tw])
-        print 'time:', self.dtime[self.haz_sel][self.tw]
-        ntry = int(math.floor(self.npts * 0.5))
-        tmp2 = self.hc[self.haz_sel][self.tw][0][ntry]
-        tmp = sum([float(j) for j in tmp2.split()])
-        if (tmp == 0):
-            busydlg = wx.BusyInfo("...Reading hazard from DB")
-            wx.Yield()
-            db.dbReadHC(self.haz_sel, self.tw, self.dtime, self.cur, self.hc,
-                        self.hc_perc)
-            busydlg = None
-
-        self.zmap = self.pn1.hazardMap(
-            self.hc,
-            self.lon,
-            self.lat,
-            self.id_area,
-            self.nareas,
-            self.npts,
-            self.hazards,
-            self.dtime,
-            self.haz_sel,
-            self.tw,
-            self.th,
-            self.intTh,
-            self.perc,
-            self.imgpath,
-            self.limits,
-            self.iml,
-            self.imt)
-
-        self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-                             self.dtime, self.pt_sel, self.perc, self.iml,
-                             self.imt, self.th, self.hc_perc, self.intTh)
-        print '------------------------------'
-
-    def selReturnPeriod(self, event):
-        """
-        """
-        print '---------selReturnPeriod--------------'
-        self.RP = float(self.cpth.GetValue())
-        self.th = scientLibs.prob_thr(self.RP,
-                                      self.dtime[self.haz_sel][self.tw])
-
-        self.zmap = self.pn1.hazardMap(
-            self.hc,
-            self.lon,
-            self.lat,
-            self.id_area,
-            self.nareas,
-            self.npts,
-            self.hazards,
-            self.dtime,
-            self.haz_sel,
-            self.tw,
-            self.th,
-            self.intTh,
-            self.perc,
-            self.imgpath,
-            self.limits,
-            self.iml,
-            self.imt)
-        self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-                             self.dtime, self.pt_sel, self.perc, self.iml,
-                             self.imt, self.th, self.hc_perc, self.intTh)
-        print '------------------------------'
-
-    def selIntensityTh(self, event):
-        """
-        """
-        print '---------selProbThreshold--------------'
-        self.intTh = float(self.cith.GetValue())
-
-        self.zmap = self.pn1.hazardMap(
-            self.hc,
-            self.lon,
-            self.lat,
-            self.id_area,
-            self.nareas,
-            self.npts,
-            self.hazards,
-            self.dtime,
-            self.haz_sel,
-            self.tw,
-            self.th,
-            self.intTh,
-            self.perc,
-            self.imgpath,
-            self.limits,
-            self.iml,
-            self.imt)
-        self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-                             self.dtime, self.pt_sel, self.perc, self.iml,
-                             self.imt, self.th, self.hc_perc, self.intTh)
-        print '------------------------------'
-
-    def openAddDB(self, event):
-        """
-        Opening a new window frame on top of the main window.
-        This frame contains input forms to fill in in order to load data from
-        single files. Data files must be prepared with specific rules.
-        ...
-        ...
-        """
-        pass
-
-    def openCreateDB(self, event):
-        """
-        Opening a new window frame on top of the main window.
-        This frame contains input forms to fill in in order to load data from
-        single files. Data files must be prepared with specific rules.
-        ...
-        ...
-        """
-
-        self.fr = wx.Frame(self, title="DB Creation Input")
-        hbox = wx.BoxSizer(orient=wx.HORIZONTAL)
-
-        # left vertical sizer
-        vbox1 = wx.BoxSizer(orient=wx.VERTICAL)
-
-        # loading lat, lon, id_area 3-cols ascii file
-        vbox_geo = wx.StaticBoxSizer(
-            wx.StaticBox(
-                self.fr,
-                wx.ID_ANY,
-                'Geographical grid data'),
-            orient=wx.VERTICAL)
-        txt = ("Load a 3-column ascii file having latitude\n"
-               "(1st col) and longitude (2nd col) of each spatial\n"
-               "point and the corresponding ID area (3rd col).")
-        vbox_geo.Add(wx.StaticText(self.fr, wx.ID_ANY, label=txt,
-                                   size=(-1, -1)), 0, wx.TOP, 5)
-
-        hbox_pt = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.gridfile = wx.TextCtrl(self.fr, wx.ID_ANY, size=(200, 24))
-        self.gridfile.SetValue(self.gridpath)
-        hbox_pt.Add(self.gridfile, 0, wx.TOP, 4)
-        self.ptbut = wx.Button(
-            self.fr, wx.ID_ANY, "Select File", size=(-1, 26))
-        self.Bind(wx.EVT_BUTTON, self.selGridFile, self.ptbut)
-        hbox_pt.Add(self.ptbut, 0, wx.LEFT, 5)
-
-        self.label_ptbut = wx.StaticText(self.fr, wx.ID_ANY, label="",
-                                         size=(-1, -1))
-        hbox_pt.Add(self.label_ptbut, 0, wx.TOP | wx.LEFT, 10)
-
-        vbox_geo.Add(hbox_pt)
-
-        # loading background map box
-        vbox_map = wx.StaticBoxSizer(
-            wx.StaticBox(
-                self.fr,
-                wx.ID_ANY,
-                'Background Image Map and Limits (UTM)'),
-            orient=wx.VERTICAL)
-        hbox1 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox1.Add(wx.StaticText(self.fr, wx.ID_ANY, label="Latitude Min (m):",
-                                size=(140, -1),
-                                style=wx.ALIGN_LEFT | wx.TE_WORDWRAP),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-        self.lat_min = wx.TextCtrl(self.fr, wx.ID_ANY, "4449200",
-                                   size=(120, -1))
-        hbox1.Add(self.lat_min, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-
-        hbox2 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox2.Add(wx.StaticText(self.fr, wx.ID_ANY, label="Latitude Max (m):",
-                                size=(140, -1),
-                                style=wx.ALIGN_LEFT | wx.TE_WORDWRAP),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-        self.lat_max = wx.TextCtrl(self.fr, wx.ID_ANY, "4569800",
-                                   size=(120, -1))
-        hbox2.Add(self.lat_max, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-
-        hbox3 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox3.Add(wx.StaticText(self.fr, wx.ID_ANY, label="Longitude Min (m):",
-                                size=(140, -1),
-                                style=wx.ALIGN_LEFT | wx.TE_WORDWRAP),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-        self.lon_min = wx.TextCtrl(
-            self.fr, wx.ID_ANY, "375300", size=(120, -1))
-        hbox3.Add(self.lon_min, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-
-        hbox4 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox4.Add(wx.StaticText(self.fr, wx.ID_ANY, label="Longitude Max (m):",
-                                size=(140, -1),
-                                style=wx.ALIGN_LEFT | wx.TE_WORDWRAP),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-        self.lon_max = wx.TextCtrl(
-            self.fr, wx.ID_ANY, "508500", size=(120, -1))
-        hbox4.Add(self.lon_max, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 2)
-
-        hbox5 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.loadmap = wx.Button(self.fr, wx.ID_ANY, "Upload Map",
-                                 size=(-1, 28))
-        self.Bind(wx.EVT_BUTTON, self.uploadMap, self.loadmap)
-        hbox5.Add(self.loadmap, 0, wx.LEFT | wx.ALIGN_BOTTOM, 2)
-        self.conf_map = wx.StaticText(self.fr, wx.ID_ANY, label="",
-                                      size=(-1, -1))
-        hbox5.Add(self.conf_map, 0, wx.ALIGN_CENTER | wx.LEFT, 5)
-
-        vbox_map.Add(hbox1, 0, wx.ALL, 1)
-        vbox_map.Add(hbox2, 0, wx.ALL, 1)
-        vbox_map.Add(hbox3, 0, wx.ALL, 1)
-        vbox_map.Add(hbox4, 0, wx.ALL, 1)
-        vbox_map.Add(hbox5, 0, wx.ALL, 1)
-
-        vbox_con = wx.StaticBoxSizer(
-            wx.StaticBox(
-                self.fr,
-                wx.ID_ANY,
-                'Database Connection'),
-            orient=wx.VERTICAL)
-
-        hbox1 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox1.Add(wx.StaticText(self.fr, wx.ID_ANY, label="Server Name:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-        self.server = wx.TextCtrl(self.fr, wx.ID_ANY, "localhost",
-                                  size=(120, -1))
-        hbox1.Add(self.server, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        hbox2 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox2.Add(wx.StaticText(self.fr, wx.ID_ANY, label="User Name:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-        self.user = wx.TextCtrl(self.fr, wx.ID_ANY, "V1User", size=(120, -1))
-        hbox2.Add(self.user, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        hbox3 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox3.Add(wx.StaticText(self.fr, wx.ID_ANY, label="Password:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-        self.pwd = wx.TextCtrl(self.fr, wx.ID_ANY, "V1Pwd",
-                               size=(120, -1), style=wx.TE_PASSWORD)
-        hbox3.Add(self.pwd, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        hbox4 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox4.Add(wx.StaticText(self.fr, wx.ID_ANY, label="Database Name:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-        self.dbname = wx.TextCtrl(self.fr, wx.ID_ANY, "DPC-V1-DB",
-                                  size=(120, -1))
-        hbox4.Add(self.dbname, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        vbox_con.Add(hbox1, 0, wx.ALL, 3)
-        vbox_con.Add(hbox2, 0, wx.ALL, 3)
-        vbox_con.Add(hbox3, 0, wx.ALL, 3)
-        vbox_con.Add(hbox4, 0, wx.ALL, 3)
-
-        # right vertical sizer
-        vbox2 = wx.BoxSizer(orient=wx.VERTICAL)
-
-        self.vbox_haz = wx.StaticBoxSizer(
-            wx.StaticBox(
-                self.fr,
-                wx.ID_ANY,
-                'Hazard'),
-            orient=wx.VERTICAL)
-
-        self.vbox_haz.Add(wx.StaticText(self.fr, wx.ID_ANY,
-                                        label="Select hazard files directory:",
-                                        size=(-1, -1),
-                                        style=wx.ALIGN_LEFT | wx.TE_WORDWRAP),
-                          0, wx.TOP, 5)
-
-        hbox_h1 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.hazpath = wx.TextCtrl(self.fr, wx.ID_ANY, size=(200, 24))
-        self.hazpath.SetValue(self.srcdir)
-        hbox_h1.Add(self.hazpath, 0, wx.TOP, 2)
-        self.bsel = wx.Button(self.fr, wx.ID_ANY, "Select Path", size=(-1, 26))
-        self.Bind(wx.EVT_BUTTON, self.selHazPath, self.bsel)
-        hbox_h1.Add(self.bsel, 0, wx.LEFT, 5)
-        self.vbox_haz.Add(hbox_h1)
-
-        self.vbox_haz.Add(wx.StaticText(self.fr, wx.ID_ANY,
-                                        label="Insert percentile single values or ranges:",
-                                        size=(-1, -1)), 0, wx.TOP, 5)
-        self.percentiles = wx.TextCtrl(self.fr, wx.ID_ANY, size=(300, -1))
-        self.percentiles.SetValue("10:90:10")
-        self.vbox_haz.Add(self.percentiles, 0, wx.TOP, 2)
-        txt_perc = ("Ex: 10,50,90 for single values or 5:100:5\n"
-                    "for range from 5 to 100 with a step of 5")
-        self.perc_lbl = wx.StaticText(self.fr, wx.ID_ANY, label=txt_perc,
-                                      size=(-1, -1))
-        self.vbox_haz.Add(self.perc_lbl, 0, wx.TOP, 5)
-
-        vbox1.Add(vbox_geo, 0, wx.EXPAND | wx.ALL, 5)
-        vbox1.Add(vbox_map, 0, wx.EXPAND | wx.ALL, 5)
-        vbox1.Add(vbox_con, 1, wx.EXPAND | wx.ALL, 5)
-        vbox2.Add(self.vbox_haz, 0, wx.EXPAND | wx.ALL, 5)
-
-        hbox_bot = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.canc_button = wx.Button(self.fr, wx.ID_ANY, "Cancel",
-                                     size=(-1, 28))
-        self.Bind(wx.EVT_BUTTON, self.closeInputFr, self.canc_button)
-        hbox_bot.Add(self.canc_button, 0, wx.TOP | wx.ALIGN_CENTRE, 10)
-        self.save_button = wx.Button(self.fr, wx.ID_ANY, "Create",
-                                     size=(-1, 28))
-        self.Bind(wx.EVT_BUTTON, self.createDB, self.save_button)
-        hbox_bot.Add(self.save_button, 0, wx.TOP | wx.ALIGN_CENTRE, 10)
-
-        vbox2.Add(hbox_bot, 1, wx.EXPAND | wx.ALL, 5)
-        hbox.Add(vbox1, 1, wx.EXPAND | wx.ALL, 5)
-        hbox.Add(vbox2, 1, wx.EXPAND | wx.ALL, 5)
-
-        self.fr.Bind(wx.EVT_CLOSE, self.closeInputFr)
-        self.fr.SetSizer(hbox)
-        self.fr.SetSize((680, 420))
-        self.fr.Fit()
-        self.fr.Centre()
-        self.fr.Show(True)
-
-    def createDB(self, event):
-        """
-        Using data provided by the input form (see openCreateDB function)
-        to create Tables in Bymur DB and populate them.
-
-        NOTA: STO SUPPONENDO CHE L'UTENTE PREPARI UNA STRUTTURA AD ALBERO
-        GERARCHICA DEI DATI :
-
-        cartella_hazard/
-            |--hazard1/
-               |--model1/
-                  |--time1/
-                  |--time2/
-                  |--time3/
-               |--model2/
-                  |--time1/
-                  |--time2/
-                  |--time3/
-            |--hazard2/
-            |--hazard3/
-
-        NB: ogni hazard puo' avere una quantita' diversa di modelli (minimo uno),
-            e invece suppongo che i tempi di ricorrenza (time1,time2...) siano
-            gli stessi per ogni modello
-        """
-
-        gridpath = str(self.gridfile.GetValue())       # grid file path
-
-        # image map limits
-        self.limits = [float(self.lon_min.GetValue()) / 1000,
-                       float(self.lon_max.GetValue()) / 1000,
-                       float(self.lat_min.GetValue()) / 1000,
-                       float(self.lat_max.GetValue()) / 1000]
-
-        # getting the hazard directory and subdirectories
-        hpath = str(self.hazpath.GetValue())
-        self.hazards = os.listdir(hpath)
-        self.models = []
-        self.dtime = []
-        self.dtimefold = []
-        for ind, haz in enumerate(self.hazards):
-            print 'hpath-->', hpath
-            print 'haz-->', haz
-            self.models.append(os.listdir(os.path.join(hpath, haz)))
-            for mod in self.models[ind]:
-                if (os.listdir(os.path.join(hpath, haz, mod))):
-                    # JACOPO 18.06.2013
-                    tmp = os.listdir(os.path.join(hpath, haz, mod))
-                    self.dtimefold.append(tmp)
-
-                    dtime_tmp = [str(tmp[i].replace("dt", "")).zfill(3)
-                                 for i in range(len(tmp))]
-                    self.dtime.append(dtime_tmp)
-
-        self.nt = max([len(self.dtime[i]) for i in range(len(self. dtime))])
-        print self.hazards
-        print self.models
-        print self.dtime
-
-        percpattern = str(self.percentiles.GetValue())  # selected percentiles
-
-        if (percpattern.find(":") != -1):
-            ii, ff, dd = percpattern.split(":")
-            self.perc = range(int(ii), int(ff) + int(dd), int(dd))
-        elif (percpattern.find(",") != -1):
-            val = percpattern.split(",")
-            self.perc = [int(val[i]) for i in range(len(val))]
-        else:
-            msg = ("ERROR\nInput in percentiles field is not correct")
-            gf.showErrorMessage(self, msg, "ERROR")
-            self.fr.Raise()
-            return
-
-        self.nperc = len(self.perc)
-
-        # database data connection
-        server = self.server.GetValue()
-        user = self.user.GetValue()
-        pwd = self.pwd.GetValue()
-        dbname = self.dbname.GetValue()
-        self.fr.Destroy()
-        self.con, self.cur = db.dbConnection(server, user, pwd, dbname)
-
-        # opening pop-up frame
-        busydlg = wx.BusyInfo("Task has been processing.. please wait",
-                              parent=self)
-        wx.Yield()
-
-        # comment the following two lines if DB tables exist and are populated
-        db.dbCreateTables(self.con, self.cur, self.perc, self.hazards,
-                          self.models)
-        db.dbGenInfoPop(self.con, self.cur, self.imgpath, self.limits)
-        self.npts = db.dbSpatDataPop(self.con, self.cur, gridpath)
-        db.dbHazTabPop(
-            self.con,
-            self.cur,
-            self.perc,
-            self.hazards,
-            self.models,
-            self.dtime,
-            hpath,
-            self.npts,
-            self.dtimefold)
-
-        busydlg = None    # closing waiting pop-up frame
-        self.sb.SetStatusText("DPC-V1-DB Database successfully created")
-
-    def openLoadDB(self, event):
-        """
-        Opening a pop-up form to set the connection to the bymurDB (MySQL).
-        By pressing the Connect Button it will be launched the connectDB()
-        """
-
-        self.conFr = wx.Frame(self)
-        vbox = wx.BoxSizer(orient=wx.VERTICAL)
-
-        hbox1 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox1.Add(wx.StaticText(self.conFr, wx.ID_ANY, label="Server Name:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-        self.server = wx.TextCtrl(self.conFr, wx.ID_ANY, "localhost",
-                                  size=(120, -1))
-        hbox1.Add(self.server, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        hbox2 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox2.Add(wx.StaticText(self.conFr, wx.ID_ANY, label="User Name:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        self.user = wx.TextCtrl(
-            self.conFr, wx.ID_ANY, "V1User", size=(120, -1))
-        hbox2.Add(self.user, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        hbox3 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox3.Add(wx.StaticText(self.conFr, wx.ID_ANY, label="Password:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-        self.pwd = wx.TextCtrl(self.conFr, wx.ID_ANY, "V1Pwd",
-                               size=(120, -1), style=wx.TE_PASSWORD)
-        hbox3.Add(self.pwd, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        hbox4 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        hbox4.Add(wx.StaticText(self.conFr, wx.ID_ANY, label="Database Name:",
-                                size=(120, -1), style=wx.ALIGN_LEFT),
-                  0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        self.dbname = wx.TextCtrl(self.conFr, wx.ID_ANY, "DPC-V1-DB",
-                                  size=(120, -1))
-        hbox4.Add(self.dbname, 0, wx.ALIGN_BOTTOM | wx.LEFT | wx.TOP, 0)
-
-        hbox5 = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.conDB = wx.Button(self.conFr, wx.ID_ANY, "Connect", size=(-1, 26))
-        self.Bind(wx.EVT_BUTTON, self.getServerData, self.conDB)
-        hbox5.Add(self.conDB, 0, wx.TOP, 10)
-
-        vbox.Add(hbox1, 0, wx.ALL, 3)
-        vbox.Add(hbox2, 0, wx.ALL, 3)
-        vbox.Add(hbox3, 0, wx.ALL, 3)
-        vbox.Add(hbox4, 0, wx.ALL, 3)
-        vbox.Add(hbox5, 0, wx.ALL | wx.ALIGN_RIGHT, 3)
-
-        self.conFr.SetSizer(vbox)
-        self.conFr.Fit()
-        self.conFr.Center()
-        self.conFr.Show(True)
-
-    def getServerData(self, event):
-        """
-        """
-        server = self.server.GetValue()
-        user = self.user.GetValue()
-        pwd = self.pwd.GetValue()
-        dbname = self.dbname.GetValue()
-        self.conFr.Destroy()
-        self.con, self.cur = db.dbConnection(server, user, pwd, dbname)
-        self.loadDB()
-
-    def loadDB(self):
-        """
-        Opening a pop-up form to set the connection to the bymurDB (MySQL).
-        By pressing the Connect Button it will be launched the connectDB()
-        """
-
-        self.pn1.Enable(True)
-        self.pnl_curves.Enable(True)
-
-        # opening waiting pop-up frame
-        busydlg = wx.BusyInfo(
-            "Task has been processing.. please wait", parent=self)
-        wx.Yield()
-
-        # all data stored in DB are loaded in numpy arrays
-        tmp = db.dbReadTable(self.con, self.cur, "spatial_data1")
-        self.npts = len(tmp)
-        self.id_area = [int(tmp[i][1]) for i in range(self.npts)]
-        self.lon = [float(tmp[i][2]) / 1000 for i in range(self.npts)]
-        self.lat = [float(tmp[i][3]) / 1000 for i in range(self.npts)]
-        self.nareas = len(self.id_area)
-
-        tmp = db.dbReadTable(self.con, self.cur, "hazard_phenomena")
-        self.nhaz = len(tmp)
-        print 'tmp->', tmp
-        self.hz_name = [tmp[i][4] for i in range(self.nhaz)]
-        self.model = [tmp[i][5] for i in range(self.nhaz)]
-        self.imt = [tmp[i][6] for i in range(self.nhaz)]
-        self.iml = [[float(j) for j in tmp[i][7].split()]
-                    for i in range(self.nhaz)]
-
-        niml = max([len(self.iml[i]) for i in range(self.nhaz)])
-
-        self.dtime = []
-        for k in range(self.nhaz):
-            hazmodtb = "hazard" + str(k + 1)
-            tmp = db.dbSelectDtime(self.con, self.cur, hazmodtb)
-            dtlist = [str(tmp[i][0]) for i in range(len(tmp))]
-            self.dtime.append(dtlist)
-        print "dtime = ", self.dtime
-        self.nt = max([len(self.dtime[i]) for i in range(len(self.dtime))])
-
-
-        for k in range(self.nhaz):
-            if (len(self.iml[k]) < niml):
-                for i in range(niml - len(self.iml[k])):
-                    self.iml[k].append(0)
-
-        self.hc = [[[['0' for i in range(self.npts)] for j in range(100)]
-                    for k in range(self.nt)] for h in range(self.nhaz)]
-
-        print 'niml=', niml
-        self.hc_perc = list()
-        for k in range(self.nhaz):
-            self.hc_perc.append(0)
-
-        self.perc_flag = []
-        for i in range(self.nhaz):
-            haznametb = "hazard" + str(i + 1)
-            self.perc_flag.append(db.dbAssignFlagPerc(self.con,
-                                                      self.cur, haznametb))
-
-        print("FLAGS PERCENTILES = {0}".format(self.perc_flag))
-
-        if (gf.verifyInternetConn()):
-            srcdir = os.path.dirname(os.path.realpath(__file__))
-            savepath = os.path.join(srcdir, "data", "naples_gmaps.png")
-            utm_zone = "33N"
-            self.imgpath = gmaps.getUrlGMaps(375300, 4449200,
-                                             508500, 4569800,
-                                             utm_zone, savepath)
-
-        self.th = scientLibs.prob_thr(self.RP,
-                                      self.dtime[self.haz_sel][self.tw])
-        self.hc = db.dbReadHC(self.haz_sel, self.tw, self.dtime, self.cur,
-                              self.hc, self.hc_perc)
-
-        self.zmap = self.pn1.hazardMap(
-            self.hc,
-            self.lon,
-            self.lat,
-            self.id_area,
-            self.nareas,
-            self.npts,
-            self.hazards,
-            self.dtime,
-            self.haz_sel,
-            self.tw,
-            self.th,
-            self.intTh,
-            self.perc,
-            self.imgpath,
-            self.limits,
-            self.iml,
-            self.imt)
-
-        self.pn2.hazardCurve(self.hc, self.haz_sel, self.tw, self.hazards,
-                             self.dtime, self.pt_sel, self.perc, self.iml,
-                             self.imt, self.th, self.hc_perc, self.intTh)
-
-        self.map_export_gis.Enable(True)
-
-        self.chaz.Clear()
-        for i in range(self.nhaz):
-            #  item = self.hz_name[i] + " - " + self.model[i]
-            item = self.model[i]
-            self.chaz.Append(item)
-
-        self.chaz.SetSelection(0)
-
-        self.pnl_lt.Enable(True)
-
-        self.ensemble_item.Enable(True)
-
-        self.sb.SetStatusText("DPC-V1-DB Database successfully loaded")
-
-    def closeInputFr(self, event):
-        self.fr.Destroy()
-        msg = ("WARNING\nYou are leaving the input procedure")
-        gf.showWarningMessage(self, msg, "WARNING")
-        return
-
-    def defineModels(self, event):
-
-        nh = int(event.GetSelection()) + 1
-
-        if (self.vbox_models.GetChildren()):
-            for child in self.vbox_models.GetChildren():
-                self.vbox_models.Remove(child.Sizer)
-                self.fr.Layout()
-
-        for i in range(0, nh):
-            hmsizer = wx.BoxSizer(orient=wx.HORIZONTAL)
-            self.hmitem = wx.TextCtrl(self.fr, wx.ID_ANY, size=(200, 24))
-            self.hmitem.SetValue("Hazard Model " + str(i + 1))
-            hmsizer.Add(self.hmitem, 0, wx.TOP, 2)
-            self.vbox_models.Add(hmsizer, 0, wx.ALL, 0)
-            self.fr.Layout()
-            self.fr.Fit()
+    def __init__(self, *args, **kwargs):
+        super(BymurBusyDlg, self).__init__(*args, **kwargs)
+
+
+class BymurStaticBoxSizer(wx.StaticBoxSizer):
+    def __init__(self, *args, **kwargs):
+        self._parent = kwargs.pop('parent', None)
+        self._label = kwargs.pop('label', "")
+        self._box = wx.StaticBox(self._parent, label=self._label)
+        super(BymurStaticBoxSizer, self).__init__(self._box,
+                                                  *args,
+                                                  **kwargs)
+
+
+class BymurDBBoxSizer(BymurStaticBoxSizer):
+    _textSize = (300, -1)
+
+    def __init__(self, *args, **kwargs):
+        self._dbDetails = {'db_host': kwargs.pop('db_host', ''),
+                           'db_port': kwargs.pop('db_port', ''),
+                           'db_user': kwargs.pop('db_user', ''),
+                           'db_password': kwargs.pop('db_password', ''),
+                           'db_name': kwargs.pop('db_name', '')
+        }
+        super(BymurDBBoxSizer, self).__init__(*args, **kwargs)
+
+        self._dbSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._dbSizer)
+
+        row = 0
+        self._dbHost = wx.StaticText(self._parent, wx.ID_ANY,
+                                     'Server hostname: ')
+        self._dbSizer.Add(self._dbHost, pos=(row, 0))
+        self._dbHostText = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                       size=self._textSize)
+        self._dbHostText.SetValue(self._dbDetails['db_host'])
+        self._dbSizer.Add(self._dbHostText, pos=(row, 1))
+        row += 1
+        self._dbPort = wx.StaticText(self._parent, wx.ID_ANY, 'Server Port: ')
+        self._dbSizer.Add(self._dbPort, pos=(row, 0))
+        self._dbPortText = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                       size=self._textSize)
+        self._dbPortText.SetValue(self._dbDetails['db_port'])
+        self._dbSizer.Add(self._dbPortText, pos=(row, 1))
+        row += 1
+        self._dbUser = wx.StaticText(self._parent, wx.ID_ANY, 'User: ')
+        self._dbSizer.Add(self._dbUser, pos=(row, 0))
+        self._dbUserText = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                       size=self._textSize)
+        self._dbUserText.SetValue(self._dbDetails['db_user'])
+        self._dbSizer.Add(self._dbUserText, pos=(row, 1))
+        row += 1
+        self._dbPassword = wx.StaticText(self._parent, wx.ID_ANY, 'Password: ')
+        self._dbSizer.Add(self._dbPassword, pos=(row, 0))
+        self._dbPasswordText = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                           size=self._textSize,
+                                           style=wx.TE_PASSWORD)
+        self._dbPasswordText.SetValue(self._dbDetails['db_password'])
+        self._dbSizer.Add(self._dbPasswordText, pos=(row, 1))
+        row += 1
+        self._dbName = wx.StaticText(self._parent, wx.ID_ANY, 'Database name: ')
+        self._dbSizer.Add(self._dbName, pos=(row, 0))
+        self._dbNameText = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                       size=self._textSize)
+        self._dbNameText.SetValue(self._dbDetails['db_name'])
+        self._dbSizer.Add(self._dbNameText, pos=(row, 1))
+
+    @property
+    def dbHost(self):
+        return self._dbHostText.GetValue()
+
+    @property
+    def dbPort(self):
+        return self._dbPortText.GetValue()
+
+    @property
+    def dbUser(self):
+        return self._dbUserText.GetValue()
+
+    @property
+    def dbPassword(self):
+        return self._dbPasswordText.GetValue()
+
+    @property
+    def dbName(self):
+        return self._dbNameText.GetValue()
+
+
+class BymurLoadGridBoxSizer(BymurStaticBoxSizer):
+    _gridText = "Load a 2-column ascii file having easting\n" \
+               "(1st col) and northing (2nd col) of each spatial\n" \
+               "point."
+
+    def __init__(self, *args, **kwargs):
+        self._basedir = kwargs.pop('basedir', '')
+        self._filepath = kwargs.pop('filepath', '')
+
+        super(BymurLoadGridBoxSizer, self).__init__(*args, **kwargs)
+
+        self._gridBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._gridBoxGrid)
+        self._gridBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label=self._gridText),
+                             flag=wx.EXPAND, pos=(0, 0), span=(1, 6))
+        self._gridFileText = wx.TextCtrl(self._parent, wx.ID_ANY)
+        self._gridBoxGrid.Add(self._gridFileText, flag=wx.EXPAND,
+                             pos=(1, 0), span=(1, 5))
+        self._gridFileText.SetValue(self._basedir)
+        self._gridFileButton = wx.Button(self._parent, id=wx.ID_ANY,
+                                        label="Select File")
+        self._gridFileButton.Bind(event=wx.EVT_BUTTON, handler=self.selGridFile)
+        self._gridBoxGrid.Add(self._gridFileButton, flag=wx.EXPAND,
+                             pos=(1, 5), span=(1, 1))
 
     def selGridFile(self, event):
-
-        path = gf.selFile(self, event)
-        if (path == ""):
-            return
-        else:
-            self.gridfile.SetValue(path)
-            self.fr.Raise()
-
-    def selHazPath(self, event):
-
-        path = gf.selDir(self, event)
-        if (path == ""):
-            return
-        else:
-            self.hazpath.SetValue(path)
-            self.fr.Raise()
-
-    def confAct(self, *kargs):
-        """
-        Setting an 'OK' label after a successfully action
-        """
-        msg = kargs[0]
-        msg.SetLabel("OK")
-        msg.SetForegroundColour((0, 80, 0))
-        font = wx.Font(10, wx.FONTFAMILY_DEFAULT, wx.FONTSTYLE_NORMAL,
-                       wx.FONTWEIGHT_BOLD)
-        msg.SetFont(font)
-
-    def uploadMap(self, event, *args):
-        """
-        Uploading image file used as background image for hazard maps
-        At the moment, it works with .png files only
-        """
-
-        dfl_dir = os.path.expanduser("~")
-        dlg = wx.FileDialog(self, message="Upload Map", defaultDir=dfl_dir,
-                            defaultFile="", wildcard="*.*", style=wx.OPEN)
+        dir = os.path.dirname(self._gridFileText.GetValue())
+        if (not os.path.isdir(dir)):
+            dir = self._basedir
+        dlg = wx.FileDialog(self._parent, message="Upload File", defaultDir=dir,
+                            defaultFile="", wildcard="*.*",
+                            style=wx.FD_OPEN | wx.FD_CHANGE_DIR)
 
         if (dlg.ShowModal() == wx.ID_OK):
-            self.imgpath = str(dlg.GetPath())
+            self._gridFileText.SetValue(dlg.GetPath())
+        dlg.Destroy()
 
-            if (self.imgpath):
-                ext = self.imgpath[-3:]
+    @property
+    def gridPath(self):
+        return self._gridFileText.GetValue()
+    
+    
+class BymurSelectGridBoxSizer(BymurStaticBoxSizer):
+    _gridText = "Select a grid from database:"
+
+    def __init__(self, *args, **kwargs):
+        self.grid_list= kwargs.pop('grid_list', [])
+
+        super(BymurSelectGridBoxSizer, self).__init__(*args, **kwargs)
+
+        self._gridBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._gridBoxGrid)
+        self._gridBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label=self._gridText),
+                             flag=wx.EXPAND, pos=(0, 0), span=(1, 6))
+        self._gridCB = wx.ComboBox(self._parent, wx.ID_ANY)
+        self._gridCB.AppendItems(self.grid_list)
+
+        self._gridBoxGrid.Add(self._gridCB, flag=wx.EXPAND,
+                             pos=(1, 0), span=(1, 6))
+
+    @property
+    def gridName(self):
+       return self._gridCB.GetValue()
+
+class BymurEnsBoxSizer(BymurStaticBoxSizer):
+    _hazText = "Chose among the list of possible hazard models \n" \
+               "here below the ones you would like to use to \n" \
+               "calculate the ensable hazard."
+
+    _intText = "Choose time interval"
+
+    _haz_array = []
+    _haz_dict = {}
+
+    def __init__(self, *args, **kwargs):
+        self.ctrls_data = kwargs.pop('data', {})
+        # print self.ctrls_data
+        self._available_haz_list = []
+        super(BymurEnsBoxSizer, self).__init__(*args, **kwargs)
+        self._ensBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._ensBoxGrid)
+        self._hazLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND,
+                                       label=self._hazText)
+        grid_row = 0
+        self._ensBoxGrid.Add(self._hazLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(2, 6))
+
+        grid_row += 3
+        self._ensPhenLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose phenomena")
+        self._ensBoxGrid.Add(self._ensPhenLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensPhenCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensPhenCB.AppendItems(list(set([haz['phenomenon_name']
+                                              for haz in
+                                              self.ctrls_data['hazard_models']])))
+        self._ensPhenCB.Enable(True)
+        self._ensPhenCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensPhenCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+
+        grid_row += 1
+        self._ensGridLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose grid")
+        self._ensBoxGrid.Add(self._ensGridLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensGridCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensGridCB.Enable(False)
+        self._ensGridCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensGridCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._ensExpTimeLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose exposure time")
+        self._ensBoxGrid.Add(self._ensExpTimeLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensExpTimeCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensExpTimeCB.Enable(False)
+        self._ensExpTimeCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensExpTimeCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+
+        self._ensHaz = []
+        for i in range(1, 5):
+            grid_row += 1
+            hazEntry = {}
+            hazEntry['checkbox'] = wx.CheckBox(self._parent,  wx.ID_ANY)
+            hazEntry['checkbox'].Bind(wx.EVT_CHECKBOX, self.checkItem)
+            self._ensBoxGrid.Add(hazEntry['checkbox'], flag=wx.EXPAND,
+                                 pos=(grid_row, 0), span=(1, 1))
+            hazEntry['combobox'] = wx.ComboBox(self._parent,wx.ID_ANY,
+                                               style=wx.CB_READONLY)
+            hazEntry['combobox'].Enable(False)
+            hazEntry['combobox'].Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+            self._ensBoxGrid.Add(hazEntry['combobox'], flag=wx.EXPAND,
+                             pos=(grid_row, 1), span=(1, 4))
+            hazEntry['textctrl'] = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                               style=wx.TE_PROCESS_ENTER)
+            hazEntry['textctrl'].Enable(False)
+            self._ensBoxGrid.Add(hazEntry['textctrl'], flag=wx.EXPAND,
+                             pos=(grid_row, 5), span=(1, 1))
+            self._ensHaz.append(hazEntry)
+
+        grid_row += 1
+        self._ensIMLThreshLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose thresholds list")
+        self._ensBoxGrid.Add(self._ensIMLThreshLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._ensIMLThreshCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._ensIMLThreshCBDefaults = ['Choose thresholds list...']
+        self._ensIMLThreshCB.SetItems(self._ensIMLThreshCBDefaults)
+        self._ensIMLThreshCB.SetSelection(0)
+        self._ensIMLThreshCB.Enable(False)
+        self._ensIMLThreshCB.Bind(wx.EVT_COMBOBOX, self.updateEnsemble)
+        self._ensBoxGrid.Add(self._ensIMLThreshCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._ensNameLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose ensemble "
+                                                 "hazard name")
+        self._ensBoxGrid.Add(self._ensNameLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 3))
+        self._ensNameText = wx.TextCtrl(self._parent, wx.ID_ANY,
+                                  style=wx.TE_PROCESS_ENTER)
+        self._ensBoxGrid.Add(self._ensNameText, flag=wx.EXPAND,
+                             pos=(grid_row, 3), span=(1, 3))
+
+    def updateEnsemble(self, ev=None):
+        if (ev is None):  # First data load
+            pass
+        elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
+            _phen_name = self._ensPhenCB.GetStringSelection()
+            _exptime_sel = self._ensExpTimeCB.GetValue()
+            _grid_sel = self._ensGridCB.GetValue()
+            if ev.GetEventObject() == self._ensPhenCB:
+                _glist = [haz for haz in  self.ctrls_data['hazard_models']
+                          if haz['phenomenon_name'] == _phen_name]
+                self._ensGridCB.Clear()
+                self._ensGridCB.SetValue('')
+                self._ensGridCB.AppendItems(list(set([haz['grid_name']
+                                          for haz in _glist])))
+                self._ensGridCB.Enable(True)
+                if len(self._ensGridCB.Items) > 0:
+                    self._ensGridCB.SetSelection(0)
+                _grid_sel = self._ensGridCB.GetValue()
+                _exptimelist = [str(haz['exposure_time']) for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._ensExpTimeCB.Clear()
+                self._ensExpTimeCB.SetValue('')
+                self._ensExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._ensExpTimeCB.Items) > 0:
+                    self._ensExpTimeCB.SetSelection(0)
+                self._ensExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._ensGridCB:
+                _exptimelist = [str(haz['exposure_time']) for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._ensExpTimeCB.Clear()
+                self._ensExpTimeCB.SetValue('')
+                self._ensExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._ensExpTimeCB.Items) > 0:
+                    self._ensExpTimeCB.SetSelection(0)
+                self._ensExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._ensExpTimeCB:
+                pass
+            _phen_name = self._ensPhenCB.GetStringSelection()
+            _exptime_sel = self._ensExpTimeCB.GetValue()
+            _grid_sel = self._ensGridCB.GetValue()
+            self._available_haz_list = [haz['hazard_name'] for haz in
+                                self.ctrls_data['hazard_models']
+                                if (haz['phenomenon_name'] == _phen_name
+                                    and haz['grid_name'] == _grid_sel
+                                    and haz['exposure_time'] ==_exptime_sel)]
+            for ensHaz in self._ensHaz:
+                if (ensHaz['combobox'].GetStringSelection()
+                    not in self._available_haz_list) :
+                    ensHaz['combobox'].Clear()
+                    ensHaz['combobox'].SetValue('')
+                    ensHaz['combobox'].Enable(False)
+                    ensHaz['checkbox'].SetValue(False)
+                    ensHaz['textctrl'].SetValue('')
+                    ensHaz['textctrl'].Enable(False)
+                ensHaz['combobox'].AppendItems(self._available_haz_list)
+
+            self._update_thresh_list(_phen_name, _grid_sel, _exptime_sel)
+
+
+    def checkItem(self, event):
+        _phen_name = self._ensPhenCB.GetStringSelection()
+        _exptime_sel = self._ensExpTimeCB.GetValue()
+        _grid_sel = self._ensGridCB.GetValue()
+        for hazEntry in self._ensHaz:
+            if hazEntry['checkbox'].GetId() == event.GetId():
+                if event.IsChecked():
+                    hazEntry['combobox'].Enable(True)
+                    hazEntry['textctrl'].Enable(True)
+                    hazEntry['textctrl'].SetValue('1.0')
+                else:
+                    hazEntry['combobox'].Enable(False)
+                    hazEntry['combobox'].SetSelection(0)
+                    hazEntry['textctrl'].Enable(False)
+                    hazEntry['textctrl'].SetValue('')
+        self._update_thresh_list(_phen_name, _grid_sel, _exptime_sel)
+
+    def _update_thresh_list(self, phen_name, grid_sel, exptime_sel):
+        self._available_thresh_list = list(set([haz['iml'] for haz in
+                        self.ctrls_data['hazard_models']
+                            if ( haz['hazard_name'] in
+                                [ensHaz['combobox'].GetStringSelection()
+                                 for ensHaz in self._ensHaz
+                                if ensHaz['combobox'].IsEnabled()]
+                                and haz['phenomenon_name'] == phen_name
+                                and haz['grid_name'] == grid_sel
+                                and haz['exposure_time'] == exptime_sel)]))
+
+        _iml_sel = self._ensIMLThreshCB.GetStringSelection()
+        self._ensIMLThreshCB.SetItems(self._ensIMLThreshCBDefaults)
+        self._ensIMLThreshCB.AppendItems(self._available_thresh_list)
+        if _iml_sel in self._available_thresh_list:
+            self._ensIMLThreshCB.SetStringSelection(_iml_sel)
+        else:
+            self._ensIMLThreshCB.SetSelection(0)
+        self._ensIMLThreshCB.Enable(True)
+
+    @property
+    def ensPhen(self):
+        return self._ensPhenCB.GetStringSelection()
+
+    @property
+    def ensGrid(self):
+        return self._ensGridCB.GetValue()
+
+    @property
+    def ensExpTime(self):
+        return self._ensExpTimeCB.GetValue()
+
+    @property
+    def ensHaz(self):
+        res = []
+        for hazEntry in self._ensHaz:
+            if hazEntry['checkbox'].IsChecked():
+                haz_tmp = {'hazard_name':
+                               hazEntry['combobox'].GetStringSelection(),
+                           'weight': float(hazEntry['textctrl'].GetValue())}
+                res.append(haz_tmp)
+                # for haz in self.ctrls_data['hazard_models']:
+                #     if haz['hazard_name'] == hazEntry[
+                #         'combobox'].GetStringSelection():
+
+        return res
+
+    @property
+    def ensIMLThresh(self):
+        if self._ensIMLThreshCB.GetSelection() > 0:
+            return self._ensIMLThreshCB.GetStringSelection()
+        else:
+            return None
+
+    @property
+    def ensName(self):
+        return self._ensNameText.GetValue()
+
+
+class BymurExpHazBoxSizer(BymurStaticBoxSizer):
+
+    def __init__(self, *args, **kwargs):
+        self.ctrls_data = kwargs.pop('data', {})
+        # print self.ctrls_data
+        self._available_haz_list = []
+        super(BymurExpHazBoxSizer, self).__init__(*args, **kwargs)
+        self._expHazGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._expHazGrid)
+    
+        grid_row = 0
+        self._expHazPhenLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose phenomena")
+        self._expHazGrid.Add(self._expHazPhenLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazPhenCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._expHazPhenCB.AppendItems(list(set([haz['phenomenon_name']
+                                              for haz in
+                                              self.ctrls_data['hazard_models']])))
+        self._expHazPhenCB.Enable(True)
+        self._expHazPhenCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazPhenCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+
+        grid_row += 1
+        self._expHazGridLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose grid")
+        self._expHazGrid.Add(self._expHazGridLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazGridCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._expHazGridCB.Enable(False)
+        self._expHazGridCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazGridCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._expHazExpTimeLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose exposure time")
+        self._expHazGrid.Add(self._expHazExpTimeLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazExpTimeCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                      style=wx.CB_READONLY)
+        self._expHazExpTimeCB.Enable(False)
+        self._expHazExpTimeCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazExpTimeCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._expHazModelLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Choose hazard model")
+        self._expHazGrid.Add(self._expHazModelLabel, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazModelCB = wx.ComboBox(self._parent,wx.ID_ANY,
+                                               style=wx.CB_READONLY)
+        self._expHazModelCB.Enable(False)
+        # self._expHazModelCB.Bind(wx.EVT_COMBOBOX, self.update)
+        self._expHazGrid.Add(self._expHazModelCB, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+        grid_row += 1
+        self._expHazDirButton = wx.Button(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND,
+                                       label="Select directory to save to")
+        self._expHazDirButton.Bind(event=wx.EVT_BUTTON,
+                                   handler=self.selExpHazDir)
+        self._expHazGrid.Add(self._expHazDirButton, flag=wx.EXPAND,
+                             pos=(grid_row, 0), span=(1, 2))
+        self._expHazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND|wx.TE_READONLY)
+        self._expHazGrid.Add(self._expHazDirTC, flag=wx.EXPAND,
+                             pos=(grid_row, 2), span=(1, 4))
+
+    def update(self, ev=None):
+        if (ev is None):  # First data load
+            pass
+        elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
+            _phen_name = self._expHazPhenCB.GetStringSelection()
+            _exptime_sel = self._expHazExpTimeCB.GetValue()
+            _grid_sel = self._expHazGridCB.GetValue()
+            if ev.GetEventObject() == self._expHazPhenCB:
+                _glist = [haz for haz in  self.ctrls_data['hazard_models']
+                          if haz['phenomenon_name'] == _phen_name]
+                self._expHazGridCB.Clear()
+                self._expHazGridCB.SetValue('')
+                self._expHazGridCB.AppendItems(list(set([haz['grid_name']
+                                          for haz in _glist])))
+                self._expHazGridCB.Enable(True)
+                if len(self._expHazGridCB.Items) > 0:
+                    self._expHazGridCB.SetSelection(0)
+                _grid_sel = self._expHazGridCB.GetValue()
+                _exptimelist = [str(haz['exposure_time']) for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._expHazExpTimeCB.Clear()
+                self._expHazExpTimeCB.SetValue('')
+                self._expHazExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expHazExpTimeCB.Items) > 0:
+                    self._expHazExpTimeCB.SetSelection(0)
+                self._expHazExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._expHazGridCB:
+                _exptimelist = [str(haz['exposure_time']) for haz in
+                                    self.ctrls_data['hazard_models']
+                                    if (haz['phenomenon_name'] == _phen_name and
+                                haz['grid_name'] == _grid_sel)]
+
+                self._expHazExpTimeCB.Clear()
+                self._expHazExpTimeCB.SetValue('')
+                self._expHazExpTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expHazExpTimeCB.Items) > 0:
+                    self._expHazExpTimeCB.SetSelection(0)
+                self._expHazExpTimeCB.Enable(True)
+            elif ev.GetEventObject() == self._expHazExpTimeCB:
+                pass
+            _phen_name = self._expHazPhenCB.GetStringSelection()
+            _exptime_sel = self._expHazExpTimeCB.GetValue()
+            _grid_sel = self._expHazGridCB.GetValue()
+            self._available_haz_list = [haz['hazard_name'] for haz in
+                                self.ctrls_data['hazard_models']
+                                if (haz['phenomenon_name'] == _phen_name
+                                    and haz['grid_name'] == _grid_sel
+                                    and haz['exposure_time'] ==_exptime_sel)]
+
+            self._expHazModelCB.Clear()
+            self._expHazModelCB.SetValue('')
+            self._expHazModelCB.Enable(True)
+            self._expHazModelCB.AppendItems(self._available_haz_list)
+
+    def selExpHazDir(self, event):
+        dir = os.path.expanduser("~")
+
+        dlg = wx.DirDialog(self._parent, "Select a directory:", defaultPath=dir,
+                           style=wx.DD_DEFAULT_STYLE)
+        if dlg.ShowModal() == wx.ID_OK:
+            self._rootdir = dlg.GetPath()
+            self._expHazDirTC.SetValue(self._rootdir)
+        dlg.Destroy()
+
+    @property
+    def expHazPhen(self):
+        return self._expHazPhenCB.GetStringSelection()
+
+    @property
+    def expHazGrid(self):
+        return self._expHazGridCB.GetValue()
+
+    @property
+    def expHazExpTime(self):
+        return self._expHazExpTimeCB.GetValue()
+
+    @property
+    def expHazModel(self):
+        return self._expHazModelCB.GetStringSelection()
+
+    @property
+    def expHazExpDir(self):
+        return self._expHazDirTC.GetValue()
+
+class BymurMapBoxSizer(BymurStaticBoxSizer):
+    def __init__(self, *args, **kwargs):
+        self._latMin = kwargs.pop('northing_min', '')
+        self._latMax = kwargs.pop('northing_max', '')
+        self._lonMin = kwargs.pop('easting_min', '')
+        self._lonMax = kwargs.pop('easting_max', '')
+        self._mapPath = kwargs.pop('map_path', '')
+        super(BymurMapBoxSizer, self).__init__(*args, **kwargs)
+
+        self._mapBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._mapBoxGrid)
+
+        self._mapLatMinLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                             style=wx.EXPAND,
+                                             label="Latitude Min (m)")
+        self._mapLatMinText = wx.TextCtrl(self._parent, wx.ID_ANY)
+        self._mapLatMinText.SetValue(str(self._latMin))
+        self._mapBoxGrid.Add(self._mapLatMinLabel, flag=wx.EXPAND,
+                             pos=(0, 0), span=(1, 4))
+        self._mapBoxGrid.Add(self._mapLatMinText, flag=wx.EXPAND,
+                             pos=(0, 4), span=(1, 1))
+
+        self._mapLatMaxLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                             style=wx.EXPAND,
+                                             label="Latitude Max (m)")
+        self._mapLatMaxText = wx.TextCtrl(self._parent, wx.ID_ANY)
+        self._mapLatMaxText.SetValue(str(self._latMax))
+        self._mapBoxGrid.Add(self._mapLatMaxLabel, flag=wx.EXPAND,
+                             pos=(1, 0), span=(1, 4))
+        self._mapBoxGrid.Add(self._mapLatMaxText, flag=wx.EXPAND,
+                             pos=(1, 4), span=(1, 1))
+
+        self._mapLonMinLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                             style=wx.EXPAND,
+                                             label="Longitude Min (m)")
+        self._mapLonMinText = wx.TextCtrl(self._parent, wx.ID_ANY)
+        self._mapLonMinText.SetValue(str(self._lonMin))
+        self._mapBoxGrid.Add(self._mapLonMinLabel, flag=wx.EXPAND,
+                             pos=(2, 0), span=(1, 4))
+        self._mapBoxGrid.Add(self._mapLonMinText, flag=wx.EXPAND,
+                             pos=(2, 4), span=(1, 1))
+
+        self._mapLonMaxLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                             style=wx.EXPAND,
+                                             label="Longitude Max (m)")
+        self._mapLonMaxText = wx.TextCtrl(self._parent, wx.ID_ANY)
+        self._mapLonMaxText.SetValue(str(self._lonMax))
+        self._mapBoxGrid.Add(self._mapLonMaxLabel, flag=wx.EXPAND,
+                             pos=(3, 0), span=(1, 4))
+        self._mapBoxGrid.Add(self._mapLonMaxText, flag=wx.EXPAND,
+                             pos=(3, 4), span=(1, 1))
+
+        self._mapButton = wx.Button(self._parent, id=wx.ID_ANY,
+                                    label="Upload map")
+        self._mapButton.Bind(event=wx.EVT_BUTTON, handler=self.selMap)
+        self._mapBoxGrid.Add(self._mapButton, flag=wx.EXPAND,
+                             pos=(0, 5), span=(4, 1))
+
+    def selMap(self, event):
+        dir = os.getcwd()
+        if (not os.path.isdir(dir)):
+            dir = os.path.expanduser("~")
+        dlg = wx.FileDialog(self._parent, message="Upload Map", defaultDir=dir,
+                            defaultFile="", wildcard="*.png", style=wx.OPEN)
+        if (dlg.ShowModal() == wx.ID_OK):
+            self._mapPath = str(dlg.GetPath())
+
+            if (self._mapPath):
+                ext = self._mapPath[-3:]
 
                 if (ext != "png"):
                     msg = ("ERROR:\nYou can upload .png file "
                            "format only.")
-                    gf.showErrorMessage(self, msg, "ERROR")
+                    bf.showMessage(parent=self._parent,
+                                   kind="BYMUR_ERROR", caption="Error!",
+                                   message="You can upload .png file format only")
                     dlg.Destroy()
-                    self.fr.Raise()
                     return
-
-                self.confAct(self.conf_map)
-                self.Layout()
-                dlg.Destroy()
-
+                print "Map uploaded"
             else:
-                msg = ("ERROR:\nImage path is wrong.")
-                gf.showErrorMessage(self, msg, "ERROR")
-                dlg.Destroy()
-                self.fr.Raise()
-                return
+                bf.showMessage(parent=self._parent, kind="BYMUR_ERROR",
+                               caption="Error!",
+                               message="Image path is wrong.")
+        dlg.Destroy()
 
-    def show_bld_tab(self, event):
-        self.tab = OpenTable(self, wx.ID_ANY, "Table", self.buildings)
-        print self.vh
+    @property
+    def latMin(self):
+        return int(self._mapLatMinText.GetValue())
 
-    def on_quit(self, event):
+    @property
+    def latMax(self):
+        return int(self._mapLatMaxText.GetValue())
 
-        self.Destroy()
+    @property
+    def lonMin(self):
+        return int(self._mapLonMinText.GetValue())
 
-    def openEnsembleFr(self, event):
+    @property
+    def lonMax(self):
+        return int(self._mapLonMaxText.GetValue())
 
-        self.fr = wx.Frame(self, title="Ensable Selection")
+    @property
+    def mapPath(self):
+        return self._mapPath
 
-        vbox = wx.BoxSizer(orient=wx.VERTICAL)
-        txt1 = ("Chose among the list of possible hazard models\n"
-                "here below the ones you would like to use to\n"
-                "calculate the ensable hazard.")
-        vbox.Add(wx.StaticText(self.fr, wx.ID_ANY, label=txt1, size=(-1, -1)),
-                 0, wx.TOP, 5)
 
-        self.hazname = [""] * self.nhaz
-        self.hazweight = [""] * self.nhaz
-        self.dtshared = []
-        print self.nhaz
-        print self.model
-        print self.dtime
+class BymurHazBoxSizer(BymurStaticBoxSizer):
+    _hazRecLabel = "Add all xml files recursively"
+    _phenText = "Select phenomenon: "
 
-        for i in range(self.nhaz):
+    def __init__(self, *args, **kwargs):
+        self._hazPath = kwargs.pop('haz_path', '')
+        self.phenomena_list = kwargs.pop('phenomena_list', '')
+        super(BymurHazBoxSizer, self).__init__(*args, **kwargs)
 
-            hbox_haz = wx.BoxSizer(orient=wx.HORIZONTAL)
-            self.hazname[i] = wx.CheckBox(self.fr, wx.ID_ANY,
-                                          label=self.model[i], size=(-1, -1))
-            hbox_haz.Add(self.hazname[i], 0, wx.TOP | wx.LEFT, 4)
-            haz_id = self.hazname[i].GetId()
-            self.Bind(wx.EVT_CHECKBOX, self.selectModel, self.hazname[i])
-            self.hazweight[i] = wx.TextCtrl(self.fr, wx.ID_ANY, size=(80, 24))
-            self.hazweight[i].SetValue("1")
-            hbox_haz.Add(self.hazweight[i], 0, wx.LEFT, 4)
-            vbox.Add(hbox_haz, 1, wx.EXPAND | wx.ALL, 5)
-            self.hazweight[i].Enable(False)
+        self._hazBoxGrid = wx.GridBagSizer(hgap=5, vgap=5)
+        self.Add(self._hazBoxGrid)
+        self._hazDirButton = wx.Button(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND,
+                                       label="Select directory to scan")
+        vpos = 0
+        self._hazDirButton.Bind(event=wx.EVT_BUTTON, handler=self.selHazPath)
+        self._hazBoxGrid.Add(self._hazDirButton, flag=wx.EXPAND,
+                             pos=(vpos, 0), span=(1,6))
 
-        txt2 = ("Chose the time interval:")
-        vbox.Add(wx.StaticText(self.fr, wx.ID_ANY, label=txt2, size=(-1, -1)),
-                 0, wx.TOP, 5)
+        vpos += 1
+        self._hazDirLabel = wx.StaticText(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND, label = "Root dir")
+        self._hazBoxGrid.Add(self._hazDirLabel, flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 1))
+        self._hazDirTC = wx.TextCtrl(self._parent, id=wx.ID_ANY,
+                                       style=wx.EXPAND|wx.TE_READONLY)
+        self._hazBoxGrid.Add(self._hazDirTC, flag=wx.EXPAND, pos=(vpos, 1),
+                             span=(1, 5))
 
-        hbox_dt = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.dt_sel = wx.ComboBox(self.fr, wx.ID_ANY, choices=self.dtshared,
-                                  style=wx.CB_READONLY, size=(-1, -1))
-        hbox_dt.Add(self.dt_sel, 0, wx.TOP | wx.ALIGN_CENTRE, 10)
-        # self.Bind(wx.EVT_COMBOBOX, self.boh, self.dt_sel)
-        vbox.Add(hbox_dt, 1, wx.EXPAND | wx.ALL, 5)
+        vpos += 1
+        self._hazFilesAllCB = wx.CheckBox(self._parent, id=wx.ID_ANY,
+                                            style=wx.EXPAND, label="Select "
+                                                                   "all files")
+        self._hazFilesAllCB.Bind(wx.EVT_CHECKBOX, self._select_all)
+        self._hazBoxGrid.Add(self._hazFilesAllCB, flag=wx.EXPAND,
+                             pos=(vpos, 0), span=(1, 6))
+        self._hazFilesCLB = wx.CheckListBox(self._parent, id=wx.ID_ANY,
+                                            style=wx.EXPAND)
 
-        hbox_bot = wx.BoxSizer(orient=wx.HORIZONTAL)
-        self.canc_button = wx.Button(self.fr, wx.ID_ANY, "Cancel",
-                                     size=(-1, 28))
-        self.Bind(wx.EVT_BUTTON, self.closeInputFr, self.canc_button)
-        hbox_bot.Add(self.canc_button, 0, wx.TOP | wx.ALIGN_CENTRE, 10)
-        self.save_button = wx.Button(self.fr, wx.ID_ANY, "Create",
-                                     size=(-1, 28))
-        self.Bind(wx.EVT_BUTTON, self.ensemble_do, self.save_button)
-        hbox_bot.Add(self.save_button, 0, wx.TOP | wx.ALIGN_CENTRE, 10)
+        vpos += 1
+        self._hazBoxGrid.Add(self._hazFilesCLB, flag=wx.EXPAND,
+                             pos=(vpos, 0), span=(7, 6))
 
-        vbox.Add(hbox_bot, 1, wx.EXPAND | wx.ALL, 5)
+        # vpos += 7
+        # self._hazBoxGrid.Add(wx.StaticText(self._parent, id=wx.ID_ANY,
+        #                                    style=wx.EXPAND,
+        #                                    label=self._phenText),
+        #                      flag=wx.EXPAND, pos=(vpos, 0), span=(1, 6))
+        # vpos += 1
+        # self._phenCB = wx.ComboBox(self._parent, wx.ID_ANY)
+        # self._phenCB.AppendItems(self.phenomena_list)
+        # self._hazBoxGrid.Add(self._phenCB, flag=wx.EXPAND,
+        #                      pos=(vpos, 0), span=(1, 6))
 
-        self.fr.Bind(wx.EVT_CLOSE, self.closeInputFr)
-        self.fr.SetSizer(vbox)
-        # self.fr.SetSize((680,420))
-        self.fr.Fit()
-        self.fr.Centre()
-        self.fr.Show(True)
 
-    def selectModel(self, event, *kargs):
-        self.dtshared = []
-        for i in range(self.nhaz):
-            if self.hazname[i].IsChecked():
-                self.hazweight[i].Enable(True)
-                self.dtshared.append(self.dtime[i])
+
+    def _select_all(self, ev):
+        if self._hazFilesAllCB.IsChecked():
+            self._hazFilesCLB.SetChecked(range(len(self._hazFilesCLB.GetItems())))
+        else:
+            for i in range(len(self._hazFilesCLB.GetItems())):
+                self._hazFilesCLB.Check(i, check=False)
+
+    def _list_header(self, list):
+        list.SetFirstItemStr("Select all files")
+        list.SetItemBackgroundColour(1, wx.RED)
+        f = list.GetFont()
+        f.SetWeight(wx.BOLD)
+        list.SetItemFont(1,f)
+
+    def selHazPath(self, event):
+        dir = os.path.dirname(self._hazPath)
+        if (not os.path.isdir(dir)):
+            dir = os.path.expanduser("~")
+
+        dlg = wx.DirDialog(self._parent, "Select a directory:", defaultPath=dir,
+                           style=wx.DD_DEFAULT_STYLE)
+        if dlg.ShowModal() == wx.ID_OK:
+            self._rootdir = dlg.GetPath()
+            self._hazFilesCLB.Clear()
+            self._hazDirTC.SetValue(self._rootdir)
+            self._hazFilesCLB.AppendItems(bf.find_xml_files(self._rootdir))
+        dlg.Destroy()
+
+    @property
+    def hazFilesList(self):
+        return [os.path.join(self._rootdir, p) for p in
+                list(self._hazFilesCLB.GetCheckedStrings())]
+
+    # @property
+    # def phenomenon(self):
+    #     return self._phenCB.GetStringSelection()
+
+
+class BymurLoadGridDlg(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        self._title = "Load grid file to DB"
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localGridDefaults = {'basedir': kwargs.pop('basedir', ''),
+                                   'filepath': kwargs.pop('filepath', '')}
+        self._localData = {}
+        super(BymurLoadGridDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+        self.SetTitle(self._title)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
+        self._sizer.Add(self._gridSizer)
+
+        self._gridBoxSizer = BymurLoadGridBoxSizer(parent=self,
+                                             label="Geographical grid "
+                                                   "data",
+                                             **self._localGridDefaults)
+        self._gridSizer.Add(self._gridBoxSizer, flag=wx.EXPAND,
+                            pos=(0, 0), span=(1, 1))
+
+        self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                        flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+        self.SetSizerAndFit(self._sizer)
+
+    def ShowModal(self, *args, **kwargs):
+        result = super(BymurLoadGridDlg, self).ShowModal(*args, **kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localData['filepath'] = self._gridBoxSizer.gridPath
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localData)
+
+
+class BymurDBCreateDlg(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        self._title = "Create ByMuR database"
+        print "Create ByMuR database, kwargs: %s " % kwargs
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localData = {'db_host': kwargs.pop('db_host', ''),
+                           'db_port': kwargs.pop('db_port', ''),
+                           'db_user': kwargs.pop('db_user', ''),
+                           'db_password': kwargs.pop('db_password', ''),
+                           'db_name': kwargs.pop('db_name', '')}
+        self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
+        self._localMapDefaults = {'northing_min': kwargs.pop('northing_min', 0),
+                                  'northing_max': kwargs.pop('northing_max', 0),
+                                  'easting_min': kwargs.pop('easting_min', 0),
+                                  'easting_max': kwargs.pop('easting_max', 0),
+                                  'map_path': kwargs.pop('map_path', '')}
+        # self._localHazDefaults = {'haz_path': kwargs.pop('haz_path', ''),
+        #                           'haz_perc': kwargs.pop('haz_perc', '')}
+        self._localHazDefaults = {'haz_path': kwargs.pop('haz_path', '')}
+
+        super(BymurDBCreateDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+        self.SetTitle(self._title)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
+        self._sizer.Add(self._gridSizer)
+
+        self._dbBoxSizer = BymurDBBoxSizer(parent=self,
+                                           label="Database details",
+                                           **self._localData)
+        self._gridSizer.Add(self._dbBoxSizer, flag=wx.EXPAND,
+                            pos=(0, 0), span=(1, 1))
+
+        self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                        flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+        self.SetSizerAndFit(self._sizer)
+
+    def ShowModal(self, *args, **kwargs):
+        result = super(BymurDBCreateDlg, self).ShowModal(*args, **kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localData['db_host'] = self._dbBoxSizer.dbHost
+            self._localData['db_port'] = self._dbBoxSizer.dbPort
+            self._localData['db_user'] = self._dbBoxSizer.dbUser
+            self._localData['db_password'] = self._dbBoxSizer.dbPassword
+            self._localData['db_name'] = self._dbBoxSizer.dbName
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localData)
+
+class BymurAddDBDataDlg(wx.Dialog):
+    def __init__(self, *args, **kwargs):
+        self._title = 'Add data to database'
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localHazData = {'haz_path': kwargs.pop('haz_path', ''),
+                              'phenomena_list': kwargs.pop('phenomena_list', '')
+                              }
+        self._localGeoDefaults = {'grid_path': kwargs.pop('grid_path', '')}
+        self._localGridData = {'grid_list': kwargs.pop('grid_list', []) }
+        super(BymurAddDBDataDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+        self.SetTitle(self._title)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._gridSizer = wx.GridBagSizer(hgap=10, vgap=10)
+        self._sizer.Add(self._gridSizer)
+
+        self._gridSelectBoxSizer = BymurSelectGridBoxSizer(parent=self,
+                                                           label="Grid",
+                                        **self._localGridData)
+        self._gridSizer.Add(self._gridSelectBoxSizer, flag=wx.EXPAND,
+                            pos=(0, 0), span=(1, 1))
+
+        self._hazBoxSizer = BymurHazBoxSizer(parent=self,
+                                             label="XML files",
+                                             **self._localHazData)
+        self._gridSizer.Add(self._hazBoxSizer, flag=wx.EXPAND,
+                            pos=(1, 0), span=(1, 1))
+        self._sizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                        flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+        self.SetSizerAndFit(self._sizer)
+
+    def ShowModal(self, *args, **kwargs):
+        result = super(BymurAddDBDataDlg, self).ShowModal(*args, **kwargs)
+        if (result == wx.ID_OK):
+            self._localHazData['haz_files'] = self._hazBoxSizer.hazFilesList
+            # self._localHazData['phenomenon'] = self._hazBoxSizer.phenomenon
+            self._localHazData['datagrid_name'] = \
+                self._gridSelectBoxSizer.gridName
+            if self._localHazData['datagrid_name'] == '':
+                    result = -1
+            elif self._localHazData['haz_files'] == []:
+                    result = -1
             else:
-                self.hazweight[i].Enable(False)
+                result = 1
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localHazData)
 
-        nsel = len(self.dtshared)
-        if (nsel > 1):
-            tmp = list(set(self.dtshared[0]) & set(self.dtshared[1]))
-            for j in range(2, nsel):
-                tmp = list(set(tmp) & set(self.dtshared[j]))
-            print tmp
-            self.dt_sel.SetItems(tmp)
+class BymurDBLoadDlg(wx.Dialog):
+    _textSize = (300, -1)
 
-    def closeEnsembleFr(self, event):
-        self.fr.Destroy()
-        msg = ("WARNING\nYou are leaving the ensemble procedure")
-        gf.showWarningMessage(self, msg, "WARNING")
-        return
 
-    def ensemble_do(self, event):
-        # selection of models and weights
+    def __init__(self, *args, **kwargs):
+        self._title = 'Load ByMuR database'
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._dbDetails = {'db_host': kwargs.pop('db_host', ''),
+                           'db_port': kwargs.pop('db_port', ''),
+                           'db_user': kwargs.pop('db_user', ''),
+                           'db_password': kwargs.pop('db_password', ''),
+                           'db_name': kwargs.pop('db_name', '')
+        }
+        super(BymurDBLoadDlg, self).__init__(style=self._style, *args, **kwargs)
+        self.SetTitle(self._title)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
 
-        self.fr.Destroy()
+        self._dbBoxSizer = BymurDBBoxSizer(parent=self,
+                                           label="Connection details",
+                                           orient=wx.VERTICAL,
+                                           **self._dbDetails)
 
-        self.selected = []
-        self.weights = []
+        self._dbBoxSizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL))
 
-        dtsel = self.dt_sel.GetValue()
-        self.twsel = []
-        for i in range(self.nhaz):
-            if self.hazname[i].IsChecked():
-                self.selected.append(int(i))
-                self.weights.append(float(self.hazweight[i].GetValue()))
-                tmp = self.dtime[i].index(dtsel)
-                self.twsel.append(tmp)
-            else:
+        self._sizer.Add(self._dbBoxSizer)
+        self.SetSizerAndFit(self._sizer)
+
+    def ShowModal(self, *args, **kwargs):
+        result = super(BymurDBLoadDlg, self).ShowModal(*args, **kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._dbDetails['db_host'] = self._dbBoxSizer.dbHost
+            self._dbDetails['db_port'] = self._dbBoxSizer.dbPort
+            self._dbDetails['db_user'] = self._dbBoxSizer.dbUser
+            self._dbDetails['db_password'] = self._dbBoxSizer.dbPassword
+            self._dbDetails['db_name'] = self._dbBoxSizer.dbName
+
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._dbDetails)
+
+
+class BymurEnsembleDlg(wx.Dialog):
+
+
+    def __init__(self, *args, **kwargs):
+        self._ensBoxSizer = None
+        self._title = kwargs.pop('title', '')
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localData = kwargs.pop('data', {})
+        # print "data %s " % self._localData
+        super(BymurEnsembleDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        self._ensBoxSizer = BymurEnsBoxSizer(parent=self,
+                                             label="Ensemble hazard definition",
+                                             orient=wx.VERTICAL,
+                                             data=self._localData)
+
+        self._ensBoxSizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                              flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+
+        self._sizer.Add(self._ensBoxSizer)
+        self.SetSizerAndFit(self._sizer)
+
+        self.SetTitle(self._title)
+
+    def ShowModal(self, **kwargs):
+        result = super(BymurEnsembleDlg, self).ShowModal(**kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localData = { 'ensHaz': self._ensBoxSizer.ensHaz,
+                                'ensPhen': self._ensBoxSizer.ensPhen,
+                                'ensGrid': self._ensBoxSizer.ensGrid,
+                                'ensExpTime': self._ensBoxSizer.ensExpTime,
+                                'ensIMLThresh': self._ensBoxSizer.ensIMLThresh,
+                                'ensName': self._ensBoxSizer.ensName,
+            }
+            if self._localData['ensIMLThresh'] is None:
+                result = -1
+            if self._localData['ensName'] is '':
+                result = -1
+            print "Ensemble parameters %s" % self._localData
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localData)
+
+class BymurExportHazDlg(wx.Dialog):
+
+
+    def __init__(self, *args, **kwargs):
+        self._ensBoxSizer = None
+        self._title = kwargs.pop('title', '')
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localData = kwargs.pop('data', {})
+        super(BymurExportHazDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        self._expHazBoxSizer = BymurExpHazBoxSizer(parent=self,
+                                             label="Export hazard XMLs",
+                                             orient=wx.VERTICAL,
+                                             data=self._localData)
+
+        self._expHazBoxSizer.Add(self.CreateButtonSizer(flags=wx.OK | wx.CANCEL),
+                              flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+
+        self._sizer.Add(self._expHazBoxSizer)
+        self.SetSizerAndFit(self._sizer)
+
+        self.SetTitle(self._title)
+
+    def ShowModal(self, **kwargs):
+        result = super(BymurExportHazDlg, self).ShowModal(**kwargs)
+        if (result == wx.ID_OK):
+            result = 1
+            self._localData = { 'expHazModel': self._expHazBoxSizer.expHazModel,
+                                'expHazPhen': self._expHazBoxSizer.expHazPhen,
+                                'expHazGrid': self._expHazBoxSizer.expHazGrid,
+                                'expHazExpTime': self._expHazBoxSizer.expHazExpTime,
+                                'expHazDir': self._expHazBoxSizer.expHazExpDir,
+            }
+            print "Export hazard to XMLs %s" % self._localData
+        elif (result == wx.ID_CANCEL):
+            result = 0
+        else:
+            result = -1
+        return (result, self._localData)
+
+class BymurCmpRiskBoxSizer(BymurStaticBoxSizer):
+
+    def __init__(self, *args, **kwargs):
+        self._data = kwargs.pop('data', {})
+        super(BymurCmpRiskBoxSizer, self).__init__(*args, **kwargs)
+        self._map = bymur_plots.CompareRisk(parent=self._parent)
+        self.Add(self._map._canvas, flag=wx.EXPAND)
+        self.Add(self._map._toolbar, flag=wx.EXPAND)
+
+
+class BymurCmpRiskDlg(wx.MultiChoiceDialog):
+    def __init__(self, *args, **kwargs):
+        self._riskBoxSizer = None
+        self._title = kwargs.pop('title', '')
+        self._style = kwargs.pop('style', 0)
+        self._style |= wx.OK | wx.CANCEL
+        self._localData = dict()
+        self._localData['risks'] = kwargs.pop('risks', [])
+        self._localData['area'] = kwargs.pop('area', [])
+        super(BymurCmpRiskDlg, self).__init__(style=self._style, *args,
+                                               **kwargs)
+
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        self._riskBoxSizer = BymurCmpRiskBoxSizer(parent=self,
+                                             label="Compare risks",
+                                             orient=wx.VERTICAL,
+                                             data=self._localData)
+
+        self._riskBoxSizer.Add(self.CreateButtonSizer(flags=wx.OK),
+                              flag=wx.ALL | wx.ALIGN_CENTER, border=10)
+
+        self._sizer.Add(self._riskBoxSizer)
+        self.SetSizerAndFit(self._sizer)
+
+        self.SetTitle(self._title)
+
+class BymurWxPanel(wx.Panel):
+    def __init__(self, *args, **kwargs):
+        self._map = None
+        self._bymur_label = kwargs.pop('label', "")
+        self._controller = kwargs.pop('controller', None)
+        super(BymurWxPanel, self).__init__(*args, **kwargs)
+        self.Enable(False)
+
+    def updateView(self, **kwargs):
+        self.Enable(False)
+        for panel in self.GetChildren():
+            if isinstance(panel, BymurWxPanel):
+                panel.updateView(**kwargs)
+        self.Enable(True)
+
+    def clear(self):
+        if self._map is not None:
+            self._map.clear()
+
+class BymurWxCurvesPanel(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        super(BymurWxCurvesPanel, self).__init__(*args, **kwargs)
+
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self.SetSizer(self._sizer)
+        self._nb = FlatNB.FlatNotebook(self, agwStyle=FNB_NO_X_BUTTON)
+
+        self._curvesNBHaz = BymurWxNBHazPage(parent=self._nb,
+                                             controller=self._controller,
+                                             label="NBHazPage")
+        self._curvesNBInv = BymurWxNBInvPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBInvPage")
+        self._curvesNBFrag = BymurWxNBFragPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBFragPage")
+        self._curvesNBLoss = BymurWxNBLossPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBLossPage")
+        self._curvesNBRisk = BymurWxNBRiskPage(parent=self._nb,
+                                               controller=self._controller,
+                                               label="NBRiskPage")
+
+        self._nb.AddPage(self._curvesNBHaz, self._curvesNBHaz.title)
+        self._nb.AddPage(self._curvesNBInv, self._curvesNBInv.title)
+        self._nb.AddPage(self._curvesNBFrag, self._curvesNBFrag.title)
+        self._nb.AddPage(self._curvesNBLoss, self._curvesNBLoss.title)
+        self._nb.AddPage(self._curvesNBRisk, self._curvesNBRisk.title)
+
+        self.Bind(wx.EVT_NOTEBOOK_PAGE_CHANGED, self._controller.nbTabChanged)
+        self._sizer.Add(self._nb, 1, wx.EXPAND | wx.ALL, 10)
+
+        self.SetSize((-1, 100))
+
+    def updateView(self, **kwargs):
+        super(BymurWxCurvesPanel, self).updateView(**kwargs)
+        self._nb.GetCurrentPage().updateView(**kwargs)
+        self.Enable(True)
+
+    def updatePages(self):
+        all_pages_enable = self.GetTopLevelParent()._hazard is not None
+        risk_pages_enable = self.GetTopLevelParent()._risk is not None
+        multiple_areas = len(self.GetTopLevelParent()._selected_areas) > 1
+
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBHaz),
+                           (all_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBInv),
+                           (all_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBFrag),
+                           (risk_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBLoss),
+                           (risk_pages_enable and not multiple_areas))
+        self._nb.EnableTab(self._nb.GetPageIndex(self._curvesNBRisk),
+                           risk_pages_enable)
+
+        if (risk_pages_enable and multiple_areas):
+            self._nb.SetSelection(self._nb.GetPageIndex(self._curvesNBRisk))
+        elif (not self._nb.GetEnabled(self._nb.GetSelection())):
+            self._nb.SetSelection(self._nb.GetPageIndex(self._curvesNBHaz))
+
+
+    def clear(self):
+        for i_p in range(self._nb.GetPageCount()):
+            self._nb.GetPage(i_p).clear()
+
+
+
+class BymurWxMapPanel(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Map")
+        super(BymurWxMapPanel, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        _imgfile =  os.path.join(wx.GetTopLevelParent(self).basedir,
+                                     "./data/naples_gsatellite.png")
+        self._map = bymur_plots.HazardGraph(parent=self,
+                            click_callback=self._controller.pick_point_by_index,
+                            # selection_callback=self._controller.areas_selection,
+                            selection_callback=self._controller.get_areas_data,
+                            imgfile = _imgfile)
+        # TODO: fix these references
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxMapPanel, self).updateView(**kwargs)
+        self._map.plot(wx.GetTopLevelParent(self).hazard,
+                       wx.GetTopLevelParent(self).hazard_data,
+                       wx.GetTopLevelParent(self).inventory)
+        self.Enable(True)
+
+    # def clear(self):
+    #     self._map.clear()
+
+    def updatePoint(self, **kwargs):
+        if wx.GetTopLevelParent(self).selected_point is not None:
+            self._map.selected_point = (wx.GetTopLevelParent(self).
+                                        selected_point.easting * 1e-3,
+                                        wx.GetTopLevelParent(self).
+                                        selected_point.northing * 1e-3)
+            self._map.selected_areas = wx.GetTopLevelParent(self).selected_areas
+            # print [s.keys() for s in self._map.selected_areas]
+            self._map.update_selection()
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
+
+    @property
+    def map(self):
+        """Get the current page title."""
+        return self._map
+
+class BymurWxNBInvPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Inventory")
+        super(BymurWxNBInvPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.InvCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxNBInvPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       areas=wx.GetTopLevelParent(self).selected_areas)
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
+
+class BymurWxNBFragPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Fragility")
+        super(BymurWxNBFragPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.FragCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxNBFragPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       fragility=wx.GetTopLevelParent(self).fragility,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       areas=wx.GetTopLevelParent(self).selected_areas)
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
+
+class BymurWxNBHazPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Hazard")
+        super(BymurWxNBHazPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.HazardCurve(parent=self)
+        # TODO: fix these references
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxNBHazPage, self).updateView(**kwargs)
+        self._map.plot(wx.GetTopLevelParent(self).hazard,
+                       wx.GetTopLevelParent(self).hazard_options,
+                       wx.GetTopLevelParent(self).selected_point)
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
+
+
+class BymurWxNBLossPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Loss")
+        super(BymurWxNBLossPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.LossCurve(parent=self)
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxNBLossPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       fragility=wx.GetTopLevelParent(self).fragility,
+                       loss=wx.GetTopLevelParent(self).loss,
+                       areas=wx.GetTopLevelParent(self).selected_areas)
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
+
+
+
+class BymurWxNBRiskPage(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._title = kwargs.pop('title', "Risk")
+        super(BymurWxNBRiskPage, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._map = bymur_plots.RiskCurve(parent=self)
+        # self._cmpPanel = BymurWxRiskPanel(parent=self,
+        #                                   controller=self._controller,
+        #                                   title="Compare Risks",
+        #                                   label="CmpRisk")
+        self._cmpButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+                                       'Compare Risks',
+                                       size=(-1, -1))
+        self.Bind(wx.EVT_BUTTON, self._controller.compare_risks_act,
+                  self._cmpButton)
+        self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
+
+        self._sizer.Add(self._map._canvas, 1, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._map._toolbar, 0, wx.EXPAND | wx.ALL, 0)
+        self._sizer.Add(self._cmpButton, 0, wx.EXPAND | wx.ALL, 0)
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxNBRiskPage, self).updateView(**kwargs)
+        self._map.plot(hazard=wx.GetTopLevelParent(self).hazard,
+                       inventory=wx.GetTopLevelParent(self).inventory,
+                       fragility=wx.GetTopLevelParent(self).fragility,
+                       loss=wx.GetTopLevelParent(self).loss,
+                       risk=wx.GetTopLevelParent(self).risk,
+                       compare_risks=wx.GetTopLevelParent(self).compare_risks,
+                       areas=wx.GetTopLevelParent(self).selected_areas)
+        self.Enable(True)
+
+    @property
+    def title(self):
+        """Get the current page title."""
+        return self._title
+
+
+class BymurWxRightPanel(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        super(BymurWxRightPanel, self).__init__(*args, **kwargs)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._mapPanel = BymurWxMapPanel(parent=self,
+                                         controller=self._controller,
+                                         label="MapPanel")
+        self._mapBox = wx.StaticBox(self, wx.ID_ANY, self._mapPanel.title)
+        self._mapBoxSizer = wx.StaticBoxSizer(self._mapBox,
+                                              orient=wx.HORIZONTAL)
+        self._mapBoxSizer.Add(self._mapPanel, 1, wx.EXPAND | wx.ALL, 0)
+        self._mapPanel.Enable(False)
+        self._sizer.Add(self._mapBoxSizer, 1, wx.EXPAND | wx.ALL, 5)
+
+        self._curvesPanel = BymurWxCurvesPanel(self, id=wx.ID_ANY,
+                                               controller=self._controller,
+                                               label="CurvesPanel")
+
+        self._curvesPanel.Enable(False)
+        self._sizer.Add(self._curvesPanel, 1, wx.EXPAND | wx.ALL, 0)
+
+        self.Centre()
+        self.SetSizer(self._sizer)
+
+    def updateView(self, **kwargs):
+        super(BymurWxRightPanel, self).updateView(**kwargs)
+        # self.Layout()
+
+    @property
+    def curvesPanel(self):
+        return self._curvesPanel
+
+    @property
+    def mapPanel(self):
+        return self._mapPanel
+
+# class BymurWxRiskPanel(BymurWxPanel):
+#     def __init__(self, *args, **kwargs):
+#         self._title = kwargs.pop('title', "Compare risks")
+#         super(BymurWxRiskPanel, self).__init__(*args, **kwargs)
+#         self._topWindow = wx.GetTopLevelParent(self)
+#         self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+#         self._cmpButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+#                                        'Compare Risks',
+#                                        size=(-1, -1))
+#         self.Bind(wx.EVT_BUTTON, self._controller.compare_risks,
+#                   self._cmpButton)
+#         self._sizer.Add(self._cmpButton, flag=wx.EXPAND)
+#         self.SetSizer(self._sizer)
+
+
+class BymurWxDataPanel(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._dataBoxTitle = kwargs.pop('title', "Data")
+        super(BymurWxDataPanel, self).__init__(*args, **kwargs)
+        self._topWindow = wx.GetTopLevelParent(self)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        ## Nearest data point coordinates and values
+        self._dataBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Selected point and area")
+        self._dataBoxSizer = wx.StaticBoxSizer(
+            self._dataBox,
+            orient=wx.VERTICAL)
+
+        self._dataSizer = wx.FlexGridSizer(5, 2, hgap=5, vgap=5)
+        self._dataBoxSizer.Add(self._dataSizer)
+
+        vpos = 0
+        self._dataHazLabel = wx.StaticText(self, wx.ID_ANY, 'Hazard ')
+        self._dataHazTC = wx.TextCtrl(self, wx.ID_ANY, style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataHazLabel,
+                              flag=wx.ALIGN_BOTTOM)
+        self._dataSizer.Add(self._dataHazTC)
+
+        self._dataProbLabel = wx.StaticText(self, wx.ID_ANY, 'Probability ')
+        self._dataProbTC = wx.TextCtrl(self, wx.ID_ANY,
+                                       style=wx.TE_READONLY)
+        self._dataSizer.Add(self._dataProbLabel,
+                              flag=wx.ALIGN_BOTTOM)
+        self._dataSizer.Add(self._dataProbTC)
+
+        ## Area Inventory details
+        # self._invBox = wx.StaticBox(
+        #     self,
+        #     wx.ID_ANY,
+        #     "Selected area")
+        # self._invBoxSizer = wx.StaticBoxSizer(
+        #     self._invBox,
+        #     orient=wx.VERTICAL)
+        # self._invSizer = wx.FlexGridSizer(5, 2, hgap=5, vgap=5)
+        # self._invBoxSizer.Add(self._invSizer)
+
+        self._invAreaIDLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Area ID")
+        self._invAreaIDTC = wx.TextCtrl(self, wx.ID_ANY,
+                                        style=wx.TE_READONLY)
+        self._dataSizer.Add(self._invAreaIDLabel,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invAreaIDTC, flag=wx.EXPAND)
+
+        self._invSecIDLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Section ID")
+        self._invSecIDTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._dataSizer.Add(self._invSecIDLabel,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invSecIDTC, flag=wx.EXPAND)
+
+        self._invCentroidLabelX = wx.StaticText(self, wx.ID_ANY,
+                                    "Centroid X")
+        self._invCentroidXTC = wx.TextCtrl(self, wx.ID_ANY,
+                                           style=wx.TE_READONLY)
+        self._invCentroidLabelY = wx.StaticText(self, wx.ID_ANY,
+                                    "Centroid Y")
+        self._invCentroidYTC = wx.TextCtrl(self, wx.ID_ANY,
+                                           style=wx.TE_READONLY)
+        self._dataSizer.Add(self._invCentroidLabelX,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invCentroidXTC, flag=wx.EXPAND)
+        self._dataSizer.Add(self._invCentroidLabelY, flag=wx.EXPAND)
+        self._dataSizer.Add(self._invCentroidYTC, flag=wx.EXPAND)
+
+        self._invTotalLabel = wx.StaticText(self, wx.ID_ANY,
+                                    "Total buildings number")
+        self._invTotalTC = wx.TextCtrl(self, wx.ID_ANY,
+                                      style=wx.TE_READONLY)
+        self._dataSizer.Add(self._invTotalLabel,
+                             flag=wx.EXPAND)
+        self._dataSizer.Add(self._invTotalTC, flag=wx.EXPAND)
+
+        self._classBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Classes")
+        self._classBoxSizer = wx.StaticBoxSizer(
+            self._classBox,
+            orient=wx.HORIZONTAL)
+        self._classSizer = wx.GridBagSizer()
+        self._classBoxSizer.Add(self._classSizer)
+
+        # General Classes
+        self._genClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "General")
+        self._genClassBoxSizer = wx.StaticBoxSizer(
+            self._genClassBox,
+            orient=wx.VERTICAL)
+        self._genClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._genClassBoxSizer.Add(self._genClassSizer)
+        self._genClasses = []
+        self._classBoxSizer.Add(self._genClassBoxSizer, flag=wx.EXPAND)
+
+        # Age Classes
+        self._ageClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Ages")
+        self._ageClassBoxSizer = wx.StaticBoxSizer(
+            self._ageClassBox,
+            orient=wx.VERTICAL)
+        self._ageClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._ageClassBoxSizer.Add(self._ageClassSizer)
+        self._ageClasses = []
+        self._classBoxSizer.Add(self._ageClassBoxSizer, flag=wx.EXPAND)
+
+        # House Classes
+        self._houseClassBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Houses")
+        self._houseClassBoxSizer = wx.StaticBoxSizer(
+            self._houseClassBox,
+            orient=wx.VERTICAL)
+        self._houseClassSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._houseClassBoxSizer.Add(self._houseClassSizer)
+        self._houseClasses = []
+        self._classBoxSizer.Add(self._houseClassBoxSizer, flag=wx.EXPAND)
+
+        self._sizer.Add(self._dataBoxSizer, flag=wx.ALL|wx.EXPAND)
+        self._sizer.Add(self._classBoxSizer, flag=wx.ALL|wx.EXPAND)
+        self.SetSizer(self._sizer)
+
+    def updateInventory(self):
+        vpos = 0
+        self._genClasses = []
+        self._genClassSizer.Clear()
+        self._genClassSizer.Layout()
+        for gen_class in self._topWindow.inventory.classes['generalClasses']:
+            _genclassrow = dict()
+            _genclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  gen_class.name)
+            _genclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._genClassSizer.Add(_genclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._genClassSizer.Add(_genclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._genClasses.append(_genclassrow)
+            vpos +=1
+
+
+        vpos = 0
+        self._ageClasses = []
+        self._ageClassSizer.Clear()
+        self._ageClassSizer.Layout()
+        for age_class in self._topWindow.inventory.classes['ageClasses']:
+            _ageclassrow = dict()
+            _ageclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  age_class.name)
+            _ageclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._ageClassSizer.Add(_ageclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._ageClassSizer.Add(_ageclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._ageClasses.append(_ageclassrow)
+            vpos +=1
+
+
+        vpos = 0
+        self._houseClasses = []
+        self._houseClassSizer.Clear()
+        self._houseClassSizer.Layout()
+        for house_class in self._topWindow.inventory.classes['houseClasses']:
+            _houseclassrow = dict()
+            _houseclassrow['label'] = wx.StaticText(self, wx.ID_ANY,
+                                                  house_class.name)
+            _houseclassrow['value'] = wx.TextCtrl(self, wx.ID_ANY,
+                                                style=wx.TE_READONLY,
+                                                size=(40,20))
+            self._houseClassSizer.Add(_houseclassrow['label'],
+                             flag=wx.EXPAND, pos=(vpos, 0), span=(1, 1))
+
+            self._houseClassSizer.Add(_houseclassrow['value'],
+                                    flag=wx.EXPAND, pos=(vpos, 1), span=(1, 1))
+            self._houseClasses.append(_houseclassrow)
+            vpos +=1
+
+
+        self.Layout()
+        self.GetParent().Layout()
+
+
+
+    def updateView(self, **kwargs):
+        super(BymurWxDataPanel, self).updateView(**kwargs)
+
+    def clearPoint(self):
+        self._dataHazTC.SetValue('')
+        self._dataProbTC.SetValue('')
+        self._invAreaIDTC.SetValue('')
+        self._invSecIDTC.SetValue('')
+        self._invCentroidXTC.SetValue('')
+        self._invCentroidYTC.SetValue('')
+        self._invTotalTC.SetValue('')
+
+    def updatePointData(self):
+        if self._topWindow.selected_point.haz_value:
+            self._dataHazTC.SetValue(
+                str(self._topWindow.selected_point.haz_value))
+        else:
+            self._dataHazTC.SetValue("")
+
+        if self._topWindow.selected_point.prob_value:
+            self._dataProbTC.SetValue(
+                str(self._topWindow.selected_point.prob_value))
+        else:
+            self._dataProbTC.SetValue("")
+
+        grand_total = 0
+        for a in self._topWindow.selected_areas:
+            try:
+                grand_total += a['inventory'].asset.total
+            except AttributeError:
                 pass
 
-        print self.selected
+        area_inventory = self._topWindow.selected_areas[0]['inventory']
 
-        print self.hc_perc
-        self.percsel = range(10, 100, 10)
+        try:
+            self._invAreaIDTC.SetValue(str(area_inventory.areaID))
+        except AttributeError:
+            self._invAreaIDTC.SetValue('')
 
-        print "TWSEL", self.tw, self.twsel
+        try:
+            self._invSecIDTC.SetValue(str(area_inventory.sectionID))
+        except AttributeError:
+            self._invSecIDTC.SetValue('')
 
-        # opening waiting pop-up frame
-        busydlg = wx.BusyInfo("Task has been processing.. please wait")
-        wx.Yield()
-
-        # update from db
-        for i in range(len(self.selected)):
-            ntry = int(math.floor(self.npts * 0.5))
-            tmp2 = self.hc[self.selected[i]][self.twsel[i]][0][ntry]
-            tmp = sum([float(j) for j in tmp2.split()])
-            if (tmp == 0):
-                busydlg = wx.BusyInfo("...Reading hazard from DB")
-                wx.Yield()
-                db.dbReadHC(self.selected[i], self.twsel[i], self.dtime,
-                            self.cur, self.hc, self.hc_perc)
-                busydlg = None
-
-        # do ensemble
-
-        self.sb.SetStatusText("... generating ensemble model")
-        tmp = scientLibs.ensemble(self.hc, self.hc_perc, self.tw, self.hazards,
-                                  self.dtime, self.selected, self.weights,
-                                  self.twsel, self.percsel, self.perc_flag)
-
-        hccomb = [[['0' for i in range(self.npts)] for j in range(100)]
-                  for k in range(self.nt)]
-        for i in range(self.npts):
-            for j in range(100):
-                hccomb[0][j][i] = ' '.join(map(str, tmp[0, j, i][:]))
-
-        # update DB, table hazard_phenomena
-        self.sb.SetStatusText("... updating DB")
-        nmod_comb = len(self.selected)
-        ntw = 1
-        self.nhaz = self.nhaz + 1
-        tmpid = self.nhaz
-        tmpname = self.hz_name[self.selected[0]]
-        tmpmodel = "EN:"
-        for i in range(nmod_comb):
-            tmpmodel = tmpmodel + str(self.model[self.selected[i]]) + "("
-            tmpmodel = tmpmodel + str(self.weights[i]) + ");"  # ID in DB
-
-        tmpmodel = tmpmodel + "_T:"
-        tmpmodel = tmpmodel + str(self.dtime[self.
-                                             selected[0]][self.twsel[0]]) + ";"
-        tmpimt = self.imt[self.selected[0]]
-        tmp = self.iml[self.selected[0]]
-        tmpiml = ' '.join(map(str, tmp[:]))
-
-        sql = """
-              INSERT INTO hazard_phenomena (id_haz,name,model,imt,iml,
-              id_map_info, id_spatial_data, vd_ID)
-              VALUES('{0}','{1}','{2}','{3}','{4}',1, 1, 0)
-              """
-        self.cur.execute(sql.format(tmpid, tmpname, tmpmodel, tmpimt, tmpiml))
-
-        # update variables
-        tmp = db.dbReadTable(self.con, self.cur, "hazard_phenomena")
-        self.nhaz = len(tmp)
-        self.hz_name = [tmp[i][4] for i in range(self.nhaz)]
-        self.model = [tmp[i][5] for i in range(self.nhaz)]
-        self.imt = [tmp[i][6] for i in range(self.nhaz)]
-        self.iml = [[float(j) for j in tmp[i][7].split()]
-                    for i in range(self.nhaz)]
-
-        # update array hc & hc_perc
-        hctmp = self.hc
-        niml = len(self.iml[self.selected[0]])
-        self.hc = [[[['0' for i in range(self.npts)] for j in range(100)]
-                    for k in range(self.nt)] for h in range(self.nhaz)]
-        for ihz in range(self.nhaz - 1):
-            self.hc[ihz] = hctmp[ihz]
-        self.hc[-1][0] = hccomb[0]
-
-        self.hc_perc.append(np.asarray(self.percsel))
-
-        # update DB, table hazard#
-        tbname = "hazard" + str(self.nhaz)
-        sql_query = """
-                    CREATE TABLE IF NOT EXISTS {0}
-                    (id INT UNSIGNED NOT NULL PRIMARY KEY, id_haz INT,
-                    id_points INT, stat VARCHAR(20), dtime VARCHAR(20),
-                    curve MEDIUMTEXT);
-                    """
-        self.cur.execute(sql_query.format(tbname))
-        idc = 0
-        dtimetmp = self.dtime
-        nperc = len(self.hc[0][0]) - 1
-        npts = len(self.hc[0][0][0])
-
-        for iii in range(ntw):
-            dt = self.dtime[self.selected[0]][self.twsel[0]]
-            print 'dT= ', dt, ' yr'
-            for i in range(npts):
-                idc = idc + 1
-                sql = """
-                  INSERT INTO {0} (id, id_haz, id_points, stat,
-                  dtime, curve) VALUES ( {1}, {2}, {3}, '{4}', '{5}', '{6}' )
-                  """
-                self.cur.execute(sql.format(tbname, idc, tmpid, i + 1,
-                                            "Average", dt, hccomb[0][0][i]))
-            for p in range(len(self.percsel)):
-                pp = str(self.percsel[p])
-                print('percsel[p]', self.percsel[p])
-                for i in range(npts):
-                    idc = idc + 1
-                    sql = """
-                      INSERT INTO {0} (id, id_haz, id_points, stat,
-                      dtime, curve) VALUES
-                      ( {1}, {2}, {3}, '{4}', '{5}', '{6}' )
-                      """
-                    self.cur.execute(
-                        sql.format(
-                            tbname,
-                            idc,
-                            tmpid,
-                            i + 1,
-                            "Perc" + pp,
-                            dt,
-                            hccomb[0][
-                                self.percsel[p]][i]))
-        print 'DB populated!!'
+        try:
+            self._invCentroidXTC.SetValue(str(area_inventory.centroid[0]))
+            self._invCentroidYTC.SetValue(str(area_inventory.centroid[1]))
+        except AttributeError:
+            self._invCentroidXTC.SetValue('')
+            self._invCentroidYTC.SetValue('')
 
 
-    # hazard tab
-        self.perc_flag.append(db.dbAssignFlagPerc(self.con, self.cur, tbname))
-        print("UPDATE FLAGS PERCENTILES = {0}".format(self.perc_flag))
-
-        item = tmpmodel
-
-        self.chaz.Append(item)
-
-        busydlg = None    # closing waiting pop-up frame
-        self.sb.SetStatusText("... ensemble model evaluated")
-
-        print 'Task completed!!'
-        print '------------------------------'
+        self._invTotalTC.SetValue(str(grand_total))
 
 
+        if isinstance(self._topWindow.inventory.classes, dict):
+            if self._topWindow.inventory.classes['generalClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['generalClasses'])):
+                    grand_total = 0
+                    for a in self._topWindow.selected_areas:
+                        try:
+                            grand_total += a['inventory'].asset.\
+                                        counts['genClassCount'][i_class]
+                        except KeyError:
+                            pass
+                    self._genClasses[i_class]['value'].SetValue(str(
+                        grand_total))
+            else:
+                for i_class in range(len(self._genClasses)):
+                    self._genClasses[i_class]['value'].SetValue('0')
 
-class BymurGui(wx.App):
+            if self._topWindow.inventory.classes['ageClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['ageClasses'])):
+                    grand_total = 0
+                    for a in self._topWindow.selected_areas:
+                        try:
+                            grand_total += a['inventory'].asset.\
+                                        counts['ageClassCount'][i_class]
+                        except KeyError:
+                            pass
+                    self._ageClasses[i_class]['value'].SetValue(str(
+                        grand_total))
+            else:
+                for i_class in range(len(self._ageClasses)):
+                    self._ageClasses[i_class]['value'].SetValue('0')
 
+            if self._topWindow.inventory.classes['houseClasses']:
+                for i_class in range(len(self._topWindow.inventory.
+                        classes['houseClasses'])):
+                    grand_total = 0
+                    for a in self._topWindow.selected_areas:
+                        try:
+                            grand_total += a['inventory'].asset.\
+                                        counts['houseClassCount'][i_class]
+                        except KeyError:
+                            pass
+                    self._houseClasses[i_class]['value'].SetValue(str(
+                        grand_total))
+            else:
+                for i_class in range(len(self._houseClasses)):
+                    self._houseClasses[i_class]['value'].SetValue('0')
+
+            self.Enable(True)
+
+
+class BymurWxCtrlsPanel(BymurWxPanel):
+    def __init__(self, *args, **kwargs):
+        self._ctrlsBoxTitle = kwargs.pop('title', "Controls")
+        super(BymurWxCtrlsPanel, self).__init__(*args, **kwargs)
+        self._topWindow = wx.GetTopLevelParent(self)
+        self._sizer = wx.BoxSizer(orient=wx.VERTICAL)
+
+        self._ctrlsBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            self.ctrlsBoxTitle)
+        self._ctrlsBoxSizer = wx.StaticBoxSizer(
+            self._ctrlsBox,
+            orient=wx.VERTICAL)
+
+        self._ctrlsSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._ctrlsBoxSizer.Add(self._ctrlsSizer)
+
+        vpos = 0
+        self._phenLabel = wx.StaticText(self, wx.ID_ANY,
+                                        'Phenomeon type')
+        self._phenCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                   style=wx.CB_READONLY, size=(200, -1))
+
+        self._phenCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._phenLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._phenCB, pos=(vpos, 2), span=(1, 2))
+
+        vpos += 1
+        self._hazModLabel = wx.StaticText(self, wx.ID_ANY,
+                                          'Hazard Model')
+        self._hazModCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                     style=wx.CB_READONLY, size=(200, -1))
+        self._hazModCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._hazModLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._hazModCB, pos=(vpos, 2), span=(1, 2))
+
+        # expTime
+        vpos += 1
+        self._expTimeLabel = wx.StaticText(self, wx.ID_ANY, 'Exposure Time')
+        self._expTimeCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                      style=wx.CB_READONLY, size=(120, -1))
+        self._expTimeLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
+        self._expTimeCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._expTimeLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._expTimeCB, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._expTimeLabelBis, pos=(vpos, 3), span=(1, 1),
+                             flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
+        # riskModel
+        vpos += 1
+        self._riskModLabel = wx.StaticText(self, wx.ID_ANY,
+                                          'Risk Model')
+        self._riskModCB = wx.ComboBox(self, wx.ID_ANY, choices=[],
+                                     style=wx.CB_READONLY, size=(200, -1))
+        self._riskModCB.Bind(wx.EVT_COMBOBOX, self.updateCtrls)
+        self._ctrlsSizer.Add(self._riskModLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._riskModCB, pos=(vpos, 2), span=(1, 2))
+
+        # returnPeriod
+        vpos += 1
+        self._retPerLabel = wx.StaticText(self, wx.ID_ANY, 'Return Period')
+        self._retPerText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
+                                       style=wx.TE_PROCESS_ENTER)
+        self._retPerText.Enable(False)
+        self.Bind(wx.EVT_TEXT_ENTER, self._controller.update_hazard_options,
+                  self._retPerText)
+        self._retPerLabelBis = wx.StaticText(self, wx.ID_ANY, '[years]')
+        self._ctrlsSizer.Add(self._retPerLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._retPerText, pos=(vpos, 2), span=(1, 1))
+        self._ctrlsSizer.Add(self._retPerLabelBis, pos=(vpos, 3), span=(1, 2),
+                             flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
+
+        # intensityThres
+        vpos += 1
+        self._intThresLabel = wx.StaticText(self, wx.ID_ANY, 'Intensity '
+                                                             'Threshold')
+        self._intThresText = wx.TextCtrl(self, wx.ID_ANY, size=(120, -1),
+                                         style=wx.TE_PROCESS_ENTER)
+        self._intThresText.Enable(False)
+        self.Bind(wx.EVT_TEXT_ENTER, self._controller.update_hazard_options,
+                  self._intThresText)
+        # self._intThresLabelBis = wx.StaticText(self, wx.ID_ANY, '')
+        self._ctrlsSizer.Add(self._intThresLabel, pos=(vpos, 0), span=(1, 2),
+                             flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT)
+        self._ctrlsSizer.Add(self._intThresText, pos=(vpos, 2), span=(1, 1))
+        # self._ctrlsSizer.Add(self._intThresLabelBis, pos=(vpos, 3), span=(1, 1),
+        #                      flag=wx.ALIGN_RIGHT | wx.ALIGN_BOTTOM)
+
+
+        vpos += 1
+        self._updateButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+                                       'Update Map',
+                                       size=(-1, -1))
+        self.Bind(wx.EVT_BUTTON, self._controller.update_hazard_options,
+                  self._updateButton)
+        self._ctrlsSizer.Add(self._updateButton, flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(3, 4))
+
+        vpos = 0
+        self._pointBox = wx.StaticBox(
+            self,
+            wx.ID_ANY,
+            "Point selection",
+            style=wx.EXPAND)
+        self._pointBoxSizer = wx.StaticBoxSizer(
+            self._pointBox,
+            orient=wx.VERTICAL)
+        self._pointSizer = wx.GridBagSizer(hgap=5, vgap=5)
+        self._pointBoxSizer.Add(self._pointSizer, flag=wx.EXPAND)
+
+        self._pointText = wx.StaticText(self, id=wx.ID_ANY,
+                                           style=wx.EXPAND,
+                                           label="Select a point by "
+                                                 "UTM coordinates")
+        self._pointSizer.Add(self._pointText, flag=wx.EXPAND, pos=(vpos, 0),
+                             span=(1, 4))
+        vpos += 1
+        self._pointEastLabel = wx.StaticText(self, wx.ID_ANY| wx.EXPAND, 'Easting ')
+        self._pointEastSC = wx.SpinCtrl(self, wx.ID_ANY| wx.EXPAND)
+        self._pointSizer.Add(self._pointEastLabel, pos=(vpos, 0), span=(1, 1),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT | wx.EXPAND)
+        self._pointSizer.Add(self._pointEastSC, pos=(vpos, 1), span=(1, 1), flag=wx.EXPAND)
+
+        self._pointNortLabel = wx.StaticText(self, wx.ID_ANY| wx.EXPAND, 'Northing ')
+        self._pointNortSC = wx.SpinCtrl(self, wx.ID_ANY| wx.EXPAND)
+        self._pointSizer.Add(self._pointNortLabel, pos=(vpos, 2), span=(1, 1),
+                              flag=wx.ALIGN_BOTTOM | wx.ALIGN_RIGHT | wx.EXPAND)
+        self._pointSizer.Add(self._pointNortSC, pos=(vpos, 3), span=(1, 1), flag=wx.EXPAND)
+
+        vpos += 1
+        self._pointButton = wx.Button(self, wx.ID_ANY | wx.EXPAND,
+                                        'Update Curve',
+                                        size=(-1, -1))
+        self.Bind(wx.EVT_BUTTON, self.pointCoordsSel,
+                   self._pointButton)
+        self._pointSizer.Add(self._pointButton, flag=wx.EXPAND, pos=(vpos, 0),
+                              span=(2, 4))
+
+        self._sizer.Add(self._ctrlsBoxSizer, flag=wx.EXPAND)
+        self._sizer.Add(self._pointBoxSizer, flag=wx.EXPAND)
+        self.SetSizer(self._sizer)
+        # self.Enable(False)
+
+    def pointCoordsSel(self, ev):
+        self._controller.pick_point_by_coordinates(self._pointEastSC.GetValue(),
+                                                   self._pointNortSC.GetValue())
+
+    def clearPoint(self):
+        self._pointEastSC.SetValueString('')
+        self._pointNortSC.SetValueString('')
+
+    def updatePointSel(self, ev=None, easting='', northing=''):
+        self._pointEastSC.SetValueString(easting)
+        self._pointNortSC.SetValueString(northing)
+
+    def updatePointData(self):
+        try:
+            self._pointEastSC.SetValueString(
+                str(self._topWindow.selected_point.easting))
+        except AttributeError as e:
+            self._pointEastSC.SetValueString("")
+        try:
+            self._pointNortSC.SetValueString(
+                str(self._topWindow.selected_point.northing))
+        except AttributeError as e:
+            self._pointNortSC.SetValueString("")
+
+    def updateCtrls(self, ev=None):
+        ctrls_data = wx.GetTopLevelParent(self).ctrls_data
+        if (ev is None):  # First data load
+            self._phenCB.Clear()
+            self._phenCB.AppendItems([haz['phenomenon_name']
+                                      for haz in ctrls_data['phenomena']])
+            self._phenCB.Enable(True)
+            self.Enable(True)
+        elif ev.GetEventType() == wx.wxEVT_COMMAND_COMBOBOX_SELECTED:
+            if ev.GetEventObject() == self._phenCB:
+                _phen_name = self._phenCB.GetStringSelection()
+                _hlist = [haz for haz in ctrls_data['hazard_models']
+                          if haz['phenomenon_name'] == _phen_name]
+                self._hazModCB.Clear()
+                self._hazModCB.SetValue('')
+                self._hazModCB.AppendItems((list(set([haz['hazard_name']
+                                            for haz in _hlist]))))
+                self._hazModCB.Enable(True)
+                if len(self._hazModCB.Items) > 0:
+                    self._hazModCB.SetSelection(0)
+                _haz_sel = self._hazModCB.GetValue()
+                self._retPerText.SetValue(
+                    str(ctrls_data[_phen_name]['ret_per']))
+                self._intThresText.SetValue(
+                    str(ctrls_data[_phen_name]['int_thresh']))
+                self._retPerText.Enable(True)
+                self._intThresText.Enable(True)
+                _exptimelist = [str(haz['exposure_time']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['phenomenon_name'] == _phen_name)]
+                self._expTimeCB.Clear()
+                self._expTimeCB.SetValue('')
+                self._expTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expTimeCB.Items) > 0:
+                    self._expTimeCB.SetSelection(0)
+                self._expTimeCB.Enable(True)
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        (haz['risk_model_name'] is not None))]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
+            elif ev.GetEventObject() == self._hazModCB:
+                _phen_name = self._phenCB.GetStringSelection()
+                _haz_sel = self._hazModCB.GetValue()
+                _exptimelist = [str(haz['exposure_time']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['phenomenon_name'] == _phen_name)]
+                self._expTimeCB.Clear()
+                self._expTimeCB.SetValue('')
+                self._expTimeCB.AppendItems(list(set(_exptimelist)))
+                if len(self._expTimeCB.Items) > 0:
+                    self._expTimeCB.SetSelection(0)
+                self._expTimeCB.Enable(True)
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        haz['risk_model_name'] is not
+                                         None)]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
+            elif ev.GetEventObject() == self._expTimeCB:
+                _haz_sel = self._hazModCB.GetValue()
+                _exp_time_sel = self._expTimeCB.GetValue()
+                if _exp_time_sel != '':
+                    _exp_time_sel = float(_exp_time_sel)
+                _risklist = [str(haz['risk_model_name']) for haz in
+                                    ctrls_data['hazard_models']
+                                    if (haz['hazard_name'] == _haz_sel and
+                                haz['exposure_time'] == _exp_time_sel and
+                                        haz['risk_model_name'] is not None)]
+                self._riskModCB.Clear()
+                self._riskModCB.SetValue('')
+                self._riskModCB.AppendItems(list(set(_risklist)))
+                if len(self._riskModCB.Items) > 0:
+                    self._riskModCB.SetSelection(0)
+                    self._riskModCB.Enable(True)
+                else:
+                    self._riskModCB.Enable(False)
+            elif ev.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
+                pass
+
+    def updateView(self, **kwargs):
+        super(BymurWxCtrlsPanel, self).updateView(**kwargs)
+
+    def updatePointInterval(self):
+        self._pointEastSC.SetRange(
+            minVal=wx.GetTopLevelParent(self).hazard.grid_limits['east_min'],
+            maxVal=wx.GetTopLevelParent(self).hazard.grid_limits['east_max']
+            )
+        self._pointNortSC.SetRange(
+            minVal=wx.GetTopLevelParent(self).hazard.grid_limits['north_min'],
+            maxVal=wx.GetTopLevelParent(self).hazard.grid_limits['north_max']
+            )
+
+    def clearCtrls(self):
+        self._phenCB.Clear()
+        self._phenCB.SetItems([])
+        self._phenCB.SetValue('')
+        self._phenCB.Enable(False)
+
+        self._hazModCB.Clear()
+        self._hazModCB.SetItems([])
+        self._hazModCB.SetValue('')
+        self._hazModCB.Enable(False)
+
+        self._expTimeCB.Clear()
+        self._expTimeCB.SetItems([])
+        self._expTimeCB.SetValue('')
+        self._expTimeCB.Enable(False)
+
+        self._riskModCB.Clear()
+        self._riskModCB.SetValue('')
+        self._riskModCB.SetItems([])
+        self._riskModCB.Enable(False)
+        
+        self._retPerText.SetValue('')
+        self._retPerText.Enable(False)
+
+        self._intThresText.SetValue('')
+        self._intThresText.Enable(False)
+
+        
+
+    @property
+    def ctrlsBoxTitle(self):
+        """Get the current ctrlsBoxTitle."""
+        return self._ctrlsBoxTitle
+
+    @ctrlsBoxTitle.setter
+    def ctrlsBoxTitle(self, value):
+        self._ctrlsBoxTitle = value
+        self._ctrlsBox.SetLabel(self._ctrlsBoxTitle)
+
+    @property
+    def hazard_options(self):
+        """Get the current ctrlsBox parameters"""
+        values = {}
+        values['hazard_name'] = self._hazModCB.GetStringSelection()
+        values['risk_model_name'] = self._riskModCB.GetStringSelection()
+        values['ret_per'] = self._retPerText.GetValue()
+        values['int_thresh'] = self._intThresText.GetValue()
+        values['exp_time'] = self._expTimeCB.GetStringSelection()
+        return values
+
+
+
+class BymurWxMenu(wx.MenuBar):
     """
-    Instance of the main class BymurFrame
+    This class provides all program menus
     """
+    _menu_actions = {}
+    _db_actions = []
+    _map_actions = []
+
+    def __init__(self, *args, **kwargs):
+        self._controller = kwargs.pop('controller', None)
+        super(BymurWxMenu, self).__init__(*args, **kwargs)
+
+        # File menu and items
+        self.menuFile = wx.Menu()
+        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Connect database')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.connect_db
+        menuItemTmp = self.menuFile.Append(wx.ID_ANY, '&Close database '
+                                                      'connection')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.close_db
+        menuItemTmp.Enable(False)
+        self._db_actions.append(menuItemTmp)
+        self.menuFile.AppendSeparator()
+        self.menuFile.Append(wx.ID_CLOSE, '&Quit')
+        self._menu_actions[wx.ID_CLOSE] = self._controller.quit
+        self.Append(self.menuFile, '&File')
+
+        # Database menu and items
+        self.menuDB = wx.Menu()
+        menuItemTmp = self.menuDB.Append(wx.ID_ANY,
+                                         '&Create DataBase (DB)')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.create_db
+        menuItemTmp = self.menuDB.Append(wx.ID_ANY, '&Add Data to DB')
+        self._db_actions.append(menuItemTmp)
+        self._menu_actions[
+            menuItemTmp.GetId()] = self._controller.add_data
+        menuItemTmp.Enable(False)
+        self.menuDB.AppendSeparator()
+        menuItemTmp = self.menuDB.Append(wx.ID_ANY, '&Drop All DB Tables')
+        self._db_actions.append(menuItemTmp)
+        menuItemTmp.Enable(False)
+        self._menu_actions[
+            menuItemTmp.GetId()] = self._controller.drop_tables
+        self.Append(self.menuDB, '&DataBase')
+
+        # Grid menu
+        self.menuGrid = wx.Menu()
+        menuItemTmp = self.menuGrid.Append(wx.ID_ANY,
+                                         '&Load grid file')
+        menuItemTmp.Enable(False)
+        self._db_actions.append(menuItemTmp)
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.load_grid
+        self.Append(self.menuGrid, '&Grid')
+
+        # Plot menu and items
+        self.menuPlot = wx.Menu()
+        menuItemTmp = self.menuPlot.Append(wx.ID_ANY,
+                                           '&Export Hazard XMLs')
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.export_hazard
+        self._db_actions.append(menuItemTmp)
+        menuItemTmp.Enable(False)
+
+        menuItemTmp = self.menuPlot.Append(wx.ID_ANY,
+                                           '&Export Raster ASCII (GIS)')  # original method was exportAsciiGis
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.exportASCII
+        self._map_actions.append(menuItemTmp)
+        menuItemTmp.Enable(False)
+        menuItemTmp = self.menuPlot.Append(wx.ID_ANY, '&Show Points',
+                                           kind=wx.ITEM_CHECK)  # original method was showPoints
+        self._menu_actions[menuItemTmp.GetId()] = self._controller.showPoints
+        menuItemTmp.Enable(False)
+        self.Append(self.menuPlot, '&Export')
+
+        # Analysis menu and items
+        self.menuAnalysis = wx.Menu()
+        menuItemTmp = self.menuAnalysis.Append(wx.ID_ANY,
+                                               'Create &Ensemble hazard')  # original method was openEnsembleFr
+        self._db_actions.append(menuItemTmp)
+        self._menu_actions[
+            menuItemTmp.GetId()] = self._controller.create_ensemble
+        self._map_actions.append(menuItemTmp)
+        menuItemTmp.Enable(False)
+        self.Append(self.menuAnalysis, '&Analysis')
+
+
+    def doMenuAction(self, event):
+        evt_id = event.GetId()
+        action = self._menu_actions.get(evt_id, None)
+        if action:
+            action()
+        else:
+            raise Exception, "Menu action not defined!"
+
+    def fireEvent(self):
+        print "Fire bf.BYMUR_UPDATE_ALL event!"
+        event = bf.BymurUpdateEvent(bf.BYMUR_UPDATE_ALL, 1)
+        wx.PostEvent(self, event)
+
+    @property
+    def dbControls(self):
+        return self._db_actions
+
+    @property
+    def mapControls(self):
+        return self._map_actions
+
+
+class BymurWxView(wx.Frame):
+    # TODO: lot of methods should be moved to wx.App, not frame
+    status_txt_ready = "ByMuR ready"
+    _isbusy = False
+    _busymsg = "Wait please..."
+    _disableAll = None
+
+    # TODO: These should be in controller or core?
+    _db_connected = False
+    _db_loaded = False
+
+    def __init__(self, *args, **kwargs):
+        self._basedir =  kwargs.pop('basedir', None)
+        self._controller = kwargs.pop('controller', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._title = kwargs.pop('title', '')
+        super(BymurWxView, self).__init__(*args, **kwargs)
+
+        self._ctrls_data = {}
+        self._hazard = None
+        self._hazard_data = None
+        self._hazard_options = {}
+        self._loss = None
+        self._risk = None
+
+        self._selected_point = None
+        # self._selected_area = None
+        self._selected_areas = None
+
+        self._compare_risks = []
+
+
+        # TODO: make a list for events
+        self.Bind(bf.BYMUR_UPDATE_ALL, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_POINT, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_CURVE, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_MAP, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_DIALOG, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_UPDATE_CTRLS, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_THREAD_CLOSED, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_DB_CONNECTED, self.OnBymurEvent)
+        self.Bind(bf.BYMUR_DB_CLOSED, self.OnBymurEvent)
+
+        # Menu
+        self.menuBar = BymurWxMenu(controller=self._controller)
+        self.SetMenuBar(self.menuBar)
+        self.Bind(wx.EVT_MENU, self.menuBar.doMenuAction)
+
+        # StatusBar
+        self.statusbar = self.CreateStatusBar()
+        self.PushStatusText(self.status_txt_ready)
+
+        # Main panel
+        self.mainSizer = wx.BoxSizer(orient=wx.HORIZONTAL)
+        # self._leftSizer = wx.BoxSizer(orient=wx.VERTICAL)
+        self._leftSizer = wx.GridBagSizer(5, 4)
+        self._ctrlsPanel = BymurWxCtrlsPanel(parent=self,
+                                           controller=self._controller,
+                                           title="Model",
+                                           label="CtrlsPanel")
+
+        self._dataPanel = BymurWxDataPanel(parent=self,
+                                           controller=self._controller,
+                                           title="Data",
+                                           label="DataPanel")
+
+        self._rightPanel = BymurWxRightPanel(parent=self,
+                                             controller=self._controller,
+                                             label="RightPanel")
+        self._leftSizer.Add(self._ctrlsPanel, pos=(0,0))
+        self._leftSizer.Add(self._dataPanel, pos=(1,0))
+        self.mainSizer.Add(self._leftSizer, 0)
+        self.mainSizer.Add(self._rightPanel, 1, wx.EXPAND)
+        self.SetSizer(self.mainSizer)
+        self.SetSize((1200, 900))
+
+    def reset(self):
+        self._ctrls_data = {}
+        self._hazard = None
+        self._hazard_data = None
+        self._hazard_options = {}
+        self._selected_point = None
+
+    def refresh(self):
+        wx.SafeYield()
+        self.Refresh()
+        self.Update()
+
+
+    def updateView(self, **kwargs):
+        pass
+
+    def saveFile(self, dfl_dir, get_text):
+        ext = '.txt'
+        dlg = wx.FileDialog(self, message="Save File as...",
+                            defaultDir=dfl_dir, defaultFile="*.txt",
+                            wildcard="*.*",
+                            style=wx.SAVE | wx.FD_OVERWRITE_PROMPT)
+        dlg_result = dlg.ShowModal()
+        dlg.Destroy()
+        if dlg_result == wx.ID_OK:
+            savepath = dlg.GetPath()
+            if savepath[-4:] == ext:
+                filename = savepath
+            else:
+                filename = savepath + ext
+
+            try:
+                fp = open(filename, "w")
+                # TODO: i shloud refactor to avoid calculations in the view!
+                fp.writelines(get_text(self.rightPanel.mapPanel.map.hazArray))
+                fp.close()
+            except Exception as e:
+                bf.showMessage(parent=self,
+                               message=str(e),
+                               kind="BYMUR_ERROR",
+                               caption="Error")
+
+    def showModalDlg(self, dialog_type, **kwargs):
+        """
+        :param dialog_type: class name of the dialog to show
+        :param **kwargs: argument to the specific dialog
+        :return: dictionary containing dialog data on success, None on failure
+        """
+        result = -1
+        data = {}
+        dlg = eval(dialog_type)(parent=self, **kwargs)
+        while result < 0:
+            result, data = dlg.ShowModal()
+        if result > 0:
+            return data
+        else:
+            return None
+
+    def selectRisksDlg(self, current_risk, compare_risks, risks):
+        """
+
+        """
+        opts = [r['model_name'] for r in risks
+                if r['model_name'] != current_risk.model_name]
+        dlg = wx.MultiChoiceDialog( self, "Pick some programming languages",
+                              "wx.MultiChoiceDialog", opts)
+        sel_items = []
+        for r in opts:
+            if r in [cr.model_name for cr in compare_risks]:
+                sel_items.append(opts.index(r))
+        dlg.SetSelections(sel_items)
+        r_strings = []
+        if (dlg.ShowModal() == wx.ID_OK):
+            selections = dlg.GetSelections()
+            r_strings = [opts[x] for x in selections]
+            return (len(r_strings), r_strings)
+        else:
+            return (-1, r_strings)
+
+
+    def GetBusy(self):
+        """
+        Is the application busy?
+        :return: Boolean
+        """
+        return self._isbusy
+
+    def SetBusy(self, state, **kwargs):
+        """
+        Setting the application busy
+        :param state: Boolean
+        """
+        self._isbusy = state
+        wait_msg = kwargs.pop('wait_msg', self._busymsg)
+        if self._isbusy:
+            # self._old_style = self.GetWindowStyle()
+            # self.Hide()
+            # self.SetWindowStyle(self._old_style | wx.STAY_ON_TOP)
+            self.PushStatusText(wait_msg)
+            self.Disable()
+            self._busydlg = BymurBusyDlg(wait_msg, parent=self)
+
+
+        else:
+            self.PopStatusText()
+            # self.Show()
+            self._busydlg.Destroy()
+            self.Enable()
+            del self._busydlg
+            # del self._disableAll
+            # self.SetWindowStyle(self._old_style)
+
+
+    def wait(self, **kwargs):
+        self.SetBusy(True, **kwargs)
+
+
+    def OnBymurEvent(self, event):
+        if event.GetEventType() == bf.wxBYMUR_DB_CONNECTED:
+            print "bf.wxBYMUR_DB_CONNECTED"
+            self.dbConnected = True
+            self.ctrlsPanel.updateCtrls()
+        elif event.GetEventType() == bf.wxBYMUR_DB_CLOSED:
+            print "bf.wxBYMUR_DB_CLOSED"
+            self.dbConnected = False
+            self.reset()
+            self.ctrlsPanel.clearCtrls()
+            self.ctrlsPanel.clearPoint()
+            self.dataPanel.clearPoint()
+            self.rightPanel.curvesPanel.clear()
+            self.rightPanel.mapPanel.clear()
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_CTRLS:
+            print "bf.wxBYMUR_UPDATE_CTRLS"
+            self.ctrlsPanel.updateCtrls()
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_DIALOG:
+            print "bf.wxBYMUR_UPDATE_DIALOG"
+            self.ctrlsPanel.updateCtrls()
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_ALL:
+            print "bf.wxBYMUR_UPDATE_ALL"
+            self.ctrlsPanel.updateCtrls(event)
+            self.dataPanel.updateInventory()
+            self.ctrlsPanel.updatePointInterval()
+            self.ctrlsPanel.clearPoint()
+            self.dataPanel.clearPoint()
+            self.rightPanel.curvesPanel.clear()
+            self.rightPanel.curvesPanel.updatePages()
+            self.rightPanel.curvesPanel.updateView()
+            self.rightPanel.mapPanel.clear()
+            self.rightPanel.mapPanel.updateView()
+            self.rightPanel.Enable(True)
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_POINT:
+            print "bf.wxBYMUR_UPDATE_POINT"
+            self.ctrlsPanel.updatePointData()
+            self.dataPanel.updatePointData()
+            self.rightPanel.mapPanel.updatePoint()
+            self.rightPanel.curvesPanel.updatePages()
+            self.rightPanel.curvesPanel.updateView()
+        elif event.GetEventType() == bf.wxBYMUR_UPDATE_MAP:
+            print "bf.wxBYMUR_UPDATE_MAP"
+            self.rightPanel.curvesPanel.updateView()
+
+        if self.GetBusy():
+            self.SetBusy(False)
+
+    @property
+    def rightPanel(self):
+        return self._rightPanel
+
+    @property
+    def ctrlsPanel(self):
+        return self._ctrlsPanel
+
+    @property
+    def dataPanel(self):
+        return self._dataPanel
+
+    @property
+    def hazard_options(self):
+        return self._ctrlsPanel.hazard_options
+
+    @property
+    def busymsg(self):
+        """
+        """
+        return self._busymsg
+
+    @busymsg.setter
+    def busymsg(self, msg):
+        self._busymsg = msg
+
+    @property
+    def dbConnected(self):
+        return self._db_connected
+
+    @dbConnected.setter
+    def dbConnected(self, value):
+        self._db_connected = value
+        for item in self.menuBar.dbControls:
+            self.menuBar.Enable(item.GetId(), value)
+
+    @property
+    def dbLoaded(self):
+        return self._db_loaded
+
+    @dbLoaded.setter
+    def dbLoaded(self, value):
+        self.dbConnected = value
+        self._db_loaded = value
+        for item in self.menuBar.mapControls:
+            self.menuBar.Enable(item.GetId(), value)
+
+    @property
+    def basedir(self):
+        return self._basedir
+
+    @basedir.setter
+    def basedir(self, dir):
+        self._basedir = dir
+
+    @property
+    def ctrls_data(self):
+        return self._ctrls_data
+
+    @ctrls_data.setter
+    def ctrls_data(self, data):
+        self._ctrls_data = data
+
+    @property
+    def hazard(self):
+        return self._hazard
+
+    @hazard.setter
+    def hazard(self, haz):
+        self._hazard = haz
+
+    @property
+    def hazard_data(self):
+        return self._hazard_data
+
+    @hazard_data.setter
+    def hazard_data(self, data):
+        self._hazard_data = data
+
+    @property
+    def hazard_options(self):
+        return self._hazard_options
+
+    @hazard_options.setter
+    def hazard_options(self, data):
+        self._hazard_options = data
+
+    @property
+    def selected_point(self):
+        return self._selected_point
+
+    @selected_point.setter
+    def selected_point(self, data):
+        self._selected_point = data
+        
+    @property
+    def inventory(self):
+        return self._inventory
+
+    @inventory.setter
+    def inventory(self, data):
+        self._inventory = data
+        
+    @property
+    def fragility(self):
+        return self._fragility
+
+    @fragility.setter
+    def fragility(self, data):
+        self._fragility = data
+        
+    @property
+    def loss(self):
+        return self._loss
+
+    @loss.setter
+    def loss(self, data):
+        self._loss = data
+    
+    @property
+    def risk(self):
+        return self._risk
+
+    @risk.setter
+    def risk(self, data):
+        self._risk = data
+
+    # @property
+    # def inventory_sections(self):
+    #     return self._inventory_sections
+    #
+    # @inventory_sections.setter
+    # def inventory_sections(self, data):
+    #     self._inventory_sections = data
+        
+    # @property
+    # def selected_area(self):
+    #     return self._selected_area
+    # @selected_area.setter
+    # def selected_area(self, data):
+    #     self._selected_area = data
+
+    @property
+    def selected_areas(self):
+        return self._selected_areas
+    @selected_areas.setter
+    def selected_areas(self, data):
+        self._selected_areas = data
+        
+    @property
+    def compare_risks(self):
+        return self._compare_risks
+    @compare_risks.setter
+    def compare_risks(self, data):
+        self._compare_risks = data
+
+class BymurWxApp(wx.App):
+    def __init__(self, *args, **kwargs):
+        self._controller = kwargs.pop('controller', None)
+        self._basedir =  kwargs.pop('basedir', None)
+        self._inventory = kwargs.pop('inventory', None)
+        self._hazard_schema = bf.HazardSchema()
+        # self._hazard_schema.validate_xml('/hades/dev/bymur-data/test/seis_test.xml')
+        # print bf.validate_xml('/hades/dev/bymur-data/test/seis_test.xml',
+        #         '/hades/dev/bymur/schemas/bymur_hazard_result.xsd')
+        super(BymurWxApp, self).__init__(*args, **kwargs)
+        # print bf.validate_xml('/hades/dev/bymur-data/test/seis_test.xml',
+        #         '/hades/dev/bymur/schemas/bymur_hazard_result.xsd')
+        # self._hazard_schema.validate_xml('/hades/dev/bymur-data/test/seis_test.xml')
+
 
     def OnInit(self):
-        frame = BymurFrame(None, -1, "V1 - BYMUR")
+        frame = BymurWxView(parent=None, controller=self._controller,
+                            basedir = self._basedir,
+                            inventory = self._inventory,
+                            title="ByMuR - Refactoring")
+
+        self._controller.set_gui(frame)
+
+        # self._controller._wxframe = frame
+
         frame.Show(True)
-        self.SetTopWindow(frame)
-        frame.Centre()
         return True
 
-
-# starting the main gui
 if __name__ == "__main__":
-    app = BymurGui(0)
+    core = bymur_core.BymurCore()
+    control = bymur_controller.BymurController(core)
+    app = BymurWxApp(redirect=False, controller=control,
+                     basedir = control.basedir, inventory = core.inventory)
     app.MainLoop()

@@ -1,0 +1,71 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<xs:schema
+        xmlns:xs="http://www.w3.org/2001/XMLSchema"
+        xmlns:nrml="http://openquake.org/xmlns/nrml/0.4"
+        elementFormDefault="qualified"
+        xml:lang="en">
+    <xs:import namespace="http://openquake.org/xmlns/nrml/0.4"
+               schemaLocation="./oq-nrmlib/nrml.xsd"/>
+    <!--
+    Abbreviations used:
+    - ffs: fragility function set
+    - ffc: fragility function (continuous)
+    - ffd: fragility function (discrete)
+    -->
+    <xs:element name="arealFragilityModel" type="ArealFragilityModel"/>
+    <xs:complexType name="ArealFragilityModel">
+        <xs:sequence>
+            <xs:element name="description" type="xs:string"/>
+            <xs:element name="limitStates" type="LimitStates" minOccurs="1"
+                        maxOccurs="1"/>
+            <xs:element name="IML" type="nrml:IMLType" minOccurs="1"
+                maxOccurs="1"/>
+            <xs:element ref="ffs" minOccurs="1" maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="modelName" type="xs:string" use="required"/>
+        <xs:attribute name="hazardType" type="xs:string"/>
+        <xs:attribute name="statistics" type="nrml:HazardCurveStats"
+                      use="optional"/>
+        <!-- quantileValue is only used when statistics == 'quantile' -->
+        <xs:attribute name="quantileValue" type="nrml:PositiveDoubleType"
+                      use="optional"/>
+        <xs:attribute name="unit" type="xs:string" use="optional"/>
+        <xs:attribute name="format" type="Fmformat" use="required"/>
+    </xs:complexType>
+    <xs:simpleType name="LimitStates">
+        <xs:restriction base="nrml:StringList">
+            <xs:minLength value="1"/>
+        </xs:restriction>
+    </xs:simpleType>
+    <xs:element name="ffs" type="Ffs"/>
+    <xs:complexType name="Ffs">
+        <xs:sequence>
+            <xs:element name="taxonomy" minOccurs="1" maxOccurs="unbounded"
+                        type="Taxonomy" />
+        </xs:sequence>
+        <xs:attribute name="noDamageLimit" type="nrml:PositiveDoubleType"
+                      use="optional"/>
+        <xs:attribute name="areaID" type="xs:nonNegativeInteger"
+                      use="required"/>
+    </xs:complexType>
+    <xs:complexType name="Taxonomy">
+        <xs:sequence>
+            <xs:element name="ffd" type="Ffd" minOccurs="0"
+                maxOccurs="unbounded"/>
+        </xs:sequence>
+        <xs:attribute name="categoryName" type="xs:string"/>
+    </xs:complexType>
+    <xs:complexType name="Ffd">
+        <xs:sequence>
+            <xs:element name="poEs" type="nrml:NormalizedDoubleList"
+                        minOccurs="1" maxOccurs="1"/>
+        </xs:sequence>
+        <xs:attribute name="ls" type="xs:string" use="required"/>
+    </xs:complexType>
+    <xs:simpleType name="Fmformat">
+        <xs:restriction base="xs:string">
+            <xs:enumeration value="continuous"/>
+            <xs:enumeration value="discrete"/>
+        </xs:restriction>
+    </xs:simpleType>
+</xs:schema>
