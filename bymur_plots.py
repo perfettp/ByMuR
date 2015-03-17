@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 
-'''
+"""
   Bymur Software computes Risk and Multi-Risk associated to Natural Hazards.
   In particular this tool aims to provide a final working application for
   the city of Naples, considering three natural phenomena, i.e earthquakes,
@@ -10,7 +10,7 @@
   Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro in
   Ricerca funding program.
 
-  Copyright(C) 2012 Roberto Tonini and Jacopo Selva
+  Copyright(C) 2012-2015 Paolo Perfetti, Roberto Tonini and Jacopo Selva
 
   This file is part of BYMUR software.
 
@@ -27,7 +27,8 @@
   You should have received a copy of the GNU General Public License
   along with BYMUR. If not, see <http://www.gnu.org/licenses/>.
 
-'''
+"""
+
 
 from mpl_toolkits.axes_grid1 import make_axes_locatable
 import numpy as np
