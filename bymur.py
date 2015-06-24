@@ -38,6 +38,9 @@ import bymur_core
 import bymur_controller
 import bymur_functions as bf
 import wx.lib.agw.flatnotebook as FlatNB
+import sys
+import argparse
+
 
 class BymurBusyDlg(wx.BusyInfo):
     """
@@ -2639,9 +2642,38 @@ class BymurWxApp(wx.App):
         frame.Show(True)
         return True
 
+
+def build_parser():
+    parser = argparse.ArgumentParser(description="ByMuR tool")
+    parser.add_argument('-b', '--batch', action="store_true",
+                        help='Run ByMuR in batch mode')
+    parser.add_argument('-g', '--grid', required=False, help='Grid file to use')
+    actions_args = parser.add_mutually_exclusive_group(required=True)
+    actions_args.add_argument('-a','--add', action="store_true",
+                        help='Load data on database')
+    parser.add_argument('files', nargs='*', type=file,
+                        help='file list')
+
+    return parser
+
+
 if __name__ == "__main__":
-    core = bymur_core.BymurCore()
-    control = bymur_controller.BymurController(core)
-    app = BymurWxApp(redirect=False, controller=control,
+    _batch_mode = False
+
+    opts=vars(build_parser().parse_args(sys.argv))
+    _batch_mode = opts['batch']
+    if _batch_mode:
+        if not opts['grid']:
+            raise argparse.ArgumentError(opts["grid"], "Grid file is required!")
+
+        core = bymur_core.BymurCore(batch = _batch_mode)
+        core.connect_db(db_host="***REMOVED***", db_port="3306",
+        db_user="***REMOVED***", db_password = "***REMOVED***", db_name="bymurDB_V1")
+        print "Batch mode!"
+        exit
+    else:
+        core = bymur_core.BymurCore()
+        control = bymur_controller.BymurController(core)
+        app = BymurWxApp(redirect=False, controller=control,
                      basedir = control.basedir, inventory = core.inventory)
-    app.MainLoop()
+        app.MainLoop()

@@ -421,7 +421,8 @@ class BymurCore(object):
     ens_sample_number = 1000
     ens_percentiles = np.arange(5,100,5)
 
-    def __init__(self):
+    def __init__(self, batch = False):
+        self._batch_mode = batch
         self._db = None
         self._db_details = None
         self._ctrls_data = {}
