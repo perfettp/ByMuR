@@ -2651,8 +2651,7 @@ def build_parser():
     actions_args = parser.add_mutually_exclusive_group(required=True)
     actions_args.add_argument('-a','--add', action="store_true",
                         help='Load data on database')
-    parser.add_argument('files', nargs='*', type=file,
-                        help='file list')
+    parser.add_argument('files', nargs='+', help='file list')
 
     return parser
 
@@ -2660,16 +2659,27 @@ def build_parser():
 if __name__ == "__main__":
     _batch_mode = False
 
-    opts=vars(build_parser().parse_args(sys.argv))
+    opts=vars(build_parser().parse_args(sys.argv[1:]))
     _batch_mode = opts['batch']
     if _batch_mode:
+        print "Batch mode!"
         if not opts['grid']:
             raise argparse.ArgumentError(opts["grid"], "Grid file is required!")
 
         core = bymur_core.BymurCore(batch = _batch_mode)
         core.connect_db(db_host="***REMOVED***", db_port="3306",
-        db_user="***REMOVED***", db_password = "***REMOVED***", db_name="bymurDB_V1")
-        print "Batch mode!"
+        db_user="***REMOVED***", db_password = "***REMOVED***",
+        db_name="***REMOVED***")
+        _grid_name = core.db.load_grid(opts['grid'])
+        for f in opts['files']:
+            if os.path.isdir(f):
+                _haz_files = bf.find_xml_files(f, path=True)
+            elif os.path.isfile(f):
+                _haz_files = [f]
+            _addDataDetails = dict(datagrid_name=_grid_name,
+                               haz_files=_haz_files )
+            print "addDataDetails %s " % _addDataDetails
+            core.add_data(**_addDataDetails)
         exit
     else:
         core = bymur_core.BymurCore()
