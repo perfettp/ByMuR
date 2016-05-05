@@ -2648,10 +2648,10 @@ def build_parser():
     parser.add_argument('-b', '--batch', action="store_true",
                         help='Run ByMuR in batch mode')
     parser.add_argument('-g', '--grid', required=False, help='Grid file to use')
-    actions_args = parser.add_mutually_exclusive_group(required=True)
+    actions_args = parser.add_mutually_exclusive_group(required=False)
     actions_args.add_argument('-a','--add', action="store_true",
                         help='Load data on database')
-    parser.add_argument('files', nargs='+', help='file list')
+    parser.add_argument('files', nargs='*', help='file list')
 
     return parser
 
@@ -2682,6 +2682,7 @@ if __name__ == "__main__":
             core.add_data(**_addDataDetails)
         exit
     else:
+        print "GUI mode!"
         core = bymur_core.BymurCore()
         control = bymur_controller.BymurController(core)
         app = BymurWxApp(redirect=False, controller=control,
