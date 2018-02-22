@@ -208,25 +208,25 @@ INSERT INTO `phenomena` (`name`) VALUES('VOLCANIC')
             if kwargs.get('db_name') is None:
                 print "Creating db!"
                 self._connection = mdb.connect(host=kwargs.pop('db_host',
-                                                       '***REMOVED***'),
+                                                       'localhost'),
                                        port=int(kwargs.pop('db_port',
                                                            3306)),
                                        user=kwargs.pop('db_user',
-                                                       '***REMOVED***'),
+                                                       'bymurTEST'),
                                        passwd=kwargs.pop('db_password',
-                                                         '***REMOVED***'))
+                                                         'bymurTEST'))
             else:
                 print "Connecting db!"
                 self._connection = mdb.connect(host=kwargs.pop('db_host',
-                                                               '***REMOVED***'),
+                                                               'localhost'),
                                                port=int(kwargs.pop('db_port',
                                                                    3306)),
                                                user=kwargs.pop('db_user',
-                                                               '***REMOVED***'),
+                                                               'bymurTEST'),
                                                passwd=kwargs.pop('db_password',
-                                                                 '***REMOVED***'),
+                                                                 'bymurTEST'),
                                                db=kwargs.pop('db_name',
-                                                             'bymurDB-dev'))
+                                                             'bymurTEST'))
             self._connection.autocommit(True)
             self._cursor = self._connection.cursor()
         except:

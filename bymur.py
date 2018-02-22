@@ -2667,9 +2667,9 @@ if __name__ == "__main__":
             raise argparse.ArgumentError(opts["grid"], "Grid file is required!")
 
         core = bymur_core.BymurCore(batch = _batch_mode)
-        core.connect_db(db_host="***REMOVED***", db_port="3306",
-        db_user="***REMOVED***", db_password = "***REMOVED***",
-        db_name="***REMOVED***")
+        core.connect_db(db_host="localhost", db_port="3306",
+        db_user="bymurTEST", db_password = "bymurTEST",
+        db_name="bymurTEST")
         _grid_name = core.db.load_grid(opts['grid'])
         for f in opts['files']:
             if os.path.isdir(f):
