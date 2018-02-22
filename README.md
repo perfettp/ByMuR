@@ -1,5 +1,25 @@
 # Bayesian MUlti-Risk Assessment
 
+Bymur Software computes Risk and Multi-Risk associated to Natural Hazards.
+In particular this tool aims to provide a final working application for
+the city of Naples, considering three natural phenomena, i.e earthquakes,
+volcanic eruptions and tsunamis.
+The tool is the final product of BYMUR, an Italian project funded by the
+Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro in
+Ricerca funding program.
+
+---
+
+## License
+
+Bymur is released under the terms of the GNU General Public License as 
+published by the Free Software Foundation, either version 3 of the License,
+or (at your option) any later version.
+
+The XML Schema Definitions in the subdir `schemas/oq-nrmlib` are originally 
+taken from the [GEM OpenQuake](https://github.com/gem/oq-engine) and are 
+relased under the terms of the GNU Affero General Public License version 3.
+
 ---
 
 ## Install on Debian or Ubuntu GNU \\ Linux

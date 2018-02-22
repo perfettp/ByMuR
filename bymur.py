@@ -10,7 +10,7 @@
   Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro in
   Ricerca funding program.
 
-  Copyright(C) 2012-2015 Paolo Perfetti, Roberto Tonini and Jacopo Selva
+  Copyright(C) 2012-2016, 2018 Paolo Perfetti, Roberto Tonini and Jacopo Selva
 
   This file is part of BYMUR software.
 

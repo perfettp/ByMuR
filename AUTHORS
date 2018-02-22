@@ -1,0 +1,13 @@
+Bymur Software computes Risk and Multi-Risk associated to Natural Hazards.
+In particular this tool aims to provide a final working application for
+the city of Naples, considering three natural phenomena, i.e earthquakes,
+volcanic eruptions and tsunamis.
+The tool is the final product of BYMUR, an Italian project funded by the
+Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro in
+Ricerca funding program.
+
+Copyright(C) 2012-2016, 2018 Paolo Perfetti, Roberto Tonini and Jacopo Selva
+
+  Paolo Perfetti <paolo.perfetti@ingv.it>
+  Roberto Tonini <roberto.tonini@ingv.it>
+  Jacopo Selva <jacopo.selva@ingv.it>
