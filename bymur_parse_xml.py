@@ -40,11 +40,11 @@ def main(*args):
         print "Root dir is needed"
         exit(-1)
 
-    dbDetails = {'db_host': '127.0.0.1',
+    dbDetails = {'db_host': 'localhost',
                  'db_port': '3306',
-                 'db_user': '***REMOVED***',
-                 'db_password': '***REMOVED***',
-                 'db_name': '***REMOVED***'
+                 'db_user': 'bymurTEST',
+                 'db_password': 'bymurTEST',
+                 'db_name': 'bymurTEST'
     }
     db=bymur_db.BymurDB(**dbDetails)
 

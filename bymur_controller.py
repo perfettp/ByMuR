@@ -42,15 +42,15 @@ class BymurController(object):
 
     _exception_debug = False
     _basedir = os.getcwd()
-    _dbDetails = dict(db_host='127.0.0.1', db_port='3306',
-                      db_user='***REMOVED***', db_password='***REMOVED***',
-                      db_name='***REMOVED***')
+    _dbDetails = dict(db_host='localhost', db_port='3306',
+                      db_user='bymurTEST', db_password='bymurTEST',
+                      db_name='bymurTEST')
 
     _addDBDataDetails = dict()
 
-    _createDBDetails = dict(db_host='***REMOVED***', db_port='3306',
-                            db_user='***REMOVED***', db_password='***REMOVED***',
-                            db_name='***REMOVED***')
+    _createDBDetails = dict(db_host='localhost', db_port='3306',
+                            db_user='bymurTEST', db_password='bymurTEST',
+                            db_name='bymurTEST')
 
     def __init__(self, core):
         """
