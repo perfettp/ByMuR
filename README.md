@@ -1,4 +1,5 @@
-# Bayesian MUlti-Risk Assessment
+[![DOI](https://zenodo.org/badge/122540622.svg)](https://zenodo.org/badge/latestdoi/122540622)
+# Bayesian MUlti-Risk Assessment 
 
 Bymur Software computes Risk and Multi-Risk associated to Natural Hazards.
 In particular this tool aims to provide a final working application for
