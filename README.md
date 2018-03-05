@@ -12,8 +12,8 @@ Ricerca funding program.
 
 ## License
 
-Bymur is released under the terms of the GNU General Public License as 
-published by the Free Software Foundation, either version 3 of the License,
+Bymur is released under the terms of the GNU Affero General Public License 
+as published by the Free Software Foundation, either version 3 of the License,
 or (at your option) any later version.
 
 The XML Schema Definitions in the subdir `schemas/oq-nrmlib` are originally 
