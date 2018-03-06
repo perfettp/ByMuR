@@ -2,12 +2,13 @@
 # Bayesian MUlti-Risk Assessment 
 
 Bymur Software computes Risk and Multi-Risk associated to Natural Hazards.
-In particular this tool aims to provide a final working application for
-the city of Naples, considering three natural phenomena, i.e earthquakes,
-volcanic eruptions and tsunamis.
-The tool is the final product of BYMUR, an Italian project funded by the
-Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro in
-Ricerca funding program.
+The tool is the final product of BYMUR (BaYesian MUlti-Risk assessment: a 
+case study for natural risks in the city of Naples), an Italian project funded 
+by the Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro 
+in Ricerca funding program.
+In BYMUR project the tool was used to provide a final working pilot application 
+for the city of Naples, considering three natural phenomena, i.e earthquakes,
+volcanic eruptions and tsunamis. 
 
 ---
 
