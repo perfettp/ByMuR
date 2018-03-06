@@ -6,6 +6,7 @@ The tool is the final product of BYMUR (BaYesian MUlti-Risk assessment: a
 case study for natural risks in the city of Naples), an Italian project funded 
 by the Italian Ministry of Education (MIUR) in the frame of 2008 FIRB, Futuro 
 in Ricerca funding program.
+
 In BYMUR project the tool was used to provide a final working pilot application 
 for the city of Naples, considering three natural phenomena, i.e earthquakes,
 volcanic eruptions and tsunamis. 
